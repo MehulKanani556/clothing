@@ -22,7 +22,7 @@ const slides = [
         titleMain: 'Discover Fashion',
         titleHighlight: 'That Defines You',
         description: 'Bold designs and premium comfort for the modern urban explorer.',
-       buttonText: 'Shop Now',
+        buttonText: 'Shop Now',
         color: 'text-yellow-500',
         bgGradient: 'from-yellow-100/20'
     },
@@ -110,6 +110,8 @@ export default function HeroSection() {
                         <img
                             src={slide.image}
                             alt={slide.titleMain}
+                            loading={index === 0 ? "eager" : "lazy"}
+                            fetchPriority={index === 0 ? "high" : "low"}
                             style={{
                                 transform: `scale(${index === currentSlide ? 1.05 : 1.2}) translate(${mousePos.x * -20}px, ${mousePos.y * -20}px)`
                             }}

@@ -23,14 +23,14 @@ export default function OfferBanner({
                             )}
                         </h2>
                         <p className="text-lg text-gray-600 mb-8">{subtitle}</p>
-                        <button className="bg-black text-white px-8 py-3 text-sm font-bold uppercase tracking-wider hover:bg-gray-800 transition-colors">
+                        <button className="bg-black rounded-[4px] text-white px-8 py-3 text-sm font-bold uppercase tracking-wider hover:bg-gray-800 transition-colors">
                             {buttonText}
                         </button>
                     </div>
 
                     {/* Image */}
                     <div className="w-full md:w-1/2 h-[400px]">
-                        <img src={image} alt="Offer" className="w-full h-full object-cover rounded-sm shadow-sm" />
+                        <img src={image} alt="Offer" loading="lazy" className="w-full h-full object-cover rounded-sm shadow-sm" />
                     </div>
                 </div>
             </div>

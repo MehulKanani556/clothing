@@ -1,38 +1,40 @@
 import React, { useRef } from 'react';
 import { FiArrowRight, FiArrowLeft } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 
 export default function CategorySection() {
     const scrollRef = useRef(null);
+    const navigate = useNavigate();
 
     const categories = [
         {
             name: 'Streetwear',
-            image: 'https://images.unsplash.com/photo-1523398002811-999ca8dec234?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            image: 'https://images.unsplash.com/photo-1523398002811-999ca8dec234?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
             subtitle: 'Trending Now'
         },
         {
             name: 'Cargo & Utility',
-            image: 'https://images.unsplash.com/photo-1661110546807-4c1ce22ceced?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            image: 'https://images.unsplash.com/photo-1661110546807-4c1ce22ceced?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
             subtitle: 'Functional Style'
         },
         {
             name: 'Graphic Tees',
-            image: 'https://images.unsplash.com/photo-1503341338985-c0477be52513?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            image: 'https://images.unsplash.com/photo-1503341338985-c0477be52513?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
             subtitle: 'Express Yourself'
         },
         {
             name: 'Outerwear',
-            image: 'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            image: 'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
             subtitle: 'Winter Essentials'
         },
         {
             name: 'Accessories',
-            image: 'https://images.unsplash.com/photo-1575201046471-082b5c1a1e79?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            image: 'https://images.unsplash.com/photo-1575201046471-082b5c1a1e79?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
             subtitle: 'Complete The Look'
         },
         {
             name: 'Footwear',
-            image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
             subtitle: 'Step Up'
         },
     ];
@@ -79,11 +81,13 @@ export default function CategorySection() {
                     {categories.map((category, index) => (
                         <div
                             key={index}
-                            className="min-w-[280px] md:min-w-[320px] relative group cursor-pointer overflow-hidden rounded-xl h-[400px] snap-start bg-gray-100"
+                            onClick={() => navigate(`/category/${category.name.toLowerCase().replace(/\s+/g, '-')}`)}
+                            className="min-w-[280px] md:min-w-[290px] relative group cursor-pointer overflow-hidden rounded-xl h-[400px] snap-start bg-gray-100"
                         >
                             <img
                                 src={category.image}
                                 alt={category.name}
+                                loading="lazy"
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             />
                             {/* Overlay */}

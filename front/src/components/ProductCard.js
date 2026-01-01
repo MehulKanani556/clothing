@@ -1,9 +1,12 @@
 import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { FiShoppingCart, FiHeart, FiEye } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 
 export default function ProductCard({ product }) {
+    const navigate = useNavigate();
     const {
+        id,
         name = "Classic T-Shirt",
         price = "$29.99",
         oldPrice = null,
@@ -13,15 +16,24 @@ export default function ProductCard({ product }) {
         tag = null
     } = product || {};
 
+    const handleQuickView = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate(`/product/${id || 1}`, { state: { product } });
+    };
+
     return (
         <div className="group flex flex-col items-start w-full">
             {/* Image Container */}
             <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-100 mb-3 rounded-sm">
-                <img
-                    src={image}
-                    alt={name}
-                    className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                />
+                <Link to={`/product/${id || 1}`} state={{ product }}>
+                    <img
+                        src={image}
+                        alt={name}
+                        loading="lazy"
+                        className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                    />
+                </Link>
 
                 {/* Tag */}
                 {tag && (
@@ -38,7 +50,11 @@ export default function ProductCard({ product }) {
                     <button className="p-2.5 bg-white rounded-full shadow-lg hover:bg-black hover:text-white transition-colors" title="Wishlist">
                         <FiHeart size={18} />
                     </button>
-                    <button className="p-2.5 bg-white rounded-full shadow-lg hover:bg-black hover:text-white transition-colors" title="Quick View">
+                    <button
+                        onClick={handleQuickView}
+                        className="p-2.5 bg-white rounded-full shadow-lg hover:bg-black hover:text-white transition-colors"
+                        title="Quick View"
+                    >
                         <FiEye size={18} />
                     </button>
                 </div>
@@ -52,13 +68,12 @@ export default function ProductCard({ product }) {
                     ))}
                     <span className="text-xs text-gray-500 ml-1">({rating})</span>
                 </div>
-                <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">{category}</p>
                 <h3 className="text-sm font-medium text-gray-900 truncate mb-1">
-                    <a href="#">
-                        {/* <span aria-hidden="true" className="absolute inset-0" /> */}
+                    <Link to={`/product/${id || 1}`} state={{ product }} className="hover:text-black transition-colors">
                         {name}
-                    </a>
+                    </Link>
                 </h3>
+                {/* <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">{category}</p> */}
                 <div className="flex items-center gap-2">
                     <span className="text-base font-bold text-green-600">{price}</span>
                     {oldPrice && <span className="text-sm text-gray-400 line-through">{oldPrice}</span>}
