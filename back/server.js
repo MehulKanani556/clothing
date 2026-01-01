@@ -9,16 +9,25 @@ const socketManager = require("./socketManager/socketManager");
 const { createServer } = require('node:http');
 const app = express();
 const port = process.env.PORT || 8000;
+const cookieParser = require('cookie-parser');
+
+
+
+const corsOptions = {
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.use(bodyParser.json());
+app.use(cookieParser());
 
 const server = createServer(app);
-
 // Socket.IO
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    credentials: true
-  },
+  cors: corsOptions,
   transports: ['websocket', 'polling'],
   pingTimeout: 60000,
   pingInterval: 25000,
@@ -28,9 +37,8 @@ const io = new Server(server, {
 socketManager.initializeSocket(io);
 
 connectDb(app);
-app.use(cors());
-app.use(bodyParser.json());
+
 app.use('/api/', authRoutes);
-app.listen(port, () => {
-    console.log(`Server + Socket.IO is running on port ${port}`);
+server.listen(port, () => {
+  console.log(`Server + Socket.IO is running on port ${port}`);
 });

@@ -1,15 +1,11 @@
 const User = require("../models/user.model")
 const jwt = require('jsonwebtoken')
+
 exports.auth = async(req,res,next)=>{
 
     try {
-
         const authHeader = req.header("Authorization")
-
-        let token = authHeader.split(' ')[1];
-        
-    
-       
+        let token = authHeader.split(' ')[1]; 
          if(!token){
             return res.status(404).json({ status: 404, message: "Token Is Required" })
          }

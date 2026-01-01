@@ -1,5 +1,5 @@
 import axios from "axios";
-    import { BASE_URL } from "./BASE_URL";
+import { BASE_URL } from "./BASE_URL";
 import { logoutUser } from "../redux/slice/auth.slice";
 
 const userId = localStorage.getItem("userId");
@@ -69,8 +69,8 @@ axiosInstance.interceptors.request.use(
 //       isRefreshing = true;
 
 //       const refreshToken = localStorage.getItem("refreshToken");
-     
-      
+
+
 //       try {
 //         const response = await axios.post(
 //           `${BASE_URL}/generateNewTokens`,
