@@ -160,7 +160,7 @@ export default function CategoryPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
                     {products.map((product) => (
                         <ProductCard
-                            key={product.id}
+                            key={product._id || product.id}
                             product={{
                                 ...product,
                                 category: product.brand, // Mapping brand to category field for display

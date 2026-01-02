@@ -1,28 +1,33 @@
-
 import './App.css';
+import { Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { Toaster } from 'react-hot-toast';
 import { configureStore } from './redux/Store';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import Home from './pages/Home';
 import CategoryPage from './pages/CategoryPage';
 import ProductDetails from './pages/ProductDetails';
-import { Route, Routes } from 'react-router-dom';
-import Footer from './components/Footer';
-import { PersistGate } from 'redux-persist/integration/react';
+import CartPage from './pages/CartPage';
+
 const { store, persistor } = configureStore();
 window.persistor = persistor;
+
 function App() {
   return (
     <>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-        <Header />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/category/:categoryName" element={<CategoryPage />} />
-          <Route path="/product/:id" element={<ProductDetails />} />
-        </Routes>
-        <Footer />
+          <Toaster position="top-center" reverseOrder={false} />
+          <Header />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/category/:categoryName" element={<CategoryPage />} />
+            <Route path="/product/:id" element={<ProductDetails />} />
+            <Route path="/cart" element={<CartPage />} />
+          </Routes>
+          <Footer />
         </PersistGate>
       </Provider>
     </>

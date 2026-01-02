@@ -8,6 +8,7 @@ const { getAllUsers, getSingleUser, deleteUser, updateUser } = require('../contr
 const { getAllProducts, getProductById, getRelatedProducts, createProduct } = require('../controllers/product.controller');
 const { getAllCategories, createCategory } = require('../controllers/category.controller');
 const { getAllSubCategories, createSubCategory, getSubCategoriesByCategoryId } = require('../controllers/subCategory.controller');
+const { addToCart, getCart, removeFromCart, updateCartItem } = require('../controllers/cart.controller');
 
 // auth
 router.post('/register', upload.single("photo"), createUser);
@@ -40,5 +41,11 @@ router.post('/categories', createCategory);
 router.get('/subcategories', getAllSubCategories);
 router.get('/subcategories/:categoryId', getSubCategoriesByCategoryId);
 router.post('/subcategories', createSubCategory);
+
+// Cart
+router.post('/cart', auth, addToCart);
+router.get('/cart', auth, getCart);
+router.delete('/cart/:itemId', auth, removeFromCart);
+router.put('/cart/:itemId', auth, updateCartItem);
 
 module.exports = router;

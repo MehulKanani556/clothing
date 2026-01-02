@@ -10,11 +10,7 @@ import Footer from '../components/Footer';
 export default function Home() {
     const dispatch = useDispatch();
     const { newArrivals, bestSellers, products: allProducts, loading } = useSelector((state) => state.product);
-    console.log("allProducts", allProducts);
-    console.log("newArrivals", newArrivals);
-    console.log("bestSellers", bestSellers);
-    const d = useSelector((state)=>state.product)
-    console.log("loading", d);
+
 
     useEffect(() => {
         dispatch(fetchNewArrivals());
@@ -30,9 +26,7 @@ export default function Home() {
     const displayNewArrivals = newArrivals.length > 0 ? newArrivals : []; // In reality, better mock distinct, but ok for now
     const displayBestSellers = bestSellers.length > 0 ? bestSellers : []; // "
 
-    console.log("displayProducts", displayProducts);
-    console.log("displayNewArrivals", displayNewArrivals);
-    console.log("displayBestSellers", displayBestSellers);
+
 
 
     return (
@@ -53,7 +47,7 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     {displayProducts.map((product) => (
-                        <ProductCard key={product.id} product={product} />
+                        <ProductCard key={product._id || product.id || Math.random()} product={product} />
                     ))}
                 </div>
             </section>
@@ -76,7 +70,7 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     {displayNewArrivals.map((product) => (
-                        <ProductCard key={`na-${product.id}`} product={product} />
+                        <ProductCard key={`na-${product._id || product.id}`} product={product} />
                     ))}
                 </div>
             </section>
@@ -88,7 +82,7 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-10 gap-x-8">
                     {displayBestSellers.map((product) => (
-                        <ProductCard key={`bs-${product.id}`} product={product} />
+                        <ProductCard key={`bs-${product._id || product.id}`} product={product} />
                     ))}
                 </div>
             </section>
@@ -109,7 +103,7 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     {displayProducts.map((product) => (
-                        <ProductCard key={`sfs-${product.id}`} product={product} />
+                        <ProductCard key={`sfs-${product._id || product.id}`} product={product} />
                     ))}
                 </div>
             </section>
@@ -121,7 +115,7 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     {displayProducts.slice().reverse().map((product) => (
-                        <ProductCard key={`tc-${product.id}`} product={product} />
+                        <ProductCard key={`tc-${product._id || product.id}`} product={product} />
                     ))}
                 </div>
             </section>
