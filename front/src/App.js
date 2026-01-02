@@ -10,6 +10,7 @@ import Home from './pages/Home';
 import CategoryPage from './pages/CategoryPage';
 import ProductDetails from './pages/ProductDetails';
 import CartPage from './pages/CartPage';
+import WishlistPage from './pages/WishlistPage';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -26,6 +27,7 @@ function App() {
             <Route path="/category/:categoryName" element={<CategoryPage />} />
             <Route path="/product/:id" element={<ProductDetails />} />
             <Route path="/cart" element={<CartPage />} />
+            <Route path="/wishlist" element={<WishlistPage />} />
           </Routes>
           <Footer />
         </PersistGate>

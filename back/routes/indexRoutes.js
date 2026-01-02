@@ -9,6 +9,7 @@ const { getAllProducts, getProductById, getRelatedProducts, createProduct } = re
 const { getAllCategories, createCategory } = require('../controllers/category.controller');
 const { getAllSubCategories, createSubCategory, getSubCategoriesByCategoryId } = require('../controllers/subCategory.controller');
 const { addToCart, getCart, removeFromCart, updateCartItem } = require('../controllers/cart.controller');
+const { addToWishlist, getWishlist, removeFromWishlist } = require('../controllers/wishlist.controller');
 
 // auth
 router.post('/register', upload.single("photo"), createUser);
@@ -47,5 +48,10 @@ router.post('/cart', auth, addToCart);
 router.get('/cart', auth, getCart);
 router.delete('/cart/:itemId', auth, removeFromCart);
 router.put('/cart/:itemId', auth, updateCartItem);
+
+// Wishlist
+router.post('/wishlist', auth, addToWishlist);
+router.get('/wishlist', auth, getWishlist);
+router.delete('/wishlist/:productId', auth, removeFromWishlist);
 
 module.exports = router;

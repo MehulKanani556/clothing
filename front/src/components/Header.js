@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Disclosure, DisclosureButton, Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useDispatch, useSelector } from 'react-redux';
 import AuthModal from './AuthModal';
 import { logout } from '../redux/slice/auth.slice';
+import { fetchCart } from '../redux/slice/cart.slice';
+import { fetchWishlist } from '../redux/slice/wishlist.slice';
 import { Link } from 'react-router-dom';
 
 const navigation = [
@@ -22,7 +24,15 @@ export default function Header() {
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const { items: cartItems } = useSelector((state) => state.cart);
+  const { items: wishlistItems } = useSelector((state) => state.wishlist);
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchCart());
+      dispatch(fetchWishlist());
+    }
+  }, [isAuthenticated, dispatch]);
 
   const handleProfileClick = () => {
     if (!isAuthenticated) {
@@ -75,16 +85,21 @@ export default function Header() {
             </div>
           </div>
           <div className="absolute inset-y-0 right-0 flex items-center gap-3 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-            <button
-              type="button"
-              className="relative rounded-full p-1  text-black focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500 dark:hover:text-white"
+            <Link
+              to="/wishlist"
+              className="relative rounded-full p-1  text-black focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500 "
             >
               <span className="absolute -inset-1.5" />
-              <span className="sr-only">View notifications</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 22 21" fill="none">
-                <path d="M20.8235 19.1471L15.8824 14.2059C17.0294 12.7059 17.7353 10.8529 17.7353 8.82353C17.7353 3.97059 13.7647 0 8.91176 0C4.05882 0 0 3.97059 0 8.82353C0 13.6765 3.97059 17.6471 8.82353 17.6471C10.8529 17.6471 12.7941 16.9412 14.2941 15.7059L19.2353 20.6471C19.4118 20.8235 19.7647 21 20.0294 21C20.2941 21 20.5588 20.9118 20.8235 20.6471C21.2647 20.2941 21.2647 19.5882 20.8235 19.1471ZM2.20588 8.82353C2.20588 5.20588 5.20588 2.20588 8.82353 2.20588C12.4412 2.20588 15.4412 5.20588 15.4412 8.82353C15.4412 12.4412 12.4412 15.4412 8.82353 15.4412C5.20588 15.4412 2.20588 12.5294 2.20588 8.82353Z" fill="#141414" />
+              <span className="sr-only">View wishlist</span>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-[20px] h-[20px]">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
               </svg>
-            </button>
+              {wishlistItems?.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white ring-2 ring-white">
+                  {wishlistItems.length}
+                </span>
+              )}
+            </Link>
             <Link
               to="/cart"
               className="relative rounded-full p-1  text-black focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500 dark:hover:text-white"

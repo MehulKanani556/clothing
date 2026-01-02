@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../redux/slice/cart.slice';
+import { addToWishlist } from '../redux/slice/wishlist.slice';
 import { FiShoppingCart, FiHeart, FiEye } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { FaStar } from 'react-icons/fa';
@@ -30,6 +31,30 @@ export default function ProductCard({ product }) {
 
     const dispatch = useDispatch();
     const { isAuthenticated } = useSelector((state) => state.auth);
+    const { items: cartItems } = useSelector((state) => state.cart);
+    const { items: wishlistItems } = useSelector((state) => state.wishlist);
+
+    const isInCart = cartItems?.some(item => (item.product?._id === _id) || (item.product === _id));
+    const isInWishlist = wishlistItems?.some(item => (item._id === _id) || (item === _id));
+
+    const handleAddToWishlist = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!isAuthenticated) {
+            toast.error("Please login to add to wishlist");
+            return;
+        }
+
+        dispatch(addToWishlist(_id))
+            .unwrap()
+            .then(() => {
+                toast.success("Added to wishlist");
+            })
+            .catch((err) => {
+                toast.error(err.message || "Failed to add to wishlist");
+            });
+    };
 
     const handleAddToCart = (e) => {
         e.preventDefault();
@@ -89,13 +114,16 @@ export default function ProductCard({ product }) {
                 {/* Hover Actions */}
                 <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
                     <button
-                        onClick={handleAddToCart}
-                        className="p-2.5 bg-white rounded-full shadow-lg hover:bg-black hover:text-white transition-colors"
-                        title="Add to Cart">
-                        <FiShoppingCart size={18} />
+                        onClick={isInCart ? (e) => { e.preventDefault(); navigate('/cart'); } : handleAddToCart}
+                        className={`p-2.5 rounded-full shadow-lg transition-colors ${isInCart ? 'bg-black text-white' : 'bg-white hover:bg-black hover:text-white'}`}
+                        title={isInCart ? "Go to Cart" : "Add to Cart"}>
+                        <FiShoppingCart size={18} fill={isInCart ? "currentColor" : "none"} />
                     </button>
-                    <button className="p-2.5 bg-white rounded-full shadow-lg hover:bg-black hover:text-white transition-colors" title="Wishlist">
-                        <FiHeart size={18} />
+                    <button
+                        onClick={isInWishlist ? (e) => { e.preventDefault(); navigate('/wishlist'); } : handleAddToWishlist}
+                        className={`p-2.5 rounded-full shadow-lg transition-colors ${isInWishlist ? 'bg-red-50 text-red-500' : 'bg-white hover:bg-black hover:text-white'}`}
+                        title={isInWishlist ? "Go to Wishlist" : "Wishlist"}>
+                        <FiHeart size={18} fill={isInWishlist ? "currentColor" : "none"} />
                     </button>
                     <button
                         onClick={handleQuickView}

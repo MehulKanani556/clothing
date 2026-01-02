@@ -3,6 +3,7 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductById, fetchRelatedProducts } from '../redux/slice/product.slice';
 import { addToCart } from '../redux/slice/cart.slice';
+import { addToWishlist } from '../redux/slice/wishlist.slice';
 import toast from 'react-hot-toast';
 import { FiStar, FiShare2, FiHeart, FiShoppingBag, FiTruck, FiRefreshCw, FiChevronDown, FiChevronUp, FiCheck, FiInfo } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
@@ -107,6 +108,17 @@ export default function ProductDetails() {
     };
 
 
+
+    const handleAddToWishlist = () => {
+        if (!isAuthenticated) {
+            toast.error("Please login to add to wishlist");
+            return;
+        }
+        dispatch(addToWishlist(product._id))
+            .unwrap()
+            .then(() => toast.success("Added to wishlist"))
+            .catch((err) => toast.error(err.message || "Failed to add"));
+    };
 
     const handleAddToCart = () => {
         if (!isAuthenticated) {
@@ -287,7 +299,10 @@ export default function ProductDetails() {
                                 className="flex-1 bg-black text-white h-12 rounded-lg font-bold text-sm hover:bg-gray-900 transition-all flex items-center justify-center gap-2 uppercase tracking-wide">
                                 <FiShoppingBag size={18} /> Add to Bag
                             </button>
-                            <button className="w-12 h-12 flex items-center justify-center border border-gray-200 rounded-lg hover:border-black transition-colors">
+                            <button
+                                onClick={handleAddToWishlist}
+                                className="w-12 h-12 flex items-center justify-center border border-gray-200 rounded-lg hover:border-black transition-colors"
+                            >
                                 <FiHeart size={20} />
                             </button>
                         </div>
