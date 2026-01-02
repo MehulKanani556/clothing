@@ -84,6 +84,22 @@ const productSchema = new mongoose.Schema({
         index: true
     },
 
+    // --- New Requirements ---
+    gstPercentage: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 28
+    },
+    sizeChart: {
+        type: String, // URL to S3 image
+        trim: true
+    },
+    isExchangeOnly: {
+        type: Boolean,
+        default: false
+    },
+
     // --- Visual Variants (Color Families) ---
     // This structure supports "Group by Color" which is standard for apparel.
     variants: [{

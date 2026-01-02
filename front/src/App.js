@@ -12,6 +12,21 @@ import ProductDetails from './pages/ProductDetails';
 import CartPage from './pages/CartPage';
 import WishlistPage from './pages/WishlistPage';
 
+// Admin Imports
+import AdminLayout from './admin/components/layout/AdminLayout';
+import Dashboard from './admin/pages/dashboard/Dashboard';
+import Products from './admin/pages/products/Products';
+import Orders from './admin/pages/orders/Orders';
+import OfferZone from './admin/pages/offerZone/OfferZone';
+import Returns from './admin/pages/returns/Returns';
+import GstReports from './admin/pages/gstReports/GstReports';
+import SizeCharts from './admin/pages/sizeCharts/SizeCharts';
+import Blogs from './admin/pages/blogs/Blogs';
+import Payments from './admin/pages/payments/Payments';
+import Support from './admin/pages/support/Support';
+import Users from './admin/pages/users/Users';
+import PricingRules from './admin/pages/pricingRules/PricingRules';
+
 const { store, persistor } = configureStore();
 window.persistor = persistor;
 
@@ -20,7 +35,14 @@ function App() {
     <>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          <Toaster position="top-center" reverseOrder={false} />
+          <Routes>
+            {/* User Routes - Wrapped in Header/Footer implicitly if we want, or explicitly here. 
+              The original App.js wrapped everything in Header...Footer. 
+              We need to separate Admin from User layout. 
+          */}
+            <Route path="/*" element={
+              <>
+                 <Toaster position="top-center" reverseOrder={false} />
           <Header />
           <Routes>
             <Route path="/" element={<Home />} />
@@ -30,6 +52,28 @@ function App() {
             <Route path="/wishlist" element={<WishlistPage />} />
           </Routes>
           <Footer />
+              </>
+            } />
+
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="products" element={<Products />} />
+              <Route path="orders" element={<Orders />} />
+              <Route path="offer-zone" element={<OfferZone />} />
+              <Route path="returns" element={<Returns />} />
+              <Route path="users" element={<Users />} />
+              <Route path="reports" element={<GstReports />} />
+              <Route path="payments" element={<Payments />} />
+              <Route path="size-charts" element={<SizeCharts />} />
+              <Route path="blogs" element={<Blogs />} />
+              <Route path="pricing-rules" element={<PricingRules />} />
+              <Route path="support" element={<Support />} />
+              {/* Fallback */}
+              <Route index element={<Dashboard />} />
+            </Route>
+
+          </Routes>
         </PersistGate>
       </Provider>
     </>
