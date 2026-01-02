@@ -12,7 +12,18 @@ const userSchema = new mongoose.Schema({
     },
     photo: {
         type: String,
-        required: true,
+        default: "" // Made optional or default empty as user might not upload immediately on register? Actually registration uses upload, so it might be required. Keeping it as is but careful with updates.
+    },
+    mobileNumber: {
+        type: String,
+        default: ""
+    },
+    dateOfBirth: {
+        type: Date,
+    },
+    gender: {
+        type: String,
+        enum: ['Male', 'Female', 'Other'],
     },
     email: {
         type: String,

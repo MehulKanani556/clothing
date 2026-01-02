@@ -107,6 +107,23 @@ export const resetPassword = createAsyncThunk(
     }
 );
 
+// Update User Profile
+export const updateUserProfile = createAsyncThunk(
+    'auth/updateUserProfile',
+    async (formData, { rejectWithValue }) => {
+        try {
+            // Content-Type multipart/form-data is handled automatically by axios when data is FormData
+            // We need to know the endpoint.
+            // If the route is /users/update-profile or similar.
+            // I'll check indexRoutes first.
+            const response = await axiosInstance.put(`${BASE_URL}/users/profile`, formData);
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
+
 export const logout = createAsyncThunk(
     'auth/logout',
     async (_, { rejectWithValue }) => {
@@ -114,7 +131,7 @@ export const logout = createAsyncThunk(
             const response = await axiosInstance.post(`${BASE_URL}/logout`);
             console.log(window);
             console.log(window.persistor);
-            
+
             window.persistor.purge();
             return response.data;
         } catch (error) {
@@ -255,6 +272,20 @@ export const authSlice = createSlice({
                 state.message = action.payload?.message || "Reset Password Failed";
             })
 
+            .addCase(updateUserProfile.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(updateUserProfile.fulfilled, (state, action) => {
+                state.loading = false;
+                state.error = null;
+                state.user = action.payload.user;
+                state.message = "Profile Updated Successfully";
+            })
+            .addCase(updateUserProfile.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message || "Profile Update Failed";
+            });
     }
 
 });

@@ -130,9 +130,17 @@ export default function Header() {
             ) : (
               <Menu as="div" className="relative">
                 <MenuButton className="relative flex rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 26 26" fill="none">
-                    <path d="M13.4792 12.7292C16.3175 12.7292 18.625 10.4217 18.625 7.58333C18.625 4.745 16.3175 2.4375 13.4792 2.4375C10.6408 2.4375 8.33333 4.745 8.33333 7.58333C8.33333 10.4217 10.6408 12.7292 13.4792 12.7292ZM13.4792 4.0625C15.4183 4.0625 17 5.64417 17 7.58333C17 9.5225 15.4183 11.1042 13.4792 11.1042C11.54 11.1042 9.95833 9.5225 9.95833 7.58333C9.95833 5.64417 11.54 4.0625 13.4792 4.0625ZM16.7292 14.3542H10.2292C6.795 14.3542 4 17.1492 4 20.5833C4 22.23 5.3325 23.5625 6.97917 23.5625H19.9792C21.6258 23.5625 22.9583 22.23 22.9583 20.5833C22.9583 17.1492 20.1633 14.3542 16.7292 14.3542ZM19.9792 21.9375H6.97917C6.23167 21.9375 5.625 21.3308 5.625 20.5833C5.62786 19.3631 6.11386 18.1937 6.97669 17.3309C7.83952 16.468 9.00895 15.982 10.2292 15.9792H16.7292C17.9494 15.982 19.1188 16.468 19.9816 17.3309C20.8445 18.1937 21.3305 19.3631 21.3333 20.5833C21.3333 21.3308 20.7267 21.9375 19.9792 21.9375Z" fill="#141414" />
-                  </svg>
+                  {user?.photo ? (
+                    <img
+                      className="h-8 w-8 rounded-full object-cover"
+                      src={user.photo}
+                      alt=""
+                    />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 26 26" fill="none">
+                      <path d="M13.4792 12.7292C16.3175 12.7292 18.625 10.4217 18.625 7.58333C18.625 4.745 16.3175 2.4375 13.4792 2.4375C10.6408 2.4375 8.33333 4.745 8.33333 7.58333C8.33333 10.4217 10.6408 12.7292 13.4792 12.7292ZM13.4792 4.0625C15.4183 4.0625 17 5.64417 17 7.58333C17 9.5225 15.4183 11.1042 13.4792 11.1042C11.54 11.1042 9.95833 9.5225 9.95833 7.58333C9.95833 5.64417 11.54 4.0625 13.4792 4.0625ZM16.7292 14.3542H10.2292C6.795 14.3542 4 17.1492 4 20.5833C4 22.23 5.3325 23.5625 6.97917 23.5625H19.9792C21.6258 23.5625 22.9583 22.23 22.9583 20.5833C22.9583 17.1492 20.1633 14.3542 16.7292 14.3542ZM19.9792 21.9375H6.97917C6.23167 21.9375 5.625 21.3308 5.625 20.5833C5.62786 19.3631 6.11386 18.1937 6.97669 17.3309C7.83952 16.468 9.00895 15.982 10.2292 15.9792H16.7292C17.9494 15.982 19.1188 16.468 19.9816 17.3309C20.8445 18.1937 21.3305 19.3631 21.3333 20.5833C21.3333 21.3308 20.7267 21.9375 19.9792 21.9375Z" fill="#141414" />
+                    </svg>
+                  )}
                 </MenuButton>
 
                 <MenuItems
@@ -140,12 +148,12 @@ export default function Header() {
                   className="absolute right-0 z-[9999] mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg outline outline-black/5 transition data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in dark:bg-gray-800 dark:shadow-none dark:-outline-offset-1 dark:outline-white/10"
                 >
                   <MenuItem>
-                    <a
-                      href="#"
+                    <Link
+                      to="/profile"
                       className="block px-4 py-2 text-sm text-gray-700 data-focus:bg-gray-100 data-focus:outline-hidden dark:text-gray-300 dark:data-focus:bg-white/5"
                     >
                       Your profile
-                    </a>
+                    </Link>
                   </MenuItem>
                   <MenuItem>
                     <a

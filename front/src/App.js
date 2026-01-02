@@ -11,8 +11,8 @@ import CategoryPage from './pages/CategoryPage';
 import ProductDetails from './pages/ProductDetails';
 import CartPage from './pages/CartPage';
 import WishlistPage from './pages/WishlistPage';
+import ProfilePage from './pages/ProfilePage';
 
-// Admin Imports
 import AdminLayout from './admin/components/layout/AdminLayout';
 import Dashboard from './admin/pages/dashboard/Dashboard';
 import Products from './admin/pages/products/Products';
@@ -42,16 +42,17 @@ function App() {
           */}
             <Route path="/*" element={
               <>
-                 <Toaster position="top-center" reverseOrder={false} />
-          <Header />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/category/:categoryName" element={<CategoryPage />} />
-            <Route path="/product/:id" element={<ProductDetails />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/wishlist" element={<WishlistPage />} />
-          </Routes>
-          <Footer />
+                <Toaster position="top-center" reverseOrder={false} />
+                <Header />
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/category/:categoryName" element={<CategoryPage />} />
+                  <Route path="/product/:id" element={<ProductDetails />} />
+                  <Route path="/cart" element={<CartPage />} />
+                  <Route path="/wishlist" element={<WishlistPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                </Routes>
+                <Footer />
               </>
             } />
 

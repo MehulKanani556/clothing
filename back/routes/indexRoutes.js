@@ -34,7 +34,7 @@ router.post('/generatenewtoken', auth, generateNewToken);
 router.get('/users', getAllUsers);
 router.get('/users/:id', getSingleUser);
 router.delete('/users/:id', auth, deleteUser);
-router.put('/users/:id', updateUser);
+router.put('/users/profile', auth, upload.single("photo"), updateUser);
 
 // products
 router.get('/products', getAllProducts);

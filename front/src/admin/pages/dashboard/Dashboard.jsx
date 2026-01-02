@@ -2,9 +2,29 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDashboardStats } from '../../../redux/slice/adminDashboardSlice';
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
-} from 'recharts';
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
 import { MdAttachMoney, MdShoppingBag, MdRefresh, MdLocalOffer } from 'react-icons/md';
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler
+);
 
 const StatCard = ({ title, value, icon, color }) => (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
@@ -26,13 +46,69 @@ const Dashboard = () => {
         dispatch(fetchDashboardStats());
     }, [dispatch]);
 
-    const data = [
-        { name: 'Jan', uv: 4000, pv: 2400 },
-        { name: 'Feb', uv: 3000, pv: 1398 },
-        { name: 'Mar', uv: 2000, pv: 9800 },
-        { name: 'Apr', uv: 2780, pv: 3908 },
-        { name: 'May', uv: 1890, pv: 4800 },
-    ];
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
+
+    // Sales Trends (Area Chart Equivalent)
+    const salesData = {
+        labels,
+        datasets: [
+            {
+                label: 'Sales (UV)',
+                data: [4000, 3000, 2000, 2780, 1890],
+                borderColor: '#8884d8',
+                backgroundColor: 'rgba(136, 132, 216, 0.5)',
+                fill: true,
+                tension: 0.4,
+            },
+        ],
+    };
+
+    const salesOptions = {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: false,
+            },
+        },
+        maintainAspectRatio: false,
+    };
+
+    // Revenue vs Returns (Line Chart)
+    const revenueReturnsData = {
+        labels,
+        datasets: [
+            {
+                label: 'Revenue (PV)',
+                data: [2400, 1398, 9800, 3908, 4800],
+                borderColor: '#82ca9d',
+                backgroundColor: 'rgba(130, 202, 157, 0.5)',
+                tension: 0.3,
+            },
+            {
+                label: 'Returns (UV)',
+                data: [4000, 3000, 2000, 2780, 1890],
+                borderColor: '#ff7300',
+                backgroundColor: 'rgba(255, 115, 0, 0.5)',
+                tension: 0.3,
+            },
+        ],
+    };
+
+    const revenueOptions = {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: false,
+            },
+        },
+        maintainAspectRatio: false,
+    };
 
     return (
         <div className="space-y-6">
@@ -75,38 +151,15 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">Sales Trends</h3>
-                    <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={data}>
-                                <defs>
-                                    <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <Tooltip />
-                                <Area type="monotone" dataKey="uv" stroke="#8884d8" fillOpacity={1} fill="url(#colorUv)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                    <div className="h-80 w-full">
+                        <Line options={salesOptions} data={salesData} />
                     </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">Revenue vs Returns</h3>
-                    <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={data}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Line type="monotone" dataKey="pv" stroke="#82ca9d" strokeWidth={2} />
-                                <Line type="monotone" dataKey="uv" stroke="#ff7300" strokeWidth={2} />
-                            </LineChart>
-                        </ResponsiveContainer>
+                    <div className="h-80 w-full">
+                        <Line options={revenueOptions} data={revenueReturnsData} />
                     </div>
                 </div>
             </div>
