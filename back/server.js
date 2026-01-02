@@ -4,7 +4,6 @@ const connectDb = require('./db/db');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const authRoutes = require('./routes/indexRoutes');
-const productRoutes = require('./routes/product.routes');
 const { Server } = require("socket.io");
 const socketManager = require("./socketManager/socketManager");
 const { createServer } = require('node:http');
