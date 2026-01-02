@@ -27,6 +27,19 @@ export const createProduct = createAsyncThunk(
     }
 );
 
+// Update Product
+export const updateProduct = createAsyncThunk(
+    'adminProducts/update',
+    async ({ id, formData }, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.put(`/products/${id}`, formData);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || error.message);
+        }
+    }
+);
+
 // Delete Product
 export const deleteProduct = createAsyncThunk(
     'adminProducts/delete',
@@ -67,6 +80,12 @@ const adminProductSlice = createSlice({
             })
             .addCase(createProduct.fulfilled, (state, action) => {
                 state.products.unshift(action.payload.data);
+            })
+            .addCase(updateProduct.fulfilled, (state, action) => {
+                const index = state.products.findIndex(p => p._id === action.payload.data._id);
+                if (index !== -1) {
+                    state.products[index] = action.payload.data;
+                }
             })
             .addCase(deleteProduct.fulfilled, (state, action) => {
                 state.products = state.products.filter(p => p._id !== action.payload);

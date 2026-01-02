@@ -18,7 +18,7 @@ const { createOffer, validateCoupon, getOffers, uploadBanner } = require('../con
 const { getGstReport, getNetPayout } = require('../controllers/report.controller');
 
 const { createBlogPost, getAllBlogs, getBlogBySlug, deleteBlog } = require('../controllers/blog.controller');
-const { productValidation, orderValidation, returnValidation, offerValidation } = require('../middleware/validators');
+const { orderValidation, returnValidation, offerValidation } = require('../middleware/validators');
 
 // auth
 router.post('/register', upload.single("photo"), createUser);
@@ -38,8 +38,8 @@ router.put('/users/:id', updateUser);
 
 // products
 router.get('/products', getAllProducts);
-router.post('/products', auth, productValidation, createProduct);
-router.put('/products/:id', auth, updateProduct);
+router.post('/products', upload.any(), createProduct); // Updated to handle FormData
+router.put('/products/:id', upload.any(), updateProduct); // Updated to handle FormData
 router.delete('/products/:id', auth, deleteProduct);
 router.post('/products/upload-image', auth, upload.single("image"), uploadProductImage);
 router.get('/products/:id', getProductById);

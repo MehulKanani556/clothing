@@ -26,7 +26,7 @@ const storage = multerS3({
     },
     key: (req, file, cb) => {
         const uniqueName =
-            Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
+            "products/" + Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
         cb(null, uniqueName);
     },
 });
@@ -53,6 +53,6 @@ async function getOgjectURL(key) {
 }
 
 module.exports = {
-  upload,
+    upload,
     getOgjectURL,
 };

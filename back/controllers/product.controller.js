@@ -1,4 +1,5 @@
 const Product = require('../models/product.model');
+const Category = require('../models/category.model');
 const { validationResult } = require('express-validator');
 
 // Upload Image Helper Endpoint
@@ -141,15 +142,125 @@ exports.getRelatedProducts = async (req, res) => {
     }
 };
 
-// Create Product
-exports.createProduct = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ success: false, errors: errors.array() });
+// --- DATA PARSING & VALIDATION HELPER ---
+const parseProductData = (req) => {
+    let productData = {};
+    if (req.body.product) {
+        try {
+            productData = JSON.parse(req.body.product);
+        } catch (e) {
+            throw new Error('Invalid JSON product data');
+        }
+    } else {
+        // If product data is not stringified but sent as fields (unlikely if using the FormData setup we made, but fallback)
+        productData = { ...req.body };
     }
 
+    if (req.files && req.files.length > 0) {
+        req.files.forEach(file => {
+            const { fieldname, location } = file;
+
+            if (fieldname === 'sizeChart') {
+                productData.sizeChart = location;
+            } else if (fieldname.startsWith('variants')) {
+                // Expected format matches frontend: variants[0].images[0]
+                const match = fieldname.match(/variants\[(\d+)\]\.images\[(\d+)\]/);
+                if (match) {
+                    const variantIndex = parseInt(match[1]);
+                    const imageIndex = parseInt(match[2]);
+
+                    if (!productData.variants) productData.variants = [];
+                    if (!productData.variants[variantIndex]) productData.variants[variantIndex] = {};
+                    if (!productData.variants[variantIndex].images) productData.variants[variantIndex].images = [];
+
+                    productData.variants[variantIndex].images[imageIndex] = location;
+                }
+            }
+        });
+    }
+
+    // Clean up to remove any undefined holes in arrays if indices weren't contiguous
+    if (productData.variants) {
+        productData.variants.forEach(variant => {
+            if (variant && variant.images) {
+                // Filter out nulls/undefined but keep valid strings (s3 urls)
+                variant.images = variant.images.filter(img => img);
+            }
+        });
+    }
+
+    return productData;
+};
+
+const validateProduct = (data) => {
+    const errors = [];
+    if (!data.name) errors.push('Name is required');
+    if (!data.brand) errors.push('Brand is required');
+    if (!data.category) errors.push('Category is required');
+    if (!data.gender) errors.push('Gender is required');
+    if (data.gstPercentage === undefined || data.gstPercentage === null) errors.push('GST is required');
+    if (!data.variants || data.variants.length === 0) {
+        errors.push('At least one variant is required');
+    } else {
+        data.variants.forEach((v, i) => {
+            if (!v.color) errors.push(`Variant ${i + 1}: Color is required`);
+            if (!v.colorFamily) errors.push(`Variant ${i + 1}: Color Family is required`);
+            // Images check might be tricky if partial update, but for create it's needed.
+            if (!v.images || v.images.length === 0) errors.push(`Variant ${i + 1}: Image is required`);
+            if (!v.options || v.options.length === 0) errors.push(`Variant ${i + 1}: Size Options are required`);
+        });
+    }
+    return errors;
+};
+
+const generateSlug = (name) => {
+    return name
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')           // Replace spaces with -
+        .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+        .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+        .replace(/^-+/, '')             // Trim - from start of text
+        .replace(/-+$/, '');            // Trim - from end of text
+};
+
+// Create Product
+exports.createProduct = async (req, res) => {
     try {
-        const product = await Product.create(req.body);
+        const productData = parseProductData(req);
+
+        const errors = validateProduct(productData);
+        if (errors.length > 0) {
+            return res.status(400).json({ success: false, message: 'Validation failed', errors });
+        }
+
+        // Generate Slug
+        if (!productData.slug && productData.name) {
+            productData.slug = generateSlug(productData.name);
+            // Append random string to ensure uniqueness collision handling (basic)
+            productData.slug = productData.slug + '-' + Math.floor(1000 + Math.random() * 9000);
+        }
+
+        // Generate SKU
+        if (productData.category && productData.variants) {
+            const categoryDoc = await Category.findById(productData.category);
+            const categoryPrefix = categoryDoc ? categoryDoc.name.substring(0, 3).toUpperCase() : 'GEN';
+
+            productData.variants.forEach(variant => {
+                if (variant.options) {
+                    variant.options.forEach(option => {
+                        if (!option.sku || option.sku.trim() === '') {
+                            // "product category and uniq 7 digi number"
+                            const random7 = Math.floor(1000000 + Math.random() * 9000000);
+                            option.sku = `${categoryPrefix}-${random7}`;
+                        }
+                    });
+                }
+            });
+        }
+
+        const product = await Product.create(productData);
         res.status(201).json({
             success: true,
             data: product
@@ -157,7 +268,7 @@ exports.createProduct = async (req, res) => {
     } catch (error) {
         // Handle duplicate key error
         if (error.code === 11000) {
-            return res.status(400).json({ success: false, message: 'Duplicate field value entered (Slug or Name)' });
+            return res.status(400).json({ success: false, message: 'Duplicate field value entered (Slug, Name or SKU)' });
         }
         res.status(400).json({ success: false, message: error.message });
     }
@@ -171,16 +282,43 @@ exports.updateProduct = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Product not found' });
         }
 
-        product = await Product.findByIdAndUpdate(req.params.id, req.body, {
+        const newData = parseProductData(req);
+
+        // Handle Slug: preserve existing if not explicitly updating
+        // Standard practice: don't auto-update slug on name change to save SEO links.
+        // If needed, frontend should allow slug editing.
+
+        // Auto-generate SKU for NEW options
+        if (newData.variants) {
+            const categoryId = newData.category || product.category;
+            const categoryDoc = await Category.findById(categoryId);
+            const categoryPrefix = categoryDoc ? categoryDoc.name.substring(0, 3).toUpperCase() : 'GEN';
+
+            newData.variants.forEach(variant => {
+                if (variant.options) {
+                    variant.options.forEach(option => {
+                        if (!option.sku || option.sku.trim() === '') {
+                            const random7 = Math.floor(1000000 + Math.random() * 9000000);
+                            option.sku = `${categoryPrefix}-${random7}`;
+                        }
+                    });
+                }
+            });
+        }
+
+        const updatedProduct = await Product.findByIdAndUpdate(req.params.id, newData, {
             new: true,
             runValidators: true
         });
 
         res.status(200).json({
             success: true,
-            data: product
+            data: updatedProduct
         });
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ success: false, message: 'Duplicate field value entered (Slug, Name or SKU)' });
+        }
         res.status(400).json({ success: false, message: error.message });
     }
 };
