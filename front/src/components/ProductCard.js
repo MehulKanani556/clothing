@@ -6,7 +6,7 @@ import { FaStar } from 'react-icons/fa';
 export default function ProductCard({ product }) {
     const navigate = useNavigate();
     const {
-        id,
+        _id,
         name = "Classic T-Shirt",
         price = "$29.99",
         oldPrice = null,
@@ -15,18 +15,19 @@ export default function ProductCard({ product }) {
         rating = 4.5,
         tag = null
     } = product || {};
+    
 
     const handleQuickView = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        navigate(`/product/${id || 1}`, { state: { product } });
+        navigate(`/product/${_id}`, { state: { product } });
     };
 
     return (
         <div className="group flex flex-col items-start w-full">
             {/* Image Container */}
             <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-100 mb-3 rounded-sm">
-                <Link to={`/product/${id || 1}`} state={{ product }}>
+                <Link to={`/product/${_id || 1}`} state={{ product }}>
                     <img
                         src={image}
                         alt={name}
@@ -69,7 +70,7 @@ export default function ProductCard({ product }) {
                     <span className="text-xs text-gray-500 ml-1">({rating})</span>
                 </div>
                 <h3 className="text-sm font-medium text-gray-900 truncate mb-1">
-                    <Link to={`/product/${id || 1}`} state={{ product }} className="hover:text-black transition-colors">
+                    <Link to={`/product/${_id}`} state={{ product }} className="hover:text-black transition-colors">
                         {name}
                     </Link>
                 </h3>

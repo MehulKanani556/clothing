@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProductById, fetchRelatedProducts } from '../redux/slice/product.slice';
 import { FiStar, FiShare2, FiHeart, FiShoppingBag, FiTruck, FiRefreshCw, FiChevronDown, FiChevronUp, FiCheck, FiInfo } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 import ProductCard from '../components/ProductCard';
@@ -7,13 +9,25 @@ import ProductCard from '../components/ProductCard';
 export default function ProductDetails() {
     const { id } = useParams();
     const location = useLocation();
+    const dispatch = useDispatch();
     const productFromState = location.state?.product;
+
+    // Redux State
+    const { product: apiProduct, relatedProducts: apiRelated, loading } = useSelector((state) => state.product);
 
     const [selectedSize, setSelectedSize] = useState('M');
     const [selectedColor, setSelectedColor] = useState('Black');
     const [activeImage, setActiveImage] = useState(0);
     const [expandedSection, setExpandedSection] = useState('description');
     const [pincode, setPincode] = useState('');
+
+    useEffect(() => {
+        if (id) {
+            dispatch(fetchProductById(id));
+            dispatch(fetchRelatedProducts(id));
+            window.scrollTo(0, 0);
+        }
+    }, [dispatch, id]);
 
     // Default data if state is missing or incomplete
     const defaultProduct = {
@@ -49,27 +63,32 @@ export default function ProductDetails() {
         ]
     };
 
-    // Merge passed data with defaults
+    // Priority: API Data > Location State > Default Data
+    // We treat apiProduct as the source of truth if available
+    const productData = apiProduct || productFromState || defaultProduct;
+
+    // Merge for robust display
     const product = {
         ...defaultProduct,
-        ...productFromState,
-        // Ensure complex objects are handled if not present in state
-        images: productFromState?.image
-            ? [productFromState.image, ...defaultProduct.images.slice(1)]
-            : defaultProduct.images,
-        price: productFromState?.price || defaultProduct.price,
-        originalPrice: productFromState?.oldPrice || defaultProduct.originalPrice, // map oldPrice to originalPrice
-        discount: productFromState?.discount || defaultProduct.discount,
-        brand: productFromState?.brand || productFromState?.category || defaultProduct.brand, // map category to brand if brand missing
+        ...productData,
+        images: productData.images && productData.images.length > 0 ? productData.images :
+            (productData.image ? [productData.image, ...defaultProduct.images.slice(1)] : defaultProduct.images),
+        price: productData.price || defaultProduct.price,
+        originalPrice: productData.oldPrice || productData.originalPrice || defaultProduct.originalPrice,
+        discount: productData.discount || defaultProduct.discount,
+        brand: productData.brand || productData.category || defaultProduct.brand,
     };
 
-    // Mock Related Products
-    const relatedProducts = [
+    // Mock Related used as fallback
+    const mockRelated = [
         { id: 1, name: "Relaxed Fit Cotton T-shirt", brand: "Puma", price: "₹599", oldPrice: "₹1999", discount: "70% OFF", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5 },
         { id: 2, name: "Slim Fit Polo T-shirt", brand: "US Polo Assn", price: "₹899", oldPrice: "₹1499", discount: "40% OFF", image: "https://images.unsplash.com/photo-1620012253295-c15cc3efb5ec?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2 },
         { id: 3, name: "Oversized Graphic Tee", brand: "Nike", price: "₹1299", oldPrice: "₹2499", discount: "48% OFF", image: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7 },
         { id: 4, name: "Essential Crew Neck", brand: "H&M", price: "₹499", oldPrice: "₹999", discount: "50% OFF", image: "https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.1 },
     ];
+
+    // If API related products exist, use them. Otherwise fallback.
+    const displayRelated = apiRelated.length > 0 ? apiRelated : mockRelated;
 
     const toggleSection = (section) => {
         setExpandedSection(expandedSection === section ? null : section);
@@ -299,7 +318,7 @@ export default function ProductDetails() {
                 <div className="mt-20">
                     <h2 className="text-2xl font-bold text-gray-900 mb-8 uppercase tracking-wider">You May Also Like</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {relatedProducts.map(item => (
+                        {displayRelated.map(item => (
                             <ProductCard key={item.id} product={item} />
                         ))}
                     </div>

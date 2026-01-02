@@ -1,15 +1,43 @@
-import React, { useState, Fragment } from 'react';
+import React, { useState, Fragment, useEffect } from 'react';
 import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/react';
 import { useParams, Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProducts } from '../redux/slice/product.slice';
 import { FiFilter, FiChevronDown, FiGrid, FiList, FiX, FiMinus, FiPlus } from 'react-icons/fi';
 import ProductCard from '../components/ProductCard';
 
 export default function CategoryPage() {
     const { categoryName } = useParams();
+    const dispatch = useDispatch();
+    const { products: allProducts, loading } = useSelector((state) => state.product);
+
     const [viewMode, setViewMode] = useState('grid');
     const [sortBy, setSortBy] = useState('recommended');
     const [isSortOpen, setSortOpen] = useState(false);
     const [isFilterOpen, setFilterOpen] = useState(false);
+
+    // Fetch products when category or sort changes
+    useEffect(() => {
+        const params = {
+            category: categoryName !== 'all-products' ? categoryName : undefined, // Handle 'All Products' case if needed
+            sort: sortBy
+        };
+        dispatch(fetchProducts(params));
+    }, [dispatch, categoryName, sortBy]);
+
+    // Fallback Mock Data
+    const mockProducts = [
+        { id: 1, name: "Relaxed Fit Cotton T-shirt", brand: "Puma", price: "₹599", oldPrice: "₹1999", discount: "70% OFF", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: "2.5k" },
+        { id: 2, name: "Slim Fit Polo T-shirt", brand: "US Polo Assn", price: "₹899", oldPrice: "₹1499", discount: "40% OFF", image: "https://images.unsplash.com/photo-1620012253295-c15cc3efb5ec?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: "1.2k" },
+        { id: 3, name: "Oversized Graphic Tee", brand: "Nike", price: "₹1299", oldPrice: "₹2499", discount: "48% OFF", image: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: "850" },
+        { id: 4, name: "Essential Crew Neck", brand: "H&M", price: "₹499", oldPrice: "₹999", discount: "50% OFF", image: "https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.1, reviews: "3.4k" },
+        { id: 5, name: "Striped Cotton Shirt", brand: "Zara", price: "₹1599", oldPrice: "₹2299", discount: "30% OFF", image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: "500" },
+        { id: 6, name: "Denim Jacket", brand: "Levi's", price: "₹2999", oldPrice: "₹4999", discount: "40% OFF", image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.8, reviews: "1.1k" },
+        { id: 7, name: "Casual Shorts", brand: "Adidas", price: "₹999", oldPrice: "₹1799", discount: "45% OFF", image: "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: "900" },
+        { id: 8, name: "Printed Hoodie", brand: "Jack & Jones", price: "₹1499", oldPrice: "₹2999", discount: "50% OFF", image: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: "1.5k" }
+    ];
+
+    const products = allProducts.length > 0 ? allProducts : mockProducts;
 
     // Filter state
     const [filters, setFilters] = useState({
@@ -62,97 +90,7 @@ export default function CategoryPage() {
         brand: ['Puma', 'Nike', 'Adidas', 'Zara', 'H&M', 'Levis', 'Jack & Jones']
     };
 
-    // Mock data based on the uploaded image style
-    const products = [
-        {
-            id: 1,
-            name: "Relaxed Fit Cotton T-shirt",
-            brand: "Puma",
-            price: "₹599",
-            oldPrice: "₹1999",
-            discount: "70% OFF",
-            image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-            rating: 4.5,
-            reviews: "2.5k"
-        },
-        {
-            id: 2,
-            name: "Slim Fit Polo T-shirt",
-            brand: "US Polo Assn",
-            price: "₹899",
-            oldPrice: "₹1499",
-            discount: "40% OFF",
-            image: "https://images.unsplash.com/photo-1620012253295-c15cc3efb5ec?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-            rating: 4.2,
-            reviews: "1.2k"
-        },
-        {
-            id: 3,
-            name: "Oversized Graphic Tee",
-            brand: "Nike",
-            price: "₹1299",
-            oldPrice: "₹2499",
-            discount: "48% OFF",
-            image: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-            rating: 4.7,
-            reviews: "850"
-        },
-        {
-            id: 4,
-            name: "Essential Crew Neck",
-            brand: "H&M",
-            price: "₹499",
-            oldPrice: "₹999",
-            discount: "50% OFF",
-            image: "https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-            rating: 4.1,
-            reviews: "3.4k"
-        },
-        {
-            id: 5,
-            name: "Striped Cotton Shirt",
-            brand: "Zara",
-            price: "₹1599",
-            oldPrice: "₹2299",
-            discount: "30% OFF",
-            image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-            rating: 4.4,
-            reviews: "500"
-        },
-        {
-            id: 6,
-            name: "Denim Jacket",
-            brand: "Levi's",
-            price: "₹2999",
-            oldPrice: "₹4999",
-            discount: "40% OFF",
-            image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-            rating: 4.8,
-            reviews: "1.1k"
-        },
-        {
-            id: 7,
-            name: "Casual Shorts",
-            brand: "Adidas",
-            price: "₹999",
-            oldPrice: "₹1799",
-            discount: "45% OFF",
-            image: "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-            rating: 4.3,
-            reviews: "900"
-        },
-        {
-            id: 8,
-            name: "Printed Hoodie",
-            brand: "Jack & Jones",
-            price: "₹1499",
-            oldPrice: "₹2999",
-            discount: "50% OFF",
-            image: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-            rating: 4.6,
-            reviews: "1.5k"
-        }
-    ];
+
 
     return (
         <div className="bg-white min-h-screen">
