@@ -55,6 +55,23 @@ const userSchema = new mongoose.Schema({
         default: Date.now,
         index: true
     },
+    addresses: [
+        {
+            firstName: { type: String, required: true },
+            lastName: { type: String, required: true },
+            mobileNo: { type: String, required: true },
+            email: { type: String },
+            buildingName: { type: String },
+            landmark: { type: String },
+            locality: { type: String },
+            pincode: { type: String, required: true },
+            city: { type: String, required: true },
+            state: { type: String, required: true },
+            country: { type: String, default: 'India' },
+            addressType: { type: String, enum: ['Home', 'Office', 'Other'], default: 'Home' },
+            isDefault: { type: Boolean, default: false }
+        }
+    ]
 
 });
 

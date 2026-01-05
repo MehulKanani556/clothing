@@ -60,5 +60,77 @@ exports.updateUser = async (req, res) => {
     }
 }
 
+exports.addAddress = async (req, res) => {
+    try {
+        const { id } = req.user;
+        const address = req.body;
+
+        const user = await User.findByIdAndUpdate(
+            id,
+            { $push: { addresses: address } },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.status(200).json({ user, message: "Address added successfully" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+exports.deleteAddress = async (req, res) => {
+    try {
+        const { id } = req.user;
+        const { addressId } = req.params;
+
+        const user = await User.findByIdAndUpdate(
+            id,
+            { $pull: { addresses: { _id: addressId } } },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.status(200).json({ user, message: "Address deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+exports.setDefaultAddress = async (req, res) => {
+    try {
+        const { id } = req.user;
+        const { addressId } = req.params;
+
+        // First set all isDefault to false
+        await User.updateOne(
+            { _id: id },
+            { $set: { "addresses.$[].isDefault": false } }
+        );
+
+        // Then set the specific one to true
+        const user = await User.findOneAndUpdate(
+            { _id: id, "addresses._id": addressId },
+            { $set: { "addresses.$.isDefault": true } },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({
+            status: "success",
+            message: "Default address updated",
+            user
+        });
+    } catch (error) {
+        res.status(500).json({ status: "error", message: error.message });
+    }
+}
+
 
 

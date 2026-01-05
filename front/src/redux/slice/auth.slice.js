@@ -176,6 +176,43 @@ export const deleteMyAccount = createAsyncThunk(
 );
 
 // Alias for compatibility if needed elsewhere
+
+export const addAddress = createAsyncThunk(
+    'auth/addAddress',
+    async (addressData, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post(`${BASE_URL}/users/address`, addressData);
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
+
+export const deleteAddress = createAsyncThunk(
+    'auth/deleteAddress',
+    async (addressId, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.delete(`${BASE_URL}/users/address/${addressId}`);
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
+
+export const setDefaultAddress = createAsyncThunk(
+    'auth/setDefaultAddress',
+    async (addressId, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.put(`${BASE_URL}/users/address/${addressId}/default`);
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
+
 export const logoutUser = logout;
 
 export const authSlice = createSlice({
@@ -351,6 +388,44 @@ export const authSlice = createSlice({
             .addCase(deleteMyAccount.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload?.message || "Delete Account Failed";
+            })
+            .addCase(addAddress.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(addAddress.fulfilled, (state, action) => {
+                state.loading = false;
+                state.user = action.payload.user;
+                state.message = "Address Added Successfully";
+            })
+            .addCase(addAddress.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message || "Failed to add address";
+            })
+            .addCase(deleteAddress.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(deleteAddress.fulfilled, (state, action) => {
+                state.loading = false;
+                state.user = action.payload.user;
+                state.message = "Address Deleted Successfully";
+            })
+            .addCase(deleteAddress.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message || "Failed to delete address";
+            })
+            .addCase(setDefaultAddress.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(setDefaultAddress.fulfilled, (state, action) => {
+                state.loading = false;
+                state.user = action.payload.user;
+                state.message = "Default address updated";
+            })
+            .addCase(setDefaultAddress.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message || "Failed to update default address";
             });
     }
 

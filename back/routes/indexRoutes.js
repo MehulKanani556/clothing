@@ -4,7 +4,13 @@ const router = express.Router();
 const { upload } = require('../middleware/upload');
 const { createUser, verifyRegistration, login, logout, forgotPassword, verifyOtp, changePassword, generateNewToken } = require('../auth/auth');
 const { auth } = require('../middleware/auth');
-const { getAllUsers, getSingleUser, deleteUser, updateUser } = require('../controllers/user.controller');
+const { getAllUsers, getSingleUser, deleteUser, updateUser, addAddress, deleteAddress, setDefaultAddress } = require('../controllers/user.controller');
+
+// ... existing routes ...
+
+router.post('/users/address', auth, addAddress);
+router.delete('/users/address/:addressId', auth, deleteAddress);
+router.put('/users/address/:addressId/default', auth, setDefaultAddress);
 const { getAllProducts, getProductById, getRelatedProducts, createProduct, uploadProductImage, updateProduct, deleteProduct } = require('../controllers/product.controller');
 const { getAllCategories, createCategory } = require('../controllers/category.controller');
 const { getAllSubCategories, createSubCategory, getSubCategoriesByCategoryId } = require('../controllers/subCategory.controller');
@@ -35,6 +41,8 @@ router.get('/users', getAllUsers);
 router.get('/users/:id', getSingleUser);
 router.delete('/users/:id', auth, deleteUser);
 router.put('/users/profile', auth, upload.single("photo"), updateUser);
+router.post('/users/address', auth, addAddress);
+router.delete('/users/address/:addressId', auth, deleteAddress);
 
 // products
 router.get('/products', getAllProducts);
@@ -96,6 +104,12 @@ router.put('/support/:id', auth, updateTicketStatus);
 const { getSettings, updateSetting } = require('../controllers/settings.controller');
 router.get('/settings', auth, getSettings);
 router.post('/settings', auth, updateSetting);
+
+// Offers
+router.get('/offers', getOffers);
+router.post('/offers', auth, createOffer);
+router.post('/offers/validate', auth, validateCoupon);
+router.post('/offers/banner', auth, upload.single('image'), uploadBanner);
 
 // Wishlist
 router.post('/wishlist', auth, addToWishlist);

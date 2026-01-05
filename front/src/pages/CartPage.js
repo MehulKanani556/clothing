@@ -1,19 +1,26 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCart, removeFromCart, updateCartItem } from '../redux/slice/cart.slice';
 import { Link } from 'react-router-dom';
-import { FiTrash2 } from 'react-icons/fi';
+import { FiTrash2, FiMapPin, FiTag } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../components/ConfirmationModal';
-import { useState } from 'react';
+import AddAddressModal from '../components/profile/AddAddressModal';
+import AddressSelectionModal from '../components/profile/AddressSelectionModal';
+import CouponModal from '../components/cart/CouponModal';
+import { removeCoupon } from '../redux/slice/offer.slice';
 
 export default function CartPage() {
     const dispatch = useDispatch();
     const { items, totalPrice, loading } = useSelector((state) => state.cart);
-    const { isAuthenticated } = useSelector((state) => state.auth);
+    const { isAuthenticated, user } = useSelector((state) => state.auth);
+    const { appliedCoupon } = useSelector((state) => state.offers);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showAddressModal, setShowAddressModal] = useState(false);
+    const [showSelectionModal, setShowSelectionModal] = useState(false);
+    const [showCouponModal, setShowCouponModal] = useState(false);
     const [itemToRemove, setItemToRemove] = useState(null);
 
     useEffect(() => {
@@ -242,21 +249,82 @@ export default function CartPage() {
 
                     {/* Right Column - Summary */}
                     <div className="lg:col-span-4 space-y-4">
-                        {/* Address Placeholder */}
-                        <div className="bg-white p-4 border border-gray-100 rounded-lg shadow-sm flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                {/* Simple User Icon if needed */}
-                                <span>No Address</span>
+                        {/* Address Section */}
+                        {user?.addresses?.length > 0 ? (
+                            (() => {
+                                const activeAddress = user.addresses.find(a => a.isDefault) || user.addresses[0];
+                                return (
+                                    <div className="bg-white p-4 border border-gray-100 rounded-lg shadow-sm flex items-center justify-between">
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className="text-gray-900 shrink-0">
+                                                <FiMapPin size={20} />
+                                            </div>
+                                            <div className="flex items-center flex-wrap gap-2 text-sm text-gray-900 truncate">
+                                                <span className="text-gray-600">Deliver to:</span>
+                                                <span className="font-semibold">{activeAddress.firstName} {activeAddress.lastName}</span>
+                                                <span className="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded border border-gray-200 uppercase font-medium">
+                                                    {activeAddress.addressType}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowSelectionModal(true)}
+                                            className="text-sm font-semibold text-blue-600 hover:text-blue-700 ml-4 shrink-0 uppercase tracking-wide"
+                                        >
+                                            Change
+                                        </button>
+                                    </div>
+                                );
+                            })()
+                        ) : (
+                            <div className="bg-white p-4 border border-gray-100 rounded-lg shadow-sm flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    <FiMapPin size={20} className="text-gray-400" />
+                                    <span>No address selected</span>
+                                </div>
+                                <button
+                                    onClick={() => setShowAddressModal(true)}
+                                    className="text-sm font-bold text-blue-600 hover:underline"
+                                >
+                                    + Add Address
+                                </button>
                             </div>
-                            <button className="text-sm font-bold text-blue-600 hover:underline">+Add Address</button>
-                        </div>
+                        )}
 
-                        {/* Coupon Placeholder */}
-                        <div className="bg-white p-4 border border-gray-100 rounded-lg shadow-sm flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-sm text-gray-900 font-medium">
-                                <span>% Apply Coupon</span>
-                            </div>
-                            <button className="text-sm font-bold text-blue-600 hover:underline">View</button>
+                        {/* Coupon Section */}
+                        <div className="bg-white p-4 border border-gray-100 rounded-lg shadow-sm">
+                            {appliedCoupon ? (
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="text-green-600">
+                                            <FiTag size={20} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-gray-900">Coupon Applied</p>
+                                            <p className="text-xs text-green-600 font-medium">{appliedCoupon.code} - ₹{(appliedCoupon.discount || 0).toLocaleString()} Saved</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => dispatch(removeCoupon())}
+                                        className="text-xs font-bold text-red-500 hover:text-red-600 uppercase"
+                                    >
+                                        REMOVE
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-sm text-gray-900 font-medium">
+                                        <FiTag className="text-gray-900" />
+                                        <span>% Apply Coupon</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowCouponModal(true)}
+                                        className="text-sm font-bold text-blue-600 hover:underline"
+                                    >
+                                        View
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Price Summary */}
@@ -268,17 +336,23 @@ export default function CartPage() {
                                     <span className="font-medium">₹{totalMRP.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Discount</span>
+                                    <span className="text-gray-600">Discount on MRP</span>
                                     <span className="font-medium text-green-600">-₹{totalDiscount.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Delivery Fee</span>
                                     <span className="font-medium text-green-600">FREE</span>
                                 </div>
+                                {appliedCoupon && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Coupon Discount</span>
+                                        <span className="font-medium text-green-600">-₹{(appliedCoupon.discount || 0).toLocaleString()}</span>
+                                    </div>
+                                )}
                                 <hr className="border-gray-100 my-2" />
                                 <div className="flex justify-between text-base font-bold text-gray-900">
                                     <span>Subtotal</span>
-                                    <span>₹{totalPrice.toLocaleString()}</span>
+                                    <span>₹{(totalPrice - (appliedCoupon ? appliedCoupon.discount : 0)).toLocaleString()}</span>
                                 </div>
                             </div>
 
@@ -286,6 +360,12 @@ export default function CartPage() {
                                 Proceed to pay
                             </button>
                         </div>
+
+                        <CouponModal
+                            isOpen={showCouponModal}
+                            onClose={() => setShowCouponModal(false)}
+                            cartValue={totalPrice}
+                        />
                     </div>
 
                 </div>
@@ -298,6 +378,16 @@ export default function CartPage() {
                 message="Are you sure you want to remove this item from your bag?"
                 onConfirm={handleRemove}
                 confirmText="Remove"
+            />
+
+            <AddAddressModal
+                isOpen={showAddressModal}
+                onClose={() => setShowAddressModal(false)}
+            />
+
+            <AddressSelectionModal
+                isOpen={showSelectionModal}
+                onClose={() => setShowSelectionModal(false)}
             />
         </div>
     );
