@@ -106,8 +106,9 @@ export default function AuthModal({ isOpen, closeModal, initialView = 'login' })
                 lastName: formData.lastName,
                 email: formData.email,
                 password: formData.password,
+                mobileNumber: formData.mobileNo,
                 role: 'user',
-                photo: 'https://via.placeholder.com/150' // Placeholder
+                photo:''// Placeholder
             };
             dispatch(register(userData)).then((res) => {
                 if (res.meta.requestStatus === 'fulfilled') {

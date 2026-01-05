@@ -12,6 +12,9 @@ import ProductDetails from './pages/ProductDetails';
 import CartPage from './pages/CartPage';
 import WishlistPage from './pages/WishlistPage';
 import ProfilePage from './pages/ProfilePage';
+import ContactPage from './pages/ContactPage';
+import FAQPage from './pages/FAQPage';
+import AboutUsPage from './pages/AboutUsPage';
 
 import AdminLayout from './admin/components/layout/AdminLayout';
 import Dashboard from './admin/pages/dashboard/Dashboard';
@@ -26,6 +29,7 @@ import Payments from './admin/pages/payments/Payments';
 import Support from './admin/pages/support/Support';
 import Users from './admin/pages/users/Users';
 import PricingRules from './admin/pages/pricingRules/PricingRules';
+import TermsPage from './pages/TermsPage';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -51,6 +55,10 @@ function App() {
                   <Route path="/cart" element={<CartPage />} />
                   <Route path="/wishlist" element={<WishlistPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/faq" element={<FAQPage />} />
+                  <Route path="/about" element={<AboutUsPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
                 </Routes>
                 <Footer />
               </>

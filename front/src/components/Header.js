@@ -134,8 +134,9 @@ export default function Header() {
               </button>
             ) : (
               <Menu as="div" className="relative">
+                {console.log("aaaaaa",user)}
                 <MenuButton className="relative flex rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
-                  {user?.photo && !imgError ? (
+                  {user?.photo ? (
                     <img
                       className="h-8 w-8 rounded-full object-cover"
                       src={user.photo}

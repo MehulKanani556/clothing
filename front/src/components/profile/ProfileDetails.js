@@ -110,11 +110,17 @@ export default function ProfileDetails() {
                 // READ ONLY VIEW
                 <div className="space-y-6">
                     <div className="flex items-center gap-6 mb-8">
-                        <img
-                            src={user.photo || 'https://via.placeholder.com/150'}
-                            alt="Profile"
-                            className="w-28 h-28 rounded-lg object-cover bg-gray-100"
-                        />
+                        {user?.photo ? (
+                            <img
+                                className="w-28 h-28 rounded-lg object-cover bg-gray-100"
+                                src={user.photo}
+                                alt=""
+                            />
+                        ) : (
+                            <div className="w-28 h-28 rounded-lg mb-4 bg-purple-600 text-white flex items-center justify-center text-3xl font-bold uppercase">
+                                {(user.firstName || user.email || 'U').charAt(0)}
+                            </div>
+                        )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                         <div>
