@@ -356,12 +356,20 @@ exports.verifyOtp = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
     try {
-        let { newPassword, email } = req.body;
+        let { newPassword, email, oldPassword } = req.body;
 
         let user = await User.findOne({ email });
 
         if (!user) {
             return res.status(404).json({ status: 404, message: "User Not Found" })
+        }
+
+        // If old password is provided (Change Password from Profile flow)
+        if (oldPassword) {
+            const isMatch = await bcrypt.compare(oldPassword, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ status: 400, message: "Invalid Old Password" });
+            }
         }
 
         let salt = await bcrypt.genSalt(10);

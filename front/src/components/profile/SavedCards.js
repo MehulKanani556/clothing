@@ -4,9 +4,9 @@ import { FaCcMastercard, FaCcVisa } from 'react-icons/fa';
 
 export default function SavedCards() {
     const [cards, setCards] = useState([
-        { id: 1, number: '1520 0100 3356 6888', holder: 'John Smith', expiry: '24/11', type: 'mastercard' },
-        { id: 2, number: '1520 0100 3356 6888', holder: 'John Smith', expiry: '24/11', type: 'mastercard' },
-        { id: 3, number: '1520 0100 3356 6888', holder: 'John Smith', expiry: '24/11', type: 'mastercard' },
+        { id: 1, number: '5520 0100 3356 6888', holder: 'James Smith', expiry: '12/26', type: 'mastercard' },
+        { id: 2, number: '4120 0100 3356 6888', holder: 'James Smith', expiry: '10/28', type: 'visa' },
+        { id: 3, number: '1520 0100 3356 6888', holder: 'James Smith', expiry: '09/25', type: 'mastercard' },
     ]);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -18,6 +18,87 @@ export default function SavedCards() {
         cvv: '',
         holder: ''
     });
+
+    const [errors, setErrors] = useState({});
+
+    // Identify card type based on number
+    const getCardType = (number) => {
+        const cleanNumber = number.replace(/\s+/g, '');
+        if (/^4/.test(cleanNumber)) return 'visa';
+        if (/^5[1-5]/.test(cleanNumber)) return 'mastercard';
+        return 'mastercard'; // Default
+    };
+
+    const formatCardNumber = (value) => {
+        const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+        const matches = v.match(/\d{4,16}/g);
+        const match = matches && matches[0] || '';
+        const parts = [];
+        for (let i = 0, len = match.length; i < len; i += 4) {
+            parts.push(match.substring(i, i + 4));
+        }
+        if (parts.length) {
+            return parts.join(' ');
+        } else {
+            return v;
+        }
+    };
+
+    const formatExpiry = (value) => {
+        const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+        if (v.length >= 2) {
+            return v.substring(0, 2) + '/' + v.substring(2, 4);
+        }
+        return v;
+    };
+
+    const validateCardNumber = (number) => {
+        const cleanNumber = number.replace(/\s+/g, '');
+        if (cleanNumber.length !== 16) return "Card number must be 16 digits";
+        // Simple Luhn Algorithm can be added here if needed, but length check is often enough for UI
+        return null;
+    };
+
+    const validateExpiry = (expiry) => {
+        if (!expiry) return "Required";
+        const parts = expiry.split('/');
+        if (parts.length !== 2) return "Invalid format (MM/YY)";
+
+        const month = parseInt(parts[0], 10);
+        const year = parseInt(parts[1], 10);
+
+        if (!month || !year || month < 1 || month > 12) return "Invalid month";
+
+        const currentYear = new Date().getFullYear() % 100;
+        const currentMonth = new Date().getMonth() + 1; // 1-12
+
+        if (year < currentYear || (year === currentYear && month < currentMonth)) {
+            return "Card has expired";
+        }
+
+        return null;
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+
+        const numErr = validateCardNumber(newCard.number);
+        if (numErr) newErrors.number = numErr;
+
+        const expErr = validateExpiry(newCard.expiry);
+        if (expErr) newErrors.expiry = expErr;
+
+        if (!newCard.cvv || newCard.cvv.length < 3 || newCard.cvv.length > 4) {
+            newErrors.cvv = "Invalid CVV";
+        }
+
+        if (!newCard.holder || newCard.holder.length < 3) {
+            newErrors.holder = "Name must be at least 3 chars";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
 
     const handleDeleteClick = (card) => {
         setCardToDelete(card);
@@ -32,16 +113,43 @@ export default function SavedCards() {
 
     const handleAddSubmit = (e) => {
         e.preventDefault();
+
+        if (!validateForm()) return;
+
         const card = {
             id: Date.now(),
             number: newCard.number,
             holder: newCard.holder,
             expiry: newCard.expiry,
-            type: 'mastercard' // simplified for now
+            type: getCardType(newCard.number)
         };
         setCards([...cards, card]);
         setNewCard({ number: '', expiry: '', cvv: '', holder: '' });
+        setErrors({});
         setShowAddModal(false);
+    };
+
+    const handleNumberChange = (e) => {
+        const val = e.target.value;
+        // Limit to 19 characters (16 digits + 3 spaces)
+        if (val.replace(/\s/g, '').length > 16) return;
+        setNewCard({ ...newCard, number: formatCardNumber(val) });
+        if (errors.number) setErrors({ ...errors, number: null });
+    };
+
+    const handleExpiryChange = (e) => {
+        const val = e.target.value;
+        // Limit to 5 chars (MM/YY)
+        if (val.length > 5) return;
+        setNewCard({ ...newCard, expiry: formatExpiry(val) });
+        if (errors.expiry) setErrors({ ...errors, expiry: null });
+    };
+
+    const handleCvvChange = (e) => {
+        const val = e.target.value.replace(/\D/g, '');
+        if (val.length > 4) return;
+        setNewCard({ ...newCard, cvv: val });
+        if (errors.cvv) setErrors({ ...errors, cvv: null });
     };
 
     return (
@@ -68,10 +176,14 @@ export default function SavedCards() {
                         <div className="flex justify-between items-start z-10">
                             {/* Logo */}
                             <div className="flex items-center gap-2">
-                                <div className="flex relative">
-                                    <div className="w-8 h-8 rounded-full bg-red-600 opacity-90 z-10"></div>
-                                    <div className="w-8 h-8 rounded-full bg-yellow-500 opacity-90 -ml-4"></div>
-                                </div>
+                                {card.type === 'visa' ? (
+                                    <FaCcVisa className="text-4xl text-white opacity-90" />
+                                ) : (
+                                    <div className="flex relative">
+                                        <div className="w-8 h-8 rounded-full bg-red-600 opacity-90 z-10"></div>
+                                        <div className="w-8 h-8 rounded-full bg-yellow-500 opacity-90 -ml-4"></div>
+                                    </div>
+                                )}
                             </div>
                             {/* Delete Button */}
                             <button
@@ -120,12 +232,13 @@ export default function SavedCards() {
                                 <label className="block text-xs font-medium text-gray-700 mb-1.5 uppercase">Card Number</label>
                                 <input
                                     type="text"
-                                    placeholder="Card Number"
+                                    placeholder="0000 0000 0000 0000"
                                     value={newCard.number}
-                                    onChange={(e) => setNewCard({ ...newCard, number: e.target.value })}
-                                    className="w-full bg-gray-50 border border-transparent focus:border-black focus:bg-white rounded-md px-4 py-3 text-sm outline-none transition-all placeholder-gray-400"
+                                    onChange={handleNumberChange}
+                                    className={`w-full bg-gray-50 border ${errors.number ? 'border-red-500' : 'border-transparent'} focus:border-black focus:bg-white rounded-md px-4 py-3 text-sm outline-none transition-all placeholder-gray-400`}
                                     required
                                 />
+                                {errors.number && <p className="text-red-500 text-xs mt-1">{errors.number}</p>}
                             </div>
 
                             <div className="flex gap-4">
@@ -135,10 +248,11 @@ export default function SavedCards() {
                                         type="text"
                                         placeholder="MM/YY"
                                         value={newCard.expiry}
-                                        onChange={(e) => setNewCard({ ...newCard, expiry: e.target.value })}
-                                        className="w-full bg-gray-50 border border-transparent focus:border-black focus:bg-white rounded-md px-4 py-3 text-sm outline-none transition-all placeholder-gray-400"
+                                        onChange={handleExpiryChange}
+                                        className={`w-full bg-gray-50 border ${errors.expiry ? 'border-red-500' : 'border-transparent'} focus:border-black focus:bg-white rounded-md px-4 py-3 text-sm outline-none transition-all placeholder-gray-400`}
                                         required
                                     />
+                                    {errors.expiry && <p className="text-red-500 text-xs mt-1">{errors.expiry}</p>}
                                 </div>
                                 <div className="flex-1">
                                     <label className="block text-xs font-medium text-gray-700 mb-1.5 uppercase">CVV</label>
@@ -146,10 +260,12 @@ export default function SavedCards() {
                                         type="password"
                                         placeholder="CVV"
                                         value={newCard.cvv}
-                                        onChange={(e) => setNewCard({ ...newCard, cvv: e.target.value })}
-                                        className="w-full bg-gray-50 border border-transparent focus:border-black focus:bg-white rounded-md px-4 py-3 text-sm outline-none transition-all placeholder-gray-400"
+                                        onChange={handleCvvChange}
+                                        maxLength={4}
+                                        className={`w-full bg-gray-50 border ${errors.cvv ? 'border-red-500' : 'border-transparent'} focus:border-black focus:bg-white rounded-md px-4 py-3 text-sm outline-none transition-all placeholder-gray-400`}
                                         required
                                     />
+                                    {errors.cvv && <p className="text-red-500 text-xs mt-1">{errors.cvv}</p>}
                                 </div>
                             </div>
 
@@ -159,10 +275,14 @@ export default function SavedCards() {
                                     type="text"
                                     placeholder="Card Holder Name"
                                     value={newCard.holder}
-                                    onChange={(e) => setNewCard({ ...newCard, holder: e.target.value })}
-                                    className="w-full bg-gray-50 border border-transparent focus:border-black focus:bg-white rounded-md px-4 py-3 text-sm outline-none transition-all placeholder-gray-400"
+                                    onChange={(e) => {
+                                        setNewCard({ ...newCard, holder: e.target.value });
+                                        if (errors.holder) setErrors({ ...errors, holder: null });
+                                    }}
+                                    className={`w-full bg-gray-50 border ${errors.holder ? 'border-red-500' : 'border-transparent'} focus:border-black focus:bg-white rounded-md px-4 py-3 text-sm outline-none transition-all placeholder-gray-400`}
                                     required
                                 />
+                                {errors.holder && <p className="text-red-500 text-xs mt-1">{errors.holder}</p>}
                             </div>
 
                             <button type="submit" className="w-full bg-black text-white font-medium py-3 rounded-md hover:bg-gray-900 transition-colors uppercase text-sm tracking-wide">

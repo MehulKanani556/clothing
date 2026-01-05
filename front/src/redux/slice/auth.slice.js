@@ -107,6 +107,24 @@ export const resetPassword = createAsyncThunk(
     }
 );
 
+export const changeUserPassword = createAsyncThunk(
+    'auth/changeUserPassword',
+    async ({ email, oldPassword, newPassword }, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post(`${BASE_URL}/change-password`, {
+                email,
+                oldPassword,
+                newPassword
+            });
+            if (response.status === 200) {
+                return response.data;
+            }
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
+
 // Update User Profile
 export const updateUserProfile = createAsyncThunk(
     'auth/updateUserProfile',
@@ -133,6 +151,23 @@ export const logout = createAsyncThunk(
             console.log(window.persistor);
 
             window.persistor.purge();
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
+
+// Delete Account
+export const deleteMyAccount = createAsyncThunk(
+    'auth/deleteMyAccount',
+    async (userId, { rejectWithValue }) => {
+        try {
+            // The route is /users/:id but the controller uses req.user.id for self-deletion
+            // We pass userId in URL just to suffice the route param requirement
+            const response = await axiosInstance.delete(`${BASE_URL}/users/${userId}`);
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('userId');
             return response.data;
         } catch (error) {
             return handleErrors(error, null, rejectWithValue);
@@ -272,6 +307,22 @@ export const authSlice = createSlice({
                 state.message = action.payload?.message || "Reset Password Failed";
             })
 
+            .addCase(changeUserPassword.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+                state.message = null;
+            })
+            .addCase(changeUserPassword.fulfilled, (state, action) => {
+                state.loading = false;
+                state.error = null;
+                state.message = action.payload?.message || "Password Changed Successfully";
+            })
+            .addCase(changeUserPassword.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message || "Failed to change password";
+                state.message = action.payload?.message || "Failed to change password";
+            })
+
             .addCase(updateUserProfile.pending, (state) => {
                 state.loading = true;
                 state.error = null;
@@ -285,6 +336,21 @@ export const authSlice = createSlice({
             .addCase(updateUserProfile.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload?.message || "Profile Update Failed";
+            })
+
+            .addCase(deleteMyAccount.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(deleteMyAccount.fulfilled, (state, action) => {
+                state.loading = false;
+                state.user = null;
+                state.isAuthenticated = false;
+                state.message = "Account Deleted Successfully";
+            })
+            .addCase(deleteMyAccount.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message || "Delete Account Failed";
             });
     }
 

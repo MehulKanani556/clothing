@@ -16,6 +16,11 @@ export default function ProfilePage() {
     const navigate = useNavigate();
     const { user, loading } = useSelector((state) => state.auth);
     const [activeTab, setActiveTab] = useState('profile');
+    const [imgError, setImgError] = useState(false);
+
+    React.useEffect(() => {
+        setImgError(false);
+    }, [user?.photo]);
 
     const handleLogout = () => {
         dispatch(logout())
@@ -69,11 +74,18 @@ export default function ProfilePage() {
                     {/* Sidebar */}
                     <div className="lg:w-1/4">
                         <div className="bg-white rounded-lg shadow-sm p-6 mb-6 text-center">
-                            <img
-                                src={user.photo || 'https://via.placeholder.com/150'}
-                                alt={user.firstName}
-                                className="w-24 h-24 rounded-full mx-auto object-cover mb-4"
-                            />
+                            {user.photo && !imgError ? (
+                                <img
+                                    src={user.photo}
+                                    alt={user.firstName}
+                                    className="w-24 h-24 rounded-full mx-auto object-cover mb-4"
+                                    onError={() => setImgError(true)}
+                                />
+                            ) : (
+                                <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-purple-600 text-white flex items-center justify-center text-3xl font-bold uppercase">
+                                    {(user.firstName || user.email || 'U').charAt(0)}
+                                </div>
+                            )}
                             <h3 className="text-lg font-bold text-gray-900 capitalize">{user.firstName} {user.lastName}</h3>
                             <p className="text-sm text-gray-500">{user.email}</p>
                         </div>
