@@ -1,6 +1,7 @@
 const Product = require('../models/product.model');
 const Category = require('../models/category.model');
 const { validationResult } = require('express-validator');
+const Review = require('../models/review.model');
 
 // Upload Image Helper Endpoint
 exports.uploadProductImage = async (req, res) => {
@@ -103,16 +104,46 @@ exports.getAllProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id)
-            .populate('category', 'name slug')
-            .populate('subCategory', 'name slug');
+            .populate('category')
+            .populate('subCategory');
 
         if (!product) {
             return res.status(404).json({ success: false, message: 'Product not found' });
         }
 
+        // Fetch Reviews
+        const reviews = await Review.find({ product: product._id, status: 'Published' })
+            .populate('user')
+            .sort({ createdAt: -1 });
+
+        // Calculate Aggregates
+        const totalReviews = reviews.length;
+        const sumRatings = reviews.reduce((acc, r) => acc + r.rating, 0);
+        const averageRating = totalReviews > 0 ? (sumRatings / totalReviews).toFixed(1) : 0;
+
+        const breakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        reviews.forEach(r => {
+            if (breakdown[r.rating] !== undefined) breakdown[r.rating]++;
+        });
+
+        // Convert counts to percentages if needed by frontend, or just send counts
+        // Frontend expects percentages in 'breakdown' array or object? 
+        // Let's send raw counts and let frontend calc %, or send structure matching the user's mock:
+        // "rating": { "breakdown": { "1": 0, ... }, "average": 0, "count": 0 }
+
+        const productWithReviews = {
+            ...product.toObject(),
+            reviews,
+            rating: {
+                average: averageRating,
+                count: totalReviews,
+                breakdown
+            }
+        };
+
         res.status(200).json({
             success: true,
-            data: product
+            data: productWithReviews
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

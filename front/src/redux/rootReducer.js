@@ -15,6 +15,7 @@ import reportReducer from "./slice/report.slice.js";
 import supportReducer from "./slice/support.slice.js";
 import settingsReducer from "./slice/settings.slice.js";
 import paymentReducer from "./slice/payment.slice.js";
+import reviewReducer from "./slice/review.slice.js";
 
 export const rootReducer = combineReducers({
     adminDashboard: adminDashboardReducer,
@@ -33,4 +34,5 @@ export const rootReducer = combineReducers({
     category: categoryReducer,
     cart: cartReducer,
     wishlist: wishlistReducer,
+    review: reviewReducer,
 });

@@ -97,6 +97,19 @@ export const productSlice = createSlice({
         },
         clearSingleProduct: (state) => {
             state.product = null;
+        },
+        updateProductReview: (state, action) => {
+            if (state.product && state.product.reviews) {
+                const index = state.product.reviews.findIndex(r => r._id === action.payload._id);
+                if (index !== -1) {
+                    state.product.reviews[index] = action.payload;
+                }
+            }
+        },
+        removeProductReview: (state, action) => {
+            if (state.product && state.product.reviews) {
+                state.product.reviews = state.product.reviews.filter(r => r._id !== action.payload);
+            }
         }
     },
     extraReducers: (builder) => {
@@ -149,5 +162,5 @@ export const productSlice = createSlice({
     }
 });
 
-export const { clearProductErrors, clearSingleProduct } = productSlice.actions;
+export const { clearProductErrors, clearSingleProduct, updateProductReview, removeProductReview } = productSlice.actions;
 export default productSlice.reducer;

@@ -12,7 +12,7 @@ router.post('/users/address', auth, addAddress);
 router.delete('/users/address/:addressId', auth, deleteAddress);
 router.put('/users/address/:addressId/default', auth, setDefaultAddress);
 const { getAllProducts, getProductById, getRelatedProducts, createProduct, uploadProductImage, updateProduct, deleteProduct } = require('../controllers/product.controller');
-const { getAllCategories, createCategory } = require('../controllers/category.controller');
+const { getAllCategories, createCategory, updateCategory, deleteCategory, getCategoryById, getAlladminCategories } = require('../controllers/category.controller');
 const { getAllSubCategories, createSubCategory, getSubCategoriesByCategoryId } = require('../controllers/subCategory.controller');
 const { addToCart, getCart, removeFromCart, updateCartItem } = require('../controllers/cart.controller');
 const { addToWishlist, getWishlist, removeFromWishlist } = require('../controllers/wishlist.controller');
@@ -55,7 +55,11 @@ router.get('/products/:id/related', getRelatedProducts);
 
 // categories
 router.get('/categories', getAllCategories);
-router.post('/categories', createCategory);
+router.get('/admincategories', getAlladminCategories);
+router.get('/categories/:id', getCategoryById);
+router.post('/categories', upload.single('image'), createCategory);
+router.put('/categories/:id', upload.single('image'), updateCategory);
+router.delete('/categories/:id', deleteCategory);
 
 // subcategories
 router.get('/subcategories', getAllSubCategories);
@@ -123,5 +127,13 @@ router.post('/payment/webhook', handleWebhook);
 router.post('/wishlist', auth, addToWishlist);
 router.get('/wishlist', auth, getWishlist);
 router.delete('/wishlist/:productId', auth, removeFromWishlist);
+
+// --- REVIEWS SERVICE ---
+const { addReview, getProductReviews, getAllReviews, updateReviewStatus, deleteReview } = require('../controllers/review.controller');
+router.post('/reviews', auth, addReview);
+router.get('/reviews/product/:productId', getProductReviews);
+router.get('/reviews/admin', auth, getAllReviews);
+router.put('/reviews/:id', auth, updateReviewStatus);
+router.delete('/reviews/:id', auth, deleteReview);
 
 module.exports = router;

@@ -19,6 +19,7 @@ import AboutUsPage from './pages/AboutUsPage';
 import AdminLayout from './admin/components/layout/AdminLayout';
 import Dashboard from './admin/pages/dashboard/Dashboard';
 import Products from './admin/pages/products/Products';
+import Categories from './admin/pages/categories/Categories';
 import Orders from './admin/pages/orders/Orders';
 import OfferZone from './admin/pages/offerZone/OfferZone';
 import Returns from './admin/pages/returns/Returns';
@@ -31,6 +32,8 @@ import Users from './admin/pages/users/Users';
 import PricingRules from './admin/pages/pricingRules/PricingRules';
 import TermsPage from './pages/TermsPage';
 import PaymentPage from './pages/PaymentPage';
+import CategoriesProduct from './admin/pages/categories/CategoriesProduct';
+import ProductsDetails from './admin/pages/products/ProductsDetails';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -70,6 +73,9 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="products" element={<Products />} />
+              <Route path="products/:id" element={<ProductsDetails />} />
+              <Route path="categories" element={<Categories />} />
+              <Route path="categories/:id" element={<CategoriesProduct />} />
               <Route path="orders" element={<Orders />} />
               <Route path="offer-zone" element={<OfferZone />} />
               <Route path="returns" element={<Returns />} />
