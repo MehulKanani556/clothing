@@ -14,12 +14,14 @@ import adminUserReducer from "./slice/adminUserSlice.js";
 import reportReducer from "./slice/report.slice.js";
 import supportReducer from "./slice/support.slice.js";
 import settingsReducer from "./slice/settings.slice.js";
+import paymentReducer from "./slice/payment.slice.js";
 
 export const rootReducer = combineReducers({
     adminDashboard: adminDashboardReducer,
     adminProducts: adminProductReducer,
     adminOrders: adminOrderReducer,
     offers: offerReducer,
+    payment: paymentReducer,
     returns: returnReducer,
     blogs: blogReducer,
     adminUsers: adminUserReducer,

@@ -30,6 +30,7 @@ import Support from './admin/pages/support/Support';
 import Users from './admin/pages/users/Users';
 import PricingRules from './admin/pages/pricingRules/PricingRules';
 import TermsPage from './pages/TermsPage';
+import PaymentPage from './pages/PaymentPage';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -59,6 +60,7 @@ function App() {
                   <Route path="/faq" element={<FAQPage />} />
                   <Route path="/about" element={<AboutUsPage />} />
                   <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/checkout/payment" element={<PaymentPage />} />
                 </Routes>
                 <Footer />
               </>

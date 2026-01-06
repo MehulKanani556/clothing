@@ -111,6 +111,14 @@ router.post('/offers', auth, createOffer);
 router.post('/offers/validate', auth, validateCoupon);
 router.post('/offers/banner', auth, upload.single('image'), uploadBanner);
 
+// Payment
+const { createCashfreeOrder, verifyPayment, processPayment, getPaymentMethods, handleWebhook } = require('../controllers/payment.controller');
+router.post('/payment/create', auth, createCashfreeOrder);
+router.post('/payment/pay', auth, processPayment);
+router.post('/payment/verify', auth, verifyPayment);
+router.get('/payment/methods', auth, getPaymentMethods);
+router.post('/payment/webhook', handleWebhook);
+
 // Wishlist
 router.post('/wishlist', auth, addToWishlist);
 router.get('/wishlist', auth, getWishlist);

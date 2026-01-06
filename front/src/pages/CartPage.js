@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { fetchCart, removeFromCart, updateCartItem } from '../redux/slice/cart.slice';
-import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { Link, useNavigate } from 'react-router-dom';
 import { FiTrash2, FiMapPin, FiTag } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -12,6 +12,7 @@ import { removeCoupon } from '../redux/slice/offer.slice';
 
 export default function CartPage() {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { items, totalPrice, loading } = useSelector((state) => state.cart);
     const { isAuthenticated, user } = useSelector((state) => state.auth);
     const { appliedCoupon } = useSelector((state) => state.offers);
@@ -356,7 +357,10 @@ export default function CartPage() {
                                 </div>
                             </div>
 
-                            <button className="w-full bg-black text-white py-3 rounded-lg font-bold text-sm mt-6 hover:bg-gray-900 transition-colors uppercase tracking-widest">
+                            <button
+                                onClick={() => navigate('/checkout/payment')}
+                                className="w-full bg-black text-white py-3 rounded-lg font-bold text-sm mt-6 hover:bg-gray-900 transition-colors uppercase tracking-widest"
+                            >
                                 Proceed to pay
                             </button>
                         </div>
