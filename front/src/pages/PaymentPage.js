@@ -1,5 +1,6 @@
 import { FiCreditCard, FiLock, FiMapPin, FiChevronDown, FiChevronUp, FiSmartphone } from 'react-icons/fi';
 import { BsWallet2, BsBank, BsCashCoin } from 'react-icons/bs';
+import { load } from '@cashfreepayments/cashfree-js';
 import { useDispatch, useSelector } from 'react-redux';
 import { createPaymentOrder, processPaymentOrder } from '../redux/slice/payment.slice';
 import { fetchCart } from '../redux/slice/cart.slice';
@@ -104,16 +105,13 @@ export default function PaymentPage() {
 
     const handlePayment = async () => {
         if (selectedMethod !== 'card') {
-            // Placeholder for other methods
             alert(`Payment method ${selectedMethod} is not yet implemented.`);
             return;
         }
 
-        // Check for Auth Token
         const token = sessionStorage.getItem("token") || localStorage.getItem("token");
         if (!token) {
             alert("Session expired or token missing. Please login again.");
-            // Assuming you have access to navigate, or use window.location
             window.location.href = '/login';
             return;
         }
@@ -141,7 +139,7 @@ export default function PaymentPage() {
                 throw new Error('Failed to create payment session');
             }
 
-            // Step 2: Process Payment
+            // Step 2: Process Payment (S2S)
             let mm = "", yy = "";
             if (cardDetails.expiry && cardDetails.expiry.includes('/')) {
                 [mm, yy] = cardDetails.expiry.split('/');
@@ -151,64 +149,29 @@ export default function PaymentPage() {
 
             const cleanCardNumber = cardDetails.number.replace(/\s/g, '');
 
-            const paymentMethod = {
-                card: {
-                    channel: "post",
-                    card_number: cleanCardNumber,
-                    card_holder_name: cardDetails.holder,
-                    card_expiry_mm: mm,
-                    card_expiry_yy: yy,
-                    card_cvv: cardDetails.cvv
-                }
+            const paymentData = {
+                paymentSessionId: orderResult.paymentSessionId,
+                card_number: cleanCardNumber,
+                card_holder_name: cardDetails.holder,
+                expiry_mm: mm,
+                expiry_yy: yy,
+                cvv: cardDetails.cvv
             };
 
-            let paymentResult;
-            try {
-                paymentResult = await dispatch(processPaymentOrder({
-                    paymentSessionId: orderResult.paymentSessionId,
-                    paymentMethod
-                })).unwrap();
-            } catch (err) {
-                if (err.code === 'payment_method_unsupported' || (err.message && err.message.includes('mode not enabled'))) {
-                    console.warn("S2S failed, falling back to Link method");
-                    paymentResult = await dispatch(processPaymentOrder({
-                        paymentSessionId: orderResult.paymentSessionId,
-                        paymentMethod: {
-                            card: {
-                                channel: "link"
-                            }
-                        }
-                    })).unwrap();
-                } else {
-                    throw err;
-                }
-            }
+            const result = await dispatch(processPaymentOrder(paymentData)).unwrap();
 
             // Step 3: Handle Response
-            if (paymentResult.success && paymentResult.data) {
-                const responseData = paymentResult.data;
-                const payment_status = responseData.payment_status;
-                const action = responseData.action;
-                const url = responseData.data?.url || responseData.url;
-
-                if (payment_status === "SUCCESS") {
-                    alert("Payment Successful!");
-                    // Navigate to success page
-                } else if (action === "link" && url) {
-                    window.location.href = url;
-                } else if (action === "custom" && url) {
-                    window.location.href = url;
-                } else if (payment_status) {
-                    alert(`Payment Status: ${payment_status}`);
-                } else {
-                    if (url) {
-                        window.location.href = url;
-                    } else {
-                        alert(`Payment processing. Check console for details.`);
-                    }
-                }
+            if (result.url) {
+                window.location.href = result.url;
+            } else if (result.success && result.data?.payment_status === 'SUCCESS') {
+                alert("Payment Successful!");
+                // You can add navigation to a success page here
             } else {
-                throw new Error("Invalid payment response received");
+                if (result.data?.payment_status) {
+                    alert(`Payment Status: ${result.data?.payment_status}`);
+                } else {
+                    alert("Payment processing initiated. Please check status.");
+                }
             }
 
         } catch (error) {

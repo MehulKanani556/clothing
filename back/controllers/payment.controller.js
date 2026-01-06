@@ -1,21 +1,11 @@
 const { Cashfree } = require('cashfree-pg');
-const crypto = require('crypto');
 
 // Configure Credentials
 Cashfree.XClientId = process.env.CASHFREE_APP_ID;
 Cashfree.XClientSecret = process.env.CASHFREE_SECRET_KEY;
-Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
+Cashfree.XEnvironment = Cashfree.Environment.SANDBOX; // Change to PRODUCTION for live
 
-// Explicitly set the base URL if needed, although XEnvironment.SANDBOX should handle it.
-// The error 'endpoint or method is not valid' usually means the SDK couldn't resolve the correct endpoint.
-// Let's verify environment loading.
-console.log("Cashfree Config:", {
-    clientId: Cashfree.XClientId ? 'SET' : 'MISSING',
-    environment: Cashfree.XEnvironment
-});
-
-// Create Order (Renamed to avoid conflict)
-// Create Order (Renamed to avoid conflict)
+// Create Order
 exports.createCashfreeOrder = async (req, res) => {
     try {
         const { orderAmount, customerId, customerPhone, customerName, customerEmail } = req.body;
@@ -27,40 +17,22 @@ exports.createCashfreeOrder = async (req, res) => {
             });
         }
 
-        const amount = parseFloat(orderAmount);
-        const orderId = `ORDER_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
-        // Environment URL
-        const CASHFREE_URL = "https://sandbox.cashfree.com/pg"; // Change to api.cashfree.com for prod
-
-        const payload = {
-            order_amount: amount,
-            order_currency: "INR",
-            order_id: orderId,
-            customer_details: {
-                customer_id: customerId,
-                customer_phone: customerPhone,
-                customer_name: customerName,
-                customer_email: customerEmail
+        const request = {
+            "order_amount": parseFloat(orderAmount),
+            "order_currency": "INR",
+            "customer_details": {
+                "customer_id": customerId,
+                "customer_phone": customerPhone,
+                "customer_name": customerName,
+                "customer_email": customerEmail
             },
-            order_meta: {
-                return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/cart`
+            "order_meta": {
+                "return_url": `${process.env.FRONTEND_URL || 'http://localhost:3000'}/cart?order_id={order_id}`
             }
         };
 
-        const config = {
-            headers: {
-                'Content-Type': 'application/json',
-                'x-client-id': process.env.CASHFREE_APP_ID,
-                'x-client-secret': process.env.CASHFREE_SECRET_KEY,
-                'x-api-version': '2023-08-01'
-            }
-        };
-
-        const axios = require('axios');
-        const response = await axios.post(`${CASHFREE_URL}/orders`, payload, config);
-
-        console.log("Cashfree Create Order Response:", response.data);
+        // Latest API version header: 2025-01-01
+        const response = await Cashfree.PGCreateOrder("2023-08-01", request);
 
         res.status(200).json({
             success: true,
@@ -70,8 +42,6 @@ exports.createCashfreeOrder = async (req, res) => {
 
     } catch (error) {
         console.error("Cashfree Create Order Error:", error.response?.data?.message || error.message);
-        console.error("Full Error:", error.response?.data);
-
         res.status(500).json({
             success: false,
             message: error.response?.data?.message || error.message,
@@ -118,59 +88,77 @@ exports.verifyPayment = async (req, res) => {
     }
 };
 
-// Process Payment with Card Details (S2S)
+// Process Payment via S2S
 exports.processPayment = async (req, res) => {
     try {
-        const { paymentSessionId, paymentMethod } = req.body;
-
-        console.log("ProcessPayment Request:", JSON.stringify(req.body, null, 2));
+        const { paymentSessionId, card_number, card_holder_name, expiry_mm, expiry_yy, cvv } = req.body;
 
         if (!paymentSessionId) {
-            throw new Error("Payment Session ID is missing");
+            return res.status(400).json({
+                success: false,
+                message: "Payment Session ID is required"
+            });
         }
 
-        // Environment URL
-        const CASHFREE_URL = "https://sandbox.cashfree.com/pg"; // Change to api.cashfree.com for prod
-
-        const config = {
-            headers: {
-                'Content-Type': 'application/json',
-                'x-client-id': process.env.CASHFREE_APP_ID,
-                'x-client-secret': process.env.CASHFREE_SECRET_KEY,
-                'x-api-version': '2023-08-01'
+        const createPayRequest = (channel) => ({
+            "payment_session_id": paymentSessionId,
+            "payment_method": {
+                "card": {
+                    "channel": channel,
+                    "card_number": card_number,
+                    "card_holder_name": card_holder_name,
+                    "card_expiry_mm": expiry_mm,
+                    "card_expiry_yy": expiry_yy,
+                    "card_cvv": cvv
+                }
             }
-        };
-
-        const payload = {
-            payment_session_id: paymentSessionId,
-            payment_method: paymentMethod
-        };
-
-        const axios = require('axios');
-        const response = await axios.post(`${CASHFREE_URL}/orders/pay`, payload, config);
-
-        console.log("Cashfree Pay Response:", response.data);
-
-        res.status(200).json({
-            success: true,
-            data: response.data
         });
 
+        let response;
+        try {
+            // Try with channel 'post' first
+            response = await Cashfree.PGPayOrder("2023-08-01", createPayRequest("post"));
+        } catch (error) {
+            const errMessage = error.response?.data?.message || "";
+            // Check for specific error indicating 'post' is not enabled
+            if (errMessage.includes("mode not enabled") || error.response?.data?.code === "payment_method_not_allowed") {
+                console.log("Channel 'post' not enabled, retrying with 'link'...");
+                // Retry with channel 'link'
+                response = await Cashfree.PGPayOrder("2023-08-01", createPayRequest("link"));
+            } else {
+                throw error;
+            }
+        }
+
+        console.log("Payment Response:", response.data);
+
+        const responseData = response.data;
+
+        // Handle Action: Most S2S card payments require an OTP (Redirection)
+        if (responseData.action === "link" || (responseData.data && responseData.data.url)) {
+            res.status(200).json({
+                success: true,
+                url: responseData.data?.url || responseData.data?.payload?.url || responseData.data?.url,
+                data: responseData
+            });
+        } else {
+            res.status(200).json({
+                success: true,
+                data: responseData
+            });
+        }
+
     } catch (error) {
-        console.error("Cashfree Pay Error:", error.response?.data);
-
-        const errorData = error.response?.data || {};
-
-        res.status(500).json({
+        console.error("Cashfree Pay Error:", error.response?.data || error.message);
+        res.status(400).json({
             success: false,
-            message: errorData.message || "Payment Processing Failed",
-            details: errorData,
-            code: errorData.code || errorData.type // specific code mapping
+            message: error.response?.data?.message || error.message,
+            details: error.response?.data
         });
     }
 };
 
-// NEW: Get Payment Methods
+// Get Payment Methods
 exports.getPaymentMethods = async (req, res) => {
     try {
         const { orderId } = req.query;
@@ -182,7 +170,8 @@ exports.getPaymentMethods = async (req, res) => {
             });
         }
 
-        const response = await Cashfree.PGOrderFetchPaymentMethods("2023-08-01", orderId);
+        // Using 2025-01-01 version
+        const response = await Cashfree.PGOrderFetchPaymentMethods("2025-01-01", orderId);
 
         res.status(200).json({
             success: true,
@@ -190,7 +179,7 @@ exports.getPaymentMethods = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Fetch Payment Methods Error:", error);
+        console.error("Fetch Payment Methods Error:", error.response?.data || error.message);
         res.status(500).json({
             success: false,
             message: error.message
@@ -198,31 +187,17 @@ exports.getPaymentMethods = async (req, res) => {
     }
 };
 
-// NEW: Handle Webhook for Payment Status
+// Webhook Handler
 exports.handleWebhook = async (req, res) => {
     try {
         const { data, type } = req.body;
-
         console.log("Webhook received:", type, data);
 
-        // Verify webhook signature
-        const signature = req.headers['x-webhook-signature'];
-        const timestamp = req.headers['x-webhook-timestamp'];
-
-        // Implement signature verification here
-        // const isValid = verifyWebhookSignature(signature, timestamp, req.body);
-
         if (type === 'PAYMENT_SUCCESS_WEBHOOK') {
-            // Handle successful payment
-            // Update order status in database
-            console.log("Payment successful for order:", data.order.order_id);
-        } else if (type === 'PAYMENT_FAILED_WEBHOOK') {
-            // Handle failed payment
-            console.log("Payment failed for order:", data.order.order_id);
+            console.log("Payment successful for order:", data?.order?.order_id);
         }
 
         res.status(200).json({ success: true });
-
     } catch (error) {
         console.error("Webhook Error:", error);
         res.status(500).json({ success: false });

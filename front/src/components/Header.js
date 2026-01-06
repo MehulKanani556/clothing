@@ -37,7 +37,7 @@ export default function Header() {
       dispatch(fetchCart());
       dispatch(fetchWishlist());
     }
-  }, [isAuthenticated, dispatch]);
+  }, [isAuthenticated, dispatch,user]);
 
   const handleProfileClick = () => {
     if (!isAuthenticated) {
@@ -181,7 +181,6 @@ export default function Header() {
                 </MenuItems>
               </Menu>
             )}
-
             <AuthModal isOpen={isAuthModalOpen} closeModal={() => setAuthModalOpen(false)} />
           </div>
         </div>

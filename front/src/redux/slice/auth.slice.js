@@ -149,10 +149,16 @@ export const logout = createAsyncThunk(
             const response = await axiosInstance.post(`${BASE_URL}/logout`);
             console.log(window);
             console.log(window.persistor);
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('userId');
 
             window.persistor.purge();
+            clearAuthState();
             return response.data;
         } catch (error) {
+             clearAuthState();
             return handleErrors(error, null, rejectWithValue);
         }
     }
@@ -228,6 +234,8 @@ export const authSlice = createSlice({
             state.message = "Logged out successfully";
             sessionStorage.removeItem('token');
             sessionStorage.removeItem('userId');
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
         },
         clearMessage: (state) => {
             state.message = null;
