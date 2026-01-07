@@ -20,6 +20,7 @@ exports.createCashfreeOrder = async (req, res) => {
         const request = {
             "order_amount": parseFloat(orderAmount),
             "order_currency": "INR",
+            "order_id": req.body.orderId, // Use the DB Order ID
             "customer_details": {
                 "customer_id": customerId,
                 "customer_phone": customerPhone,

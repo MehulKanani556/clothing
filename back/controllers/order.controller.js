@@ -1,6 +1,7 @@
 const Order = require('../models/order.model');
 const Product = require('../models/product.model');
 const { validationResult } = require('express-validator');
+const mongoose = require('mongoose');
 
 // Helper: Calculate tax
 const calculateTax = (price, percent) => {
@@ -104,7 +105,7 @@ exports.createOrder = async (req, res) => {
             grandTotal: Math.round(grandTotal * 100) / 100,
             shippingAddress,
             paymentMethod,
-            paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Paid', // Simplified
+            paymentStatus: 'Pending',
             status: 'Pending'
         }], { session });
 
@@ -122,10 +123,14 @@ exports.createOrder = async (req, res) => {
 
 exports.updateOrderStatus = async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, paymentStatus, paymentGatewayDetails } = req.body;
         const { id } = req.params;
 
-        const updates = { status };
+        const updates = {};
+        if (status) updates.status = status;
+        if (paymentStatus) updates.paymentStatus = paymentStatus;
+        if (paymentGatewayDetails) updates.paymentGatewayDetails = paymentGatewayDetails;
+
         if (status === 'Shipped') updates.shippedAt = new Date();
         if (status === 'Delivered') {
             updates.deliveredAt = new Date();
@@ -134,7 +139,7 @@ exports.updateOrderStatus = async (req, res) => {
             const expiry = new Date();
             expiry.setDate(expiry.getDate() + returnDays);
             updates.returnWindowExpiresAt = expiry;
-            updates.paymentStatus = 'Paid'; // Assume COD paid on delivery
+            if (!paymentStatus) updates.paymentStatus = 'Paid'; // Assume COD paid on delivery if not specified
         }
 
         const order = await Order.findByIdAndUpdate(id, updates, { new: true });

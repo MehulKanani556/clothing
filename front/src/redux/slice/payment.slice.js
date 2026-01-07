@@ -22,6 +22,34 @@ export const createPaymentOrder = createAsyncThunk(
     }
 );
 
+export const createDbOrder = createAsyncThunk(
+    'payment/createDbOrder',
+    async (orderData, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post(`${BASE_URL}/orders`, orderData);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || { message: error.message });
+        }
+    }
+);
+
+export const updateDbOrder = createAsyncThunk(
+    'payment/updateDbOrder',
+    async ({ orderId, status, paymentStatus, paymentGatewayDetails }, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.put(`${BASE_URL}/orders/${orderId}/status`, {
+                status,
+                paymentStatus,
+                paymentGatewayDetails
+            });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || { message: error.message });
+        }
+    }
+);
+
 export const verifyPayment = createAsyncThunk(
     'payment/verifyPayment',
     async (orderId, { rejectWithValue }) => {

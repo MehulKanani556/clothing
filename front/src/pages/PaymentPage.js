@@ -2,8 +2,8 @@ import { FiCreditCard, FiLock, FiMapPin, FiChevronDown, FiChevronUp, FiSmartphon
 import { BsWallet2, BsBank, BsCashCoin } from 'react-icons/bs';
 import { load } from '@cashfreepayments/cashfree-js';
 import { useDispatch, useSelector } from 'react-redux';
-import { createPaymentOrder, processPaymentOrder } from '../redux/slice/payment.slice';
-import { fetchCart } from '../redux/slice/cart.slice';
+import { createPaymentOrder, processPaymentOrder, createDbOrder, updateDbOrder } from '../redux/slice/payment.slice';
+import { fetchCart, clearCart } from '../redux/slice/cart.slice';
 import { useState } from 'react';
 import { useEffect } from 'react';
 
@@ -124,22 +124,64 @@ export default function PaymentPage() {
         setLoading(true);
 
         try {
-            // Step 1: Create Payment Order
-            const orderData = {
+            // Check if we already have an active order ID to retry? 
+            // For now, let's create a NEW order for every attempt unless we store it in state/session.
+            // If user retries, we likely want to use the SAME order if it's Pending.
+            // But simplifying to new order for robust flow unless stated otherwise clearly.
+            // Actually, "if user retry... complete this flow".
+            // If we have `items`, we create order.
+
+            // Map items to backend expected structure
+            const orderItems = items.map(item => {
+                let sku = 'UNKNOWN';
+                if (item.product?.variants) {
+                    const variant = item.product.variants.find(v => v.color === item.color);
+                    if (variant) {
+                        const option = variant.options.find(o => o.size === item.size);
+                        if (option) sku = option.sku;
+                    }
+                }
+                return {
+                    productId: item.product._id,
+                    sku: sku,
+                    quantity: item.quantity,
+                    size: item.size, // Optional but good for DB
+                    color: item.color
+                };
+            });
+
+            // Step 1: Create Database Order (Pending)
+            const dbOrderData = {
+                items: orderItems,
+                shippingAddress: activeAddress, // Ensure this matches backend schema
+                paymentMethod: 'Online',
+                paymentInfo: { method: 'Cashfree' }
+            };
+
+
+
+            // Dispatch createDbOrder
+            const dbOrderResult = await dispatch(createDbOrder(dbOrderData)).unwrap();
+            const orderId = dbOrderResult.data.orderId; // e.g. ORD-123
+            const dbId = dbOrderResult.data._id;
+
+            // Step 2: Create Cashfree Session with Order ID
+            const sessionData = {
                 orderAmount: totalPrice,
                 customerId: user?._id || 'guest',
                 customerPhone: user?.mobileNumber || '9999999999',
                 customerName: user?.firstName || 'Guest',
-                customerEmail: user?.email || 'guest@example.com'
+                customerEmail: user?.email || 'guest@example.com',
+                orderId: orderId // Pass the DB Order ID
             };
 
-            const orderResult = await dispatch(createPaymentOrder(orderData)).unwrap();
+            const sessionResult = await dispatch(createPaymentOrder(sessionData)).unwrap();
 
-            if (!orderResult.success || !orderResult.paymentSessionId) {
+            if (!sessionResult.success || !sessionResult.paymentSessionId) {
                 throw new Error('Failed to create payment session');
             }
 
-            // Step 2: Process Payment (S2S)
+            // Step 3: Process Payment (S2S)
             let mm = "", yy = "";
             if (cardDetails.expiry && cardDetails.expiry.includes('/')) {
                 [mm, yy] = cardDetails.expiry.split('/');
@@ -150,7 +192,7 @@ export default function PaymentPage() {
             const cleanCardNumber = cardDetails.number.replace(/\s/g, '');
 
             const paymentData = {
-                paymentSessionId: orderResult.paymentSessionId,
+                paymentSessionId: sessionResult.paymentSessionId,
                 card_number: cleanCardNumber,
                 card_holder_name: cardDetails.holder,
                 expiry_mm: mm,
@@ -160,15 +202,33 @@ export default function PaymentPage() {
 
             const result = await dispatch(processPaymentOrder(paymentData)).unwrap();
 
-            // Step 3: Handle Response
+            // Step 4: Handle Response
             if (result.url) {
+                // Redirect for 3DS
                 window.location.href = result.url;
-            } else if (result.success && result.data?.payment_status === 'SUCCESS') {
-                alert("Payment Successful!");
-                // You can add navigation to a success page here
+            } else if (result.success && (result.data?.payment_status === 'SUCCESS' || result.data?.status === 'SUCCESS')) {
+                // Payment Completed
+
+                // Update DB Order Status
+                await dispatch(updateDbOrder({
+                    orderId: dbId,
+                    status: 'Confirmed',
+                    paymentStatus: 'Paid',
+                    paymentGatewayDetails: result.data
+                })).unwrap();
+
+                alert("Payment Completed!");
+
+                // Clear Cart
+                dispatch(clearCart());
+
+                // Redirect to My Orders or Success Page
+                // window.location.href = '/my-orders'; 
             } else {
                 if (result.data?.payment_status) {
+                    // Status might be FAILED, PENDING, USER_DROPPED
                     alert(`Payment Status: ${result.data?.payment_status}`);
+                    // Order status remains Pending in DB, which is correct.
                 } else {
                     alert("Payment processing initiated. Please check status.");
                 }

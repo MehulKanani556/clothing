@@ -33,6 +33,7 @@ const orderSchema = new mongoose.Schema({
     paymentStatus: { type: String, enum: ['Pending', 'Paid', 'Failed', 'Refunded'], default: 'Pending' },
     paymentMethod: { type: String, enum: ['COD', 'Online'], required: true },
     transactionId: { type: String },
+    paymentGatewayDetails: { type: Object }, // Store Cashfree/Gateway response
 
     // Fulfillment
     status: {
