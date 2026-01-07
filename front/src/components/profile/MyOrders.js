@@ -1,84 +1,19 @@
-import React, { useState } from 'react';
-import { FiClock, FiCheck, FiX, FiChevronRight, FiFilter } from 'react-icons/fi';
+import React, { useEffect, useState } from 'react';
+import { FiClock, FiCheck, FiX, FiChevronRight } from 'react-icons/fi';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchUserOrders } from '../../redux/slice/order.slice';
+
+import OrderDetails from './OrderDetails';
 
 export default function MyOrders() {
     const [filter, setFilter] = useState('All orders');
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const dispatch = useDispatch();
+    const { orders, loading } = useSelector((state) => state.order);
 
-    // Mock data based on the provided image
-    const orders = [
-        {
-            id: 'ORD-001',
-            status: 'Pending',
-            dateLabel: 'Order placed on',
-            date: '22 Mar 2025',
-            totalItems: 2,
-            items: [
-                {
-                    id: 1,
-                    name: 'Black Oversized T-shirt for Men',
-                    color: 'Black',
-                    size: 'M',
-                    qty: 1,
-                    price: 1299,
-                    image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=200&auto=format&fit=crop'
-                },
-                {
-                    id: 2,
-                    name: "Stripes Slim Fit Men's Casual Shirt",
-                    color: 'Green',
-                    size: 'M',
-                    qty: 2,
-                    price: 1599, // Adjusted to match image roughly
-                    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=200&auto=format&fit=crop'
-                }
-            ]
-        },
-        {
-            id: 'ORD-002',
-            status: 'Delivered',
-            dateLabel: 'Order Delivered on',
-            date: '26 Mar 2025',
-            totalItems: 2,
-            items: [
-                {
-                    id: 1,
-                    name: 'Black Oversized T-shirt for Men',
-                    color: 'Black',
-                    size: 'M',
-                    qty: 1,
-                    price: 1299,
-                    image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=200&auto=format&fit=crop'
-                },
-                {
-                    id: 2,
-                    name: "Stripes Slim Fit Men's Casual Shirt",
-                    color: 'Green',
-                    size: 'M',
-                    qty: 2,
-                    price: 1599,
-                    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=200&auto=format&fit=crop'
-                }
-            ]
-        },
-        {
-            id: 'ORD-003',
-            status: 'Cancelled',
-            dateLabel: 'Order placed on',
-            date: '24 Mar 2024',
-            totalItems: 1,
-            items: [
-                {
-                    id: 1,
-                    name: 'Black Oversized T-shirt for Men',
-                    color: 'Black',
-                    size: 'M',
-                    qty: 1,
-                    price: 1599,
-                    image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=200&auto=format&fit=crop'
-                }
-            ]
-        }
-    ];
+    useEffect(() => {
+        dispatch(fetchUserOrders());
+    }, [dispatch]);
 
     const getStatusConfig = (status) => {
         switch (status) {
@@ -113,6 +48,33 @@ export default function MyOrders() {
         }
     };
 
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
+    const filteredOrders = orders?.filter(order => {
+        if (filter === 'All orders') return true;
+        return order.status === filter;
+    }) || [];
+
+    if (loading && !selectedOrder) {
+        return <div className="w-full h-64 flex items-center justify-center">Loading orders...</div>;
+    }
+
+    if (selectedOrder) {
+        return (
+            <OrderDetails
+                order={selectedOrder}
+                onBack={() => setSelectedOrder(null)}
+            />
+        );
+    }
+
     return (
         <div className="w-full">
             {/* Header */}
@@ -137,60 +99,75 @@ export default function MyOrders() {
 
             {/* Orders List */}
             <div className="space-y-6">
-                {orders.map((order) => {
-                    const statusConfig = getStatusConfig(order.status);
+                {filteredOrders.length === 0 ? (
+                    <div className="text-center py-10 text-gray-500">No orders found</div>
+                ) : (
+                    filteredOrders.map((order) => {
+                        const statusConfig = getStatusConfig(order.status);
 
-                    return (
-                        <div key={order.id} className="bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
-                            {/* Order Header */}
-                            <div className="p-6 flex items-center justify-between cursor-pointer group">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${statusConfig.bg}`}>
-                                        {statusConfig.icon}
-                                    </div>
-                                    <div>
-                                        <h4 className="text-base font-semibold text-gray-900">{statusConfig.title}</h4>
-                                        <p className="text-sm text-gray-500 mt-0.5">{order.dateLabel} {order.date}</p>
-                                    </div>
-                                </div>
-                                <div className="text-gray-400 group-hover:text-gray-600 transition-colors">
-                                    <FiChevronRight size={20} />
-                                </div>
-                            </div>
-
-                            {/* Divider */}
-                            <div className="h-px bg-gray-100 mx-6"></div>
-
-                            {/* Order Items */}
-                            <div className="p-6 space-y-6">
-                                {order.items.map((item, index) => (
-                                    <div key={index} className="flex gap-4 sm:gap-6">
-                                        <div className="w-20 h-24 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
-                                            <img
-                                                src={item.image}
-                                                alt={item.name}
-                                                className="w-full h-full object-cover object-top"
-                                            />
+                        return (
+                            <div
+                                key={order._id}
+                                onClick={() => setSelectedOrder(order)}
+                                className="bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer"
+                            >
+                                {/* Order Header */}
+                                <div className="p-6 flex items-center justify-between cursor-pointer group">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${statusConfig.bg}`}>
+                                            {statusConfig.icon}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h5 className="text-sm sm:text-base font-medium text-gray-900 truncate pr-4">
-                                                {item.name}
-                                            </h5>
-                                            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-500">
-                                                <p>Color: <span className="text-gray-700">{item.color}</span></p>
-                                                <p>Size: <span className="text-gray-700">{item.size}</span></p>
-                                            </div>
-                                            <div className="mt-2 space-y-1">
-                                                <p className="text-xs text-gray-500">Qty: {item.qty}</p>
-                                                <p className="text-sm font-semibold text-gray-900">₹{item.price}</p>
-                                            </div>
+                                        <div>
+                                            <h4 className="text-base font-semibold text-gray-900">{statusConfig.title}</h4>
+                                            <p className="text-sm text-gray-500 mt-0.5">
+                                                {order.status === 'Delivered' ? 'Delivered on' : 'Placed on'} {formatDate(order.placedAt)}
+                                            </p>
                                         </div>
                                     </div>
-                                ))}
+                                    <div className="text-gray-400 group-hover:text-gray-600 transition-colors flex items-center gap-2">
+                                        <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded text-gray-600">{order.orderId}</span>
+                                        <FiChevronRight size={20} />
+                                    </div>
+                                </div>
+
+                                {/* Divider */}
+                                <div className="h-px bg-gray-100 mx-6"></div>
+
+                                {/* Order Items */}
+                                <div className="p-6 space-y-6">
+                                    {order.items.map((item, index) => (
+                                        <div key={index} className="flex gap-4 sm:gap-6">
+                                            <div className="w-20 h-24 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
+                                                <img
+                                                    src={item.image}
+                                                    alt={item.name}
+                                                    className="w-full h-full object-cover object-top"
+                                                />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h5 className="text-sm sm:text-base font-medium text-gray-900 truncate pr-4">
+                                                    {item.name}
+                                                </h5>
+                                                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-500">
+                                                    {item.color && <p>Color: <span className="text-gray-700">{item.color}</span></p>}
+                                                    {item.size && <p>Size: <span className="text-gray-700">{item.size}</span></p>}
+                                                </div>
+                                                <div className="mt-2 space-y-1">
+                                                    <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                                                    <p className="text-sm font-semibold text-gray-900">₹{item.price}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="p-4 bg-gray-50 px-6 flex justify-between items-center text-sm">
+                                    <span className="font-medium text-gray-600">Total Amount</span>
+                                    <span className="font-bold text-gray-900">₹{order.grandTotal}</span>
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })
+                )}
             </div>
         </div>
     );
