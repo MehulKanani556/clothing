@@ -150,21 +150,16 @@ const CategoriesProduct = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                     {/* Image Section */}
-                    <div className="w-full md:w-1/4 bg-gray-50 border-r border-gray-100 relative min-h-[300px]">
-                        {categoryDetails.image ? (
-                            <div className="absolute inset-0 p-4">
-                                <img
-                                    src={categoryDetails.image}
-                                    alt={categoryDetails.name}
-                                    className="w-full h-full object-cover rounded-lg shadow-sm"
-                                />
+                    <div className="p-8 flex items-center justify-center">
+                        <div className="relative group">
+                            <div className="relative">
+                                {categoryDetails.image ? (
+                                    <img src={categoryDetails.image} alt="" className="w-full max-h-72 object-cover rounded-xl" />
+                                ) : (
+                                    <div className="w-64 h-64 flex flex-col items-center justify-center text-gray-300"><MdShoppingBag size={80} /></div>
+                                )}
                             </div>
-                        ) : (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300">
-                                <MdShoppingBag size={64} className="opacity-20" />
-                                <span className="text-xs font-bold uppercase tracking-widest mt-2">No Preview</span>
-                            </div>
-                        )}
+                        </div>
                     </div>
 
                     {/* Info Section */}
