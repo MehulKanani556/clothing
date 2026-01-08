@@ -139,10 +139,9 @@ exports.updateOrderStatus = async (req, res) => {
             const expiry = new Date();
             expiry.setDate(expiry.getDate() + returnDays);
             updates.returnWindowExpiresAt = expiry;
-            if (!paymentStatus) updates.paymentStatus = 'Paid'; // Assume COD paid on delivery if not specified
         }
 
-        const order = await Order.findByIdAndUpdate(id, updates, { new: true });
+        const order = await Order.findByIdAndUpdate(id, updates, { new: true }).populate('user', 'firstName lastName email avatar phone');
         if (!order) return res.status(404).json({ message: 'Order not found' });
 
         res.json({ success: true, data: order });
@@ -172,9 +171,24 @@ exports.getAdminOrders = async (req, res) => {
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
+
         const total = await Order.countDocuments(query);
 
         res.json({ success: true, total, pages: Math.ceil(total / limit), data: orders });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.getOrderById = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id)
+            .populate('user', 'firstName lastName email avatar phone');
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+        res.json({ success: true, data: order });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

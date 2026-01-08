@@ -13,6 +13,18 @@ export const fetchAdminOrders = createAsyncThunk(
     }
 );
 
+export const fetchOrderById = createAsyncThunk(
+    'adminOrders/fetchById',
+    async (id, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.get(`/orders/${id}`);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || error.message);
+        }
+    }
+);
+
 export const updateOrderStatus = createAsyncThunk(
     'adminOrders/updateStatus',
     async ({ id, status }, { rejectWithValue }) => {
@@ -29,6 +41,7 @@ const adminOrderSlice = createSlice({
     name: 'adminOrders',
     initialState: {
         orders: [],
+        currentOrder: null,
         loading: false,
         error: null,
         total: 0,
@@ -54,6 +67,21 @@ const adminOrderSlice = createSlice({
                 if (index !== -1) {
                     state.orders[index] = action.payload.data;
                 }
+                if (state.currentOrder && state.currentOrder._id === action.payload.data._id) {
+                    state.currentOrder = action.payload.data;
+                }
+            })
+            .addCase(fetchOrderById.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchOrderById.fulfilled, (state, action) => {
+                state.loading = false;
+                state.currentOrder = action.payload.data;
+            })
+            .addCase(fetchOrderById.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
             });
     },
 });

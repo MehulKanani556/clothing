@@ -1,124 +1,261 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAdminOrders, updateOrderStatus } from '../../../redux/slice/adminOrderSlice';
-import { MdVisibility, MdLocalShipping, MdCheckCircle, MdCancel } from 'react-icons/md';
+import {
+    MdVisibility, MdEdit, MdDelete,
+    MdCheckCircle, MdCancel, MdLocalShipping, MdOutlineShoppingBag,
+    MdAttachMoney, MdPendingActions, MdErrorOutline, MdAdd, MdFilterList,
+    MdSearch, MdKeyboardArrowDown, MdMoreVert, MdHourglassEmpty, MdRefresh
+} from 'react-icons/md';
+import { RiVisaLine, RiMastercardLine, RiPaypalLine, RiWallet3Line } from 'react-icons/ri';
+import DataTable from '../../components/common/DataTable';
+import { useNavigate } from 'react-router-dom';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
+
+const StatsCard = ({ title, count, icon: Icon, colorClass, trend }) => (
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-start justify-between transition-transform hover:-translate-y-1 duration-300">
+        <div>
+            <h3 className="text-3xl font-bold text-gray-800 mb-1">{count}</h3>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{title}</p>
+        </div>
+        <div className={`p-3 rounded-full ${colorClass} bg-opacity-50 flex items-center justify-center`}>
+            <Icon size={24} className={colorClass.replace('bg-', 'text-')} />
+        </div>
+    </div>
+);
 
 const Orders = () => {
     const dispatch = useDispatch();
-    const { orders, loading } = useSelector(state => state.adminOrders);
-    const [filter, setFilter] = useState('');
+    const navigate = useNavigate();
+    const { orders, total, loading } = useSelector(state => state.adminOrders);
+
+    // Local Filters
+    const [searchTerm, setSearchTerm] = useState('');
+    const [paymentFilter, setPaymentFilter] = useState('');
+    const [deliveryFilter, setDeliveryFilter] = useState('');
+    const [dateRange, setDateRange] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
-        dispatch(fetchAdminOrders({ status: filter }));
-    }, [dispatch, filter]);
+        // Fetch all orders for client-side filtering/stats (or implement server-side params)
+        dispatch(fetchAdminOrders());
+    }, [dispatch]);
 
     const handleStatusUpdate = (id, status) => {
         dispatch(updateOrderStatus({ id, status }));
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'Pending': return 'bg-yellow-100 text-yellow-800';
-            case 'Shipped': return 'bg-blue-100 text-blue-800';
-            case 'Delivered': return 'bg-green-100 text-green-800';
-            case 'Cancelled': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
+    // Calculate Stats
+    const stats = useMemo(() => {
+        if (!orders) return { completed: 0, pending: 0, canceled: 0, new: 0 };
+        return {
+            completed: orders.filter(o => o.status === 'Delivered').length,
+            pending: orders.filter(o => o.status === 'Pending').length,
+            canceled: orders.filter(o => o.status === 'Cancelled').length,
+            new: orders.filter(o => ['Confirmed', 'Processing'].includes(o.status)).length,
+            // Assuming "New" means Confirmed/Processing here
+        };
+    }, [orders]);
+
+    // Filter Data
+    const filteredOrders = useMemo(() => {
+        if (!orders) return [];
+        return orders.filter(order => {
+            const matchesSearch =
+                order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                order.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (order.user?.firstName + ' ' + order.user?.lastName).toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesPayment = paymentFilter ? order.paymentStatus === paymentFilter : true;
+            const matchesDelivery = deliveryFilter ? order.status === deliveryFilter : true;
+
+            return matchesSearch && matchesPayment && matchesDelivery;
+        });
+    }, [orders, searchTerm, paymentFilter, deliveryFilter]);
+
+    // Pagination
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredOrders.slice(start, start + itemsPerPage);
+    }, [filteredOrders, currentPage]);
+
+
+    const getStatusBadge = (status) => {
+        const styles = {
+            Pending: 'bg-yellow-100 text-yellow-700',
+            Confirmed: 'bg-indigo-100 text-indigo-700',
+            Processing: 'bg-indigo-50 text-indigo-600',
+            Shipped: 'bg-blue-100 text-blue-700',
+            Delivered: 'bg-green-100 text-green-700',
+            Cancelled: 'bg-red-100 text-red-700',
+            Refunded: 'bg-gray-100 text-gray-700',
+        };
+        return (
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
+                {status}
+            </span>
+        );
     };
 
+    const getPaymentBadge = (status) => {
+        const dotColors = {
+            Paid: 'bg-emerald-500',
+            Pending: 'bg-amber-500',
+            Failed: 'bg-red-500',
+            Refunded: 'bg-gray-500'
+        };
+        const textColors = {
+            Paid: 'text-emerald-700',
+            Pending: 'text-amber-700',
+            Failed: 'text-red-700',
+            Refunded: 'text-gray-700'
+        };
+        const statusKey = status || 'Pending';
+
+        return (
+            <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${dotColors[statusKey] || 'bg-gray-400'}`}></span>
+                <span className={`font-medium text-sm ${textColors[statusKey] || 'text-gray-600'}`}>
+                    {statusKey}
+                </span>
+            </div>
+        );
+    };
+
+    const getPaymentIcon = (method) => {
+        // Simple heuristic for icons
+        const m = (method || '').toLowerCase();
+        if (m.includes('card') || m.includes('visa') || m.includes('master')) return <RiVisaLine size={24} className="text-blue-600" />;
+        if (m.includes('paypal')) return <RiPaypalLine size={24} className="text-blue-800" />;
+        if (m.includes('wallet')) return <RiWallet3Line size={24} className="text-purple-600" />;
+        return <MdAttachMoney size={24} className="text-green-600" />; // Cash/COD
+    };
+
+    const columns = [
+        {
+            header: 'Order ID',
+            accessor: 'orderId',
+            sortable: true,
+            render: (row) => <span className="font-bold text-gray-700">#{row.orderId}</span>
+        },
+        {
+            header: 'Date',
+            accessor: 'createdAt',
+            sortable: true,
+            render: (row) => (
+                <div className="flex flex-col">
+                    <span className="font-medium text-gray-800">{new Date(row.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    <span className="text-xs text-gray-400">{new Date(row.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+            )
+        },
+        {
+            header: 'Customer',
+            accessor: 'user',
+            render: (row) => (
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold overflow-hidden">
+                        {row.user?.avatar ? <img src={row.user.avatar} alt="" className="w-full h-full object-cover" /> : (row.user?.firstName?.[0] || 'U')}
+                    </div>
+                    <div>
+                        <div className="font-semibold text-gray-900">{row.user?.firstName} {row.user?.lastName}</div>
+                        <div className="text-xs text-gray-400">{row.user?.email}</div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            header: 'Amount',
+            accessor: 'grandTotal',
+            sortable: true,
+            render: (row) => <span className="font-semibold text-gray-700">₹{row.grandTotal?.toFixed(2)}</span>
+        },
+        {
+            header: 'Payment Status',
+            accessor: 'paymentStatus',
+            render: (row) => getPaymentBadge(row.paymentStatus)
+        },
+        {
+            header: 'Order Status',
+            accessor: 'status',
+            render: (row) => getStatusBadge(row.status)
+        },
+        {
+            header: 'Payment Method',
+            accessor: 'paymentMethod',
+            render: (row) => (
+                <div className="flex items-center gap-2">
+                    {/* {getPaymentIcon(row.paymentMethod)} */}
+                    <span className="text-sm text-gray-600">{row.paymentMethod}</span>
+                </div>
+            )
+        },
+        {
+            header: 'Actions',
+            render: (row) => (
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => navigate(`/admin/orders/${row._id}`)}
+                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
+                        title="View"
+                    >
+                        <MdVisibility size={18} />
+                    </button>
+                    {/* <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Edit">
+                        <MdEdit size={18} />
+                    </button> */}
+                    <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Delete">
+                        <MdDelete size={18} />
+                    </button>
+                </div>
+            )
+        }
+    ];
+
     return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-800">Orders</h2>
-                <select
-                    className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                >
-                    <option value="">All Status</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Confirmed">Confirmed</option>
-                    <option value="Shipped">Shipped</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Cancelled">Cancelled</option>
-                </select>
+        <div className="space-y-8 p-6">
+            <Breadcrumbs
+                title="Orders"
+                items={[
+                    { label: 'Dashboard', to: '/admin/dashboard' },
+                    { label: 'Orders' },
+                ]}
+            />
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatsCard title="Completed Orders" count={`${stats.completed}`} icon={MdCheckCircle} colorClass="bg-emerald-500 text-white" />
+                <StatsCard title="Pending Orders" count={`${stats.pending}`} icon={MdHourglassEmpty} colorClass="bg-amber-500 text-white" />
+                <StatsCard title="Canceled Orders" count={`${stats.canceled}`} icon={MdCancel} colorClass="bg-rose-500 text-white" />
+                <StatsCard title="New Orders" count={`${stats.new}`} icon={MdRefresh} colorClass="bg-blue-500 text-white" />
             </div>
 
-            <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-gray-600">
-                    <thead className="bg-gray-50 text-xs uppercase font-semibold text-gray-500">
-                        <tr>
-                            <th className="px-6 py-4">Order ID</th>
-                            <th className="px-6 py-4">Customer</th>
-                            <th className="px-6 py-4">Date</th>
-                            <th className="px-6 py-4">Total</th>
-                            <th className="px-6 py-4">Status</th>
-                            <th className="px-6 py-4">Payment</th>
-                            <th className="px-6 py-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {loading ? (
-                            <tr><td colSpan="7" className="text-center py-4">Loading...</td></tr>
-                        ) : orders.map((order) => (
-                            <tr key={order._id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 font-medium text-indigo-600">{order.orderId}</td>
-                                <td className="px-6 py-4">
-                                    <div className="font-medium text-gray-900">{order.user?.firstName} {order.user?.lastName}</div>
-                                    <div className="text-xs text-gray-400">{order.user?.email}</div>
-                                </td>
-                                <td className="px-6 py-4">{new Date(order.createdAt).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">₹{order.grandTotal}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                                        {order.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className="text-xs font-semibold border border-gray-200 px-2 py-1 rounded">
-                                        {order.paymentMethod}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex gap-2">
-                                        {order.status === 'Pending' && (
-                                            <button
-                                                onClick={() => handleStatusUpdate(order._id, 'Confirmed')}
-                                                className="p-1 text-green-600 hover:bg-green-50 rounded" title="Confirm"
-                                            >
-                                                <MdCheckCircle size={18} />
-                                            </button>
-                                        )}
-                                        {order.status === 'Confirmed' && (
-                                            <button
-                                                onClick={() => handleStatusUpdate(order._id, 'Shipped')}
-                                                className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Ship"
-                                            >
-                                                <MdLocalShipping size={18} />
-                                            </button>
-                                        )}
-                                        {order.status === 'Shipped' && (
-                                            <button
-                                                onClick={() => handleStatusUpdate(order._id, 'Delivered')}
-                                                className="p-1 text-purple-600 hover:bg-purple-50 rounded" title="Deliver"
-                                            >
-                                                <MdCheckCircle size={18} />
-                                            </button>
-                                        )}
-                                        <button className="p-1 text-gray-500 hover:bg-gray-100 rounded" title="View Details">
-                                            <MdVisibility size={18} />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            {/* Content Area */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
 
-            <div className="p-4 border-t border-gray-100 flex justify-center">
-                {/* Pagination Placeholders */}
-                <button className="text-sm text-indigo-600 font-medium hover:underline">View All Orders</button>
+
+
+                {/* Table */}
+                <DataTable
+                    columns={columns}
+                    data={paginatedData}
+
+                    pagination={{
+                        current: currentPage,
+                        total: filteredOrders.length,
+                        totalPages: Math.ceil(filteredOrders.length / itemsPerPage),
+                        start: (currentPage - 1) * itemsPerPage + 1,
+                        end: Math.min(currentPage * itemsPerPage, filteredOrders.length)
+                    }}
+                    onPageChange={setCurrentPage}
+                    searchProps={{
+                        placeholder: 'Search Order...',
+                        value: searchTerm,
+                        onChange: (val) => { setSearchTerm(val); setCurrentPage(1); }
+                    }}
+                    selection={true}
+                />
             </div>
         </div>
     );

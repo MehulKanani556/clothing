@@ -18,7 +18,7 @@ const { addToCart, getCart, removeFromCart, updateCartItem } = require('../contr
 const { addToWishlist, getWishlist, removeFromWishlist } = require('../controllers/wishlist.controller');
 
 // New Controllers
-const { createOrder, getUserOrders, getAdminOrders, updateOrderStatus } = require('../controllers/order.controller');
+const { createOrder, getUserOrders, getAdminOrders, updateOrderStatus, getOrderById } = require('../controllers/order.controller');
 const { requestReturn, processReturn, getAllReturns } = require('../controllers/return.controller');
 const { createOffer, validateCoupon, getOffers, uploadBanner } = require('../controllers/offer.controller');
 const { getGstReport, getNetPayout } = require('../controllers/report.controller');
@@ -76,6 +76,7 @@ router.put('/cart/:itemId', auth, updateCartItem);
 router.post('/orders', auth, orderValidation, createOrder);
 router.get('/orders/my-orders', auth, getUserOrders);
 router.get('/orders/admin', auth, getAdminOrders);
+router.get('/orders/:id', auth, getOrderById);
 router.put('/orders/:id/status', auth, updateOrderStatus);
 
 // --- RETURN SERVICE ---

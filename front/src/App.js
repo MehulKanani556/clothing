@@ -21,6 +21,7 @@ import Dashboard from './admin/pages/dashboard/Dashboard';
 import Products from './admin/pages/products/Products';
 import Categories from './admin/pages/categories/Categories';
 import Orders from './admin/pages/orders/Orders';
+import OrderDetails from './admin/pages/orders/OrderDetails';
 import OfferZone from './admin/pages/offerZone/OfferZone';
 import Returns from './admin/pages/returns/Returns';
 import GstReports from './admin/pages/gstReports/GstReports';
@@ -78,6 +79,7 @@ function App() {
               <Route path="categories" element={<Categories />} />
               <Route path="categories/:id" element={<CategoriesProduct />} />
               <Route path="orders" element={<Orders />} />
+              <Route path="orders/:id" element={<OrderDetails />} />
               <Route path="offer-zone" element={<OfferZone />} />
               <Route path="returns" element={<Returns />} />
               <Route path="users" element={<Users />} />
