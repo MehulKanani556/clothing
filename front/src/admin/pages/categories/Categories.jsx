@@ -31,12 +31,7 @@ const Categories = () => {
     };
 
     const handleEdit = (category) => {
-        // Convert API data format to Form format if needed
-        const formCategory = {
-            ...category,
-            status: category.isActive ? 'Active' : 'Inactive'
-        };
-        setCurrentCategory(formCategory);
+        setCurrentCategory(category);
         setIsModalOpen(true);
     };
 
@@ -71,7 +66,7 @@ const Categories = () => {
         data.append('name', formData.name);
         data.append('slug', formData.slug);
         data.append('description', formData.description);
-        data.append('isActive', formData.status === 'Active');
+        data.append('isActive', formData.isActive);
 
         if (formData.image) {
             data.append('image', formData.image);

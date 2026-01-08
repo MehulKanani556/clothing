@@ -42,7 +42,7 @@ exports.addReview = async (req, res) => {
 exports.getProductReviews = async (req, res) => {
     try {
         const { productId } = req.params;
-        const reviews = await Review.find({ product: productId, status: 'Published' })
+        const reviews = await Review.find({ product: productId, status: 'Published', deletedAt: null })
             .populate('user')
             .sort({ createdAt: -1 });
 
@@ -59,7 +59,7 @@ exports.getProductReviews = async (req, res) => {
 // Admin: Get All Reviews
 exports.getAllReviews = async (req, res) => {
     try {
-        const reviews = await Review.find()
+        const reviews = await Review.find({ deletedAt: null })
             .populate('user')
             .populate('product')
             .sort({ createdAt: -1 });
@@ -95,7 +95,7 @@ exports.updateReviewStatus = async (req, res) => {
 // Admin: Delete Review
 exports.deleteReview = async (req, res) => {
     try {
-        const review = await Review.findByIdAndDelete(req.params.id);
+        const review = await Review.findByIdAndUpdate(req.params.id, { deletedAt: new Date() }, { new: true });
         if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
 
         res.status(200).json({ success: true, message: 'Review deleted' });

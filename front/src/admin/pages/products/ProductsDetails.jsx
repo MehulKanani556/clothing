@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductById, updateProductReview, removeProductReview } from '../../../redux/slice/product.slice';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
-import { MdEdit, MdDelete, MdStar, MdShoppingBag, MdInventory, MdCheckCircle, MdVisibility } from 'react-icons/md';
+import { MdEdit, MdStar, MdShoppingBag, MdInventory, MdCheckCircle, MdVisibility } from 'react-icons/md';
 import DataTable from '../../components/common/DataTable';
 import ReviewStatusModal from '../../components/modals/ReviewStatusModal';
-import DeleteModal from '../../components/modals/DeleteModal';
-import { updateReviewStatus, deleteReview } from '../../../redux/slice/review.slice';
+import { updateReviewStatus } from '../../../redux/slice/review.slice';
 
 const ProductsDetails = () => {
     const { id } = useParams();
-    const navigate = useNavigate();
     const dispatch = useDispatch();
     const { product, loading, error } = useSelector((state) => state.product);
 
@@ -47,7 +46,7 @@ const ProductsDetails = () => {
     // Review Modal States
     const [selectedReview, setSelectedReview] = useState(null);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [modalMode, setModalMode] = useState('edit'); // 'edit' or 'view'
 
     useEffect(() => {
         if (!selectedVariant?.images || selectedVariant.images.length <= 1) return;
@@ -70,30 +69,29 @@ const ProductsDetails = () => {
     // Review Handlers
     const handleEditStatus = (review) => {
         setSelectedReview(review);
+        setModalMode('edit');
         setIsStatusModalOpen(true);
     };
 
-    const handleDeleteReview = (review) => {
+    const handleViewReview = (review) => {
         setSelectedReview(review);
-        setIsDeleteModalOpen(true);
+        setModalMode('view');
+        setIsStatusModalOpen(true);
     };
 
     const confirmUpdateStatus = async (newStatus) => {
         if (selectedReview) {
             const resultAction = await dispatch(updateReviewStatus({ id: selectedReview._id, status: newStatus }));
             if (updateReviewStatus.fulfilled.match(resultAction)) {
-                dispatch(updateProductReview(resultAction.payload));
+                if (newStatus !== 'Published') {
+                    dispatch(removeProductReview(selectedReview._id));
+                } else {
+                    dispatch(updateProductReview(resultAction.payload.data));
+                }
                 setIsStatusModalOpen(false);
-            }
-        }
-    };
-
-    const confirmDeleteReview = async () => {
-        if (selectedReview) {
-            const resultAction = await dispatch(deleteReview(selectedReview._id));
-            if (deleteReview.fulfilled.match(resultAction)) {
-                dispatch(removeProductReview(selectedReview._id));
-                setIsDeleteModalOpen(false);
+                toast.success('Review status updated successfully');
+            } else {
+                toast.error('Failed to update review status');
             }
         }
     };
@@ -139,7 +137,7 @@ const ProductsDetails = () => {
             accessor: 'user',
             render: (row) => (
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold uppercase overflow-hidden shrink-0 text-xs">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 font-bold uppercase overflow-hidden shrink-0 text-xs">
                         {row.user?.avatar ?
                             <img src={row.user.avatar} className="w-full h-full object-cover" alt="" />
                             : (row.user?.firstName?.[0] || 'U')}
@@ -162,7 +160,7 @@ const ProductsDetails = () => {
                         ))}
                     </div>
                     {row.title && <div className="font-bold text-gray-800 text-sm mb-1">{row.title}</div>}
-                    <p className="text-gray-500 italic text-xs leading-relaxed line-clamp-2 hover:line-clamp-none transition-all">
+                    <p className="text-gray-500 italic text-xs leading-relaxed line-clamp-2 transition-all">
                         "{row.review}"
                     </p>
                 </div>
@@ -191,7 +189,7 @@ const ProductsDetails = () => {
             render: (row) => (
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${row.status === 'Published' ? 'bg-emerald-100 text-emerald-700' :
                     row.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
-                        'bg-gray-100 text-gray-600'
+                        'bg-red-100 text-red-600'
                     }`}>
                     {row.status || 'Published'}
                 </span>
@@ -201,15 +199,12 @@ const ProductsDetails = () => {
             header: 'Actions',
             accessor: 'actions',
             render: (row) => (
-                <div className="flex items-center justify-center gap-2">
-                    <button className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="View">
-                        <MdVisibility size={16} />
+                <div className="flex items-center justify-center gap-2 text-gray-400">
+                    <button onClick={() => handleViewReview(row)} className="hover:text-black transition-colors" title="View">
+                        <MdVisibility size={18} />
                     </button>
-                    <button onClick={() => handleEditStatus(row)} className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit Status">
-                        <MdEdit size={16} />
-                    </button>
-                    <button onClick={() => handleDeleteReview(row)} className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete">
-                        <MdDelete size={16} />
+                    <button onClick={() => handleEditStatus(row)} className="hover:text-black transition-colors" title="Edit Status">
+                        <MdEdit size={18} />
                     </button>
                 </div>
             )
@@ -266,15 +261,6 @@ const ProductsDetails = () => {
                                         ))}
                                     </div>
                                 )}
-                                {/* Actions */}
-                                {/* <div className="grid grid-cols-2 gap-4 mt-6">
-                                <button className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-3 rounded-xl hover:bg-gray-200 transition-colors font-semibold text-sm">
-                                    <MdEdit size={18} /> Edit Product
-                                </button>
-                                <button className="flex items-center justify-center gap-2 bg-rose-50 text-rose-600 py-3 rounded-xl hover:bg-red-100 transition-colors font-semibold text-sm">
-                                    <MdDelete size={18} /> Delist Product
-                                </button>
-                            </div> */}
                             </div>
                         </div>
 
@@ -473,14 +459,7 @@ const ProductsDetails = () => {
                 onClose={() => setIsStatusModalOpen(false)}
                 onConfirm={confirmUpdateStatus}
                 review={selectedReview}
-            />
-
-            <DeleteModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
-                onConfirm={confirmDeleteReview}
-                title="Delete Review"
-                message="Are you sure you want to delete this review? This action cannot be undone."
+                readOnly={modalMode === 'view'}
             />
         </div >
     );

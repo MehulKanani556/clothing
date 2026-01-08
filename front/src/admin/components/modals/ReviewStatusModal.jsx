@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MdClose, MdStar } from 'react-icons/md';
 import CustomSelect from '../common/CustomSelect';
 
-const ReviewStatusModal = ({ isOpen, onClose, onConfirm, review }) => {
+const ReviewStatusModal = ({ isOpen, onClose, onConfirm, review, readOnly = false }) => {
     const [status, setStatus] = useState('Pending');
 
     useEffect(() => {
@@ -25,7 +25,7 @@ const ReviewStatusModal = ({ isOpen, onClose, onConfirm, review }) => {
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-gray-100">
                     <h3 className="text-lg font-bold text-gray-900">
-                        Review Details
+                        {readOnly ? 'Review Details' : 'Update Review'}
                     </h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100">
                         <MdClose size={20} />
@@ -70,29 +70,49 @@ const ReviewStatusModal = ({ isOpen, onClose, onConfirm, review }) => {
                     {/* Status Update */}
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Status</label>
-                        <CustomSelect
-                            value={status}
-                            options={statusOptions}
-                            onChange={setStatus}
-                            className="w-full"
-                        />
+                        {readOnly ? (
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${status === 'Published' ? 'bg-emerald-100 text-emerald-700' :
+                                status === 'Pending' ? 'bg-amber-100 text-amber-700' :
+                                    'bg-red-100 text-red-600'
+                                }`}>
+                                {status}
+                            </span>
+                        ) : (
+                            <CustomSelect
+                                value={status}
+                                options={statusOptions}
+                                onChange={setStatus}
+                                className="w-full"
+                            />
+                        )}
                     </div>
                 </div>
 
                 {/* Footer */}
                 <div className="flex justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
-                    <button
-                        onClick={onClose}
-                        className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={() => onConfirm(status)}
-                        className="px-5 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-all shadow-sm hover:shadow-md"
-                    >
-                        Save Changes
-                    </button>
+                    {readOnly ? (
+                        <button
+                            onClick={onClose}
+                            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                        >
+                            Close
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={onClose}
+                                className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => onConfirm(status)}
+                                className="px-5 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-all shadow-sm hover:shadow-md"
+                            >
+                                Save Changes
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

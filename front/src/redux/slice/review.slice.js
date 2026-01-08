@@ -1,31 +1,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
-import { toast } from 'react-hot-toast';
+import axiosInstance from '../../utils/axiosInstance';
 
-// Helper to get token
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    };
-};
-
-// Async Thunks
-
-// Add Review (User) - Kept it for completeness
+// Add Review (User)
 export const addReview = createAsyncThunk(
     'review/addReview',
     async (reviewData, { rejectWithValue }) => {
         try {
-            const response = await axios.post('http://localhost:5000/api/reviews', reviewData, getAuthHeaders());
-            toast.success('Review submitted successfully!');
-            return response.data.data;
+            const response = await axiosInstance.post('/reviews', reviewData);
+            return response.data;
         } catch (error) {
-            const message = error.response?.data?.message || 'Failed to submit review';
-            toast.error(message);
-            return rejectWithValue(message);
+            return rejectWithValue(error.response?.data || error.message);
         }
     }
 );
@@ -35,13 +19,10 @@ export const updateReviewStatus = createAsyncThunk(
     'review/updateReviewStatus',
     async ({ id, status }, { rejectWithValue }) => {
         try {
-            const response = await axios.put(`http://localhost:5000/api/reviews/${id}`, { status }, getAuthHeaders());
-            toast.success('Review status updated!');
-            return response.data.data;
+            const response = await axiosInstance.put(`/reviews/${id}`, { status });
+            return response.data;
         } catch (error) {
-            const message = error.response?.data?.message || 'Failed to update review status';
-            toast.error(message);
-            return rejectWithValue(message);
+            return rejectWithValue(error.response?.data || error.message);
         }
     }
 );
@@ -51,13 +32,10 @@ export const deleteReview = createAsyncThunk(
     'review/deleteReview',
     async (id, { rejectWithValue }) => {
         try {
-            await axios.delete(`http://localhost:5000/api/reviews/${id}`, getAuthHeaders());
-            toast.success('Review deleted successfully');
+            await axiosInstance.delete(`/reviews/${id}`);
             return id;
         } catch (error) {
-            const message = error.response?.data?.message || 'Failed to delete review';
-            toast.error(message);
-            return rejectWithValue(message);
+            return rejectWithValue(error.response?.data || error.message);
         }
     }
 );
@@ -83,7 +61,9 @@ const reviewSlice = createSlice({
             })
             .addCase(addReview.fulfilled, (state, action) => {
                 state.loading = false;
-                state.reviews.unshift(action.payload);
+                if (action.payload.data) {
+                    state.reviews.unshift(action.payload.data);
+                }
             })
             .addCase(addReview.rejected, (state, action) => {
                 state.loading = false;
@@ -92,9 +72,9 @@ const reviewSlice = createSlice({
 
             // Update Status
             .addCase(updateReviewStatus.fulfilled, (state, action) => {
-                const index = state.reviews.findIndex(r => r._id === action.payload._id);
+                const index = state.reviews.findIndex(r => r._id === action.payload.data._id);
                 if (index !== -1) {
-                    state.reviews[index] = action.payload;
+                    state.reviews[index] = action.payload.data;
                 }
             })
 

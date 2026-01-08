@@ -20,6 +20,7 @@ const CustomSelect = ({ value, options, onChange, className = "w-32", placeholde
     return (
         <div className={`relative ${className}`} ref={dropdownRef}>
             <button
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full bg-white border border-gray-200 text-gray-700 text-sm rounded-md px-3 py-2 flex items-center justify-between shadow-sm hover:border-gray-400 hover:text-black transition-all duration-200"
             >
@@ -33,6 +34,7 @@ const CustomSelect = ({ value, options, onChange, className = "w-32", placeholde
                 <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-100 rounded-md shadow-lg z-50 py-1 max-h-60 overflow-auto animate-fade-in-down">
                     {options.map((option) => (
                         <button
+                            type="button"
                             key={option.value}
                             onClick={() => {
                                 onChange(option.value);

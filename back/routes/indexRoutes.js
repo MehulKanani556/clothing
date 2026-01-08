@@ -24,6 +24,7 @@ const { createOffer, validateCoupon, getOffers, uploadBanner } = require('../con
 const { getGstReport, getNetPayout } = require('../controllers/report.controller');
 
 const { createBlogPost, getAllBlogs, getBlogBySlug, deleteBlog } = require('../controllers/blog.controller');
+const { addReview, getProductReviews, getAllReviews, updateReviewStatus, deleteReview } = require('../controllers/review.controller');
 const { orderValidation, returnValidation, offerValidation } = require('../middleware/validators');
 
 // auth
@@ -128,8 +129,6 @@ router.post('/wishlist', auth, addToWishlist);
 router.get('/wishlist', auth, getWishlist);
 router.delete('/wishlist/:productId', auth, removeFromWishlist);
 
-// --- REVIEWS SERVICE ---
-const { addReview, getProductReviews, getAllReviews, updateReviewStatus, deleteReview } = require('../controllers/review.controller');
 router.post('/reviews', auth, addReview);
 router.get('/reviews/product/:productId', getProductReviews);
 router.get('/reviews/admin', auth, getAllReviews);
