@@ -252,12 +252,31 @@ export const authSlice = createSlice({
 
     extraReducers: (builder) => {
         builder
+            .addCase(logout.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
             .addCase(logout.fulfilled, (state) => {
+                state.user = null;
+                state.isAuthenticated = false;
+                state.loading = false;
+                state.error = null;
+                state.message = "Logged out successfully";
                 sessionStorage.removeItem('token');
                 sessionStorage.removeItem('userId');
+                localStorage.removeItem('token');
+                localStorage.removeItem('userId');
             })
             .addCase(logout.rejected, (state) => {
+                // Even if logout API fails, clear the state locally
+                state.user = null;
+                state.isAuthenticated = false;
+                state.loading = false;
                 state.message = "Logout Failed";
+                sessionStorage.removeItem('token');
+                sessionStorage.removeItem('userId');
+                localStorage.removeItem('token');
+                localStorage.removeItem('userId');
             })
             .addCase(login.pending, (state) => {
                 state.loading = true;

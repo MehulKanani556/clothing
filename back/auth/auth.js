@@ -15,7 +15,7 @@ const generateToken = async (id) => {
         if (!user) {
             throw new Error('User not found');
         }
-        const accessToken = await jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        const accessToken = await jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '15m' });
         const refreshToken = await jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' }); // Matching session expiry
 
         // user.refreshToken = refreshToken; // No longer storing in User model

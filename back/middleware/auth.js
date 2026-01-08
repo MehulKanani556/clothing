@@ -4,8 +4,8 @@ const jwt = require('jsonwebtoken')
 exports.auth = async (req, res, next) => {
 
     try {
-        const authHeader = req.header("Authorization")
-        let token = authHeader?.split(' ')[1];
+        const authHeader = req.cookies?.accessToken || req.header("Authorization")?.split(" ")[1];
+        let token = authHeader;
         if (!token) {
             return res.status(401).json({ status: 401, message: "Token Is Required" })
         }
