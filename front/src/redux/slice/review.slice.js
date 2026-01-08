@@ -40,6 +40,19 @@ export const deleteReview = createAsyncThunk(
     }
 );
 
+// Admin: Fetch All Reviews
+export const fetchAllReviews = createAsyncThunk(
+    'review/fetchAllReviews',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.get('/reviews/admin');
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || error.message);
+        }
+    }
+);
+
 // Slice
 const reviewSlice = createSlice({
     name: 'review',
@@ -74,13 +87,27 @@ const reviewSlice = createSlice({
             .addCase(updateReviewStatus.fulfilled, (state, action) => {
                 const index = state.reviews.findIndex(r => r._id === action.payload.data._id);
                 if (index !== -1) {
-                    state.reviews[index] = action.payload.data;
+                    // Only update the status to preserve populated user/product data
+                    state.reviews[index].status = action.payload.data.status;
                 }
             })
 
             // Delete Review
             .addCase(deleteReview.fulfilled, (state, action) => {
                 state.reviews = state.reviews.filter(r => r._id !== action.payload);
+            })
+
+            // Fetch All Reviews
+            .addCase(fetchAllReviews.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(fetchAllReviews.fulfilled, (state, action) => {
+                state.loading = false;
+                state.reviews = action.payload.data;
+            })
+            .addCase(fetchAllReviews.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
             });
     }
 });

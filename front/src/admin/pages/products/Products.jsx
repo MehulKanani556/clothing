@@ -251,7 +251,7 @@ const Products = () => {
                         )}
                     </div>
                     <div>
-                        <p className="font-medium text-gray-900 line-clamp-1 cursor-pointer hover:text-indigo-600" onClick={() => handleEdit(row)}>{row.name}</p>
+                        <p className="font-medium text-gray-900 line-clamp-1 cursor-pointer hover:text-black" onClick={() => handleEdit(row)}>{row.name}</p>
                         <p className="text-xs text-gray-500">{row.brand}</p>
                     </div>
                 </div>
@@ -618,7 +618,7 @@ const Products = () => {
                                             name="isExchangeOnly"
                                             onChange={formik.handleChange}
                                             checked={formik.values.isExchangeOnly}
-                                            className="rounded text-indigo-600 w-4 h-4"
+                                            className="rounded text-black w-4 h-4"
                                         />
                                         <span className="text-sm font-medium text-gray-700">Exchange Only?</span>
                                     </label>
@@ -640,7 +640,7 @@ const Products = () => {
                                                 <MdDelete size={20} />
                                             </button>
                                         </div>
-                                        <h4 className="font-medium text-indigo-700 mb-3 uppercase text-xs tracking-wider">Variant #{index + 1}</h4>
+                                        <h4 className="font-medium text-black mb-3 uppercase text-xs tracking-wider">Variant #{index + 1}</h4>
 
                                         {/* Variant Details */}
                                         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -697,7 +697,7 @@ const Products = () => {
                                                             </button>
                                                         </div>
                                                     ))}
-                                                    <label className={`w-20 h-20 border border-dashed border-indigo-300 rounded flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 text-indigo-500`}>
+                                                    <label className={`w-20 h-20 border border-dashed border-gray-300 rounded flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 text-gray-500`}>
                                                         <MdCloudUpload size={24} />
                                                         <span className="text-[10px] mt-1">Select</span>
                                                         <input
@@ -786,7 +786,7 @@ const Products = () => {
                                                         </div>
                                                     </div>
                                                 ))}
-                                                <button type="button" onClick={() => pushOption(index)} className="text-xs font-medium text-indigo-600 hover:text-indigo-800 mt-2 block w-full text-center border border-dashed border-indigo-200 p-1 rounded bg-indigo-50">
+                                                <button type="button" onClick={() => pushOption(index)} className="text-xs font-medium text-black hover:text-gray-800 mt-2 block w-full text-center border border-dashed border-gray-300 p-1 rounded bg-gray-50">
                                                     + Add Size Option
                                                 </button>
                                             </div>
@@ -797,16 +797,29 @@ const Products = () => {
                                 <button
                                     type="button"
                                     onClick={pushVariant}
-                                    className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-indigo-500 hover:text-indigo-600 transition flex items-center justify-center gap-2"
+                                    className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-black hover:text-black transition flex items-center justify-center gap-2"
                                 >
                                     <MdAdd size={20} /> Add Another Variant
                                 </button>
                             </div>
 
                             <DialogActions className="pt-4 border-t mt-4">
-                                <Button onClick={() => setOpenModal(false)} color="inherit">Cancel</Button>
-                                <Button type="submit" variant="contained" color="primary" disabled={formik.isSubmitting} className="bg-indigo-600 hover:bg-indigo-700">
-                                    {formik.isSubmitting ? <CircularProgress size={24} color="inherit" /> : (editId ? 'Update Product' : 'Create Product')}
+                                <Button onClick={() => setOpenModal(false)} color="inherit" className="text-gray-500 hover:text-gray-700">Cancel</Button>
+                                <Button
+                                    type="submit"
+                                    variant="contained"
+                                    disabled={formik.isSubmitting}
+                                    sx={{
+                                        bgcolor: 'black',
+                                        color: 'white',
+                                        '&.Mui-disabled': { bgcolor: '#666', color: '#ccc' }
+                                    }}
+                                >
+                                    {formik.isSubmitting ? (
+                                        <CircularProgress size={24} color="inherit" />
+                                    ) : (
+                                        editId ? 'Update Product' : 'Create Product'
+                                    )}
                                 </Button>
                             </DialogActions>
                         </div>

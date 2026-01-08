@@ -74,7 +74,7 @@ const DataTable = ({ columns, data, pagination, onPageChange, selection = true, 
                                 <button
                                     onClick={() => onViewChange && onViewChange('list')}
                                     className={`p-1.5 rounded-md transition-all duration-200 flex items-center justify-center ${viewMode === 'list'
-                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        ? 'bg-black text-white shadow-sm'
                                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200'
                                         }`}
                                     title="List View"
@@ -84,7 +84,7 @@ const DataTable = ({ columns, data, pagination, onPageChange, selection = true, 
                                 <button
                                     onClick={() => onViewChange && onViewChange('grid')}
                                     className={`p-1.5 rounded-md transition-all duration-200 flex items-center justify-center ${viewMode === 'grid'
-                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        ? 'bg-black text-white shadow-sm'
                                         : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200'
                                         }`}
                                     title="Grid View"
@@ -173,31 +173,39 @@ const DataTable = ({ columns, data, pagination, onPageChange, selection = true, 
                             </tr>
                         </thead>
                         <tbody className="text-sm text-gray-700 divide-y divide-gray-100">
-                            {sortedData.map((row, rowIndex) => {
-                                const isSelected = selectedIds.includes(row._id || row.id);
-                                return (
-                                    <tr
-                                        key={row._id || row.id || rowIndex}
-                                        className={`transition-colors border-b border-gray-50 last:border-none ${isSelected ? 'bg-[#fffbf0]' : 'hover:bg-gray-50'}`}
-                                    >
-                                        {selection && (
-                                            <td className="p-4">
-                                                <input
-                                                    type="checkbox"
-                                                    className={`rounded border-gray-300 text-black focus:ring-black ${isSelected ? 'accent-black' : ''}`}
-                                                    checked={isSelected}
-                                                    onChange={() => handleSelectRow(row._id || row.id)}
-                                                />
-                                            </td>
-                                        )}
-                                        {columns.map((col, colIndex) => (
-                                            <td key={colIndex} className="p-4">
-                                                {col.render ? col.render(row) : (row[col.accessor] || '-')}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                );
-                            })}
+                            {sortedData.length > 0 ? (
+                                sortedData.map((row, rowIndex) => {
+                                    const isSelected = selectedIds.includes(row._id || row.id);
+                                    return (
+                                        <tr
+                                            key={row._id || row.id || rowIndex}
+                                            className={`transition-colors border-b border-gray-50 last:border-none ${isSelected ? 'bg-[#fffbf0]' : 'hover:bg-gray-50'}`}
+                                        >
+                                            {selection && (
+                                                <td className="p-4">
+                                                    <input
+                                                        type="checkbox"
+                                                        className={`rounded border-gray-300 text-black focus:ring-black ${isSelected ? 'accent-black' : ''}`}
+                                                        checked={isSelected}
+                                                        onChange={() => handleSelectRow(row._id || row.id)}
+                                                    />
+                                                </td>
+                                            )}
+                                            {columns.map((col, colIndex) => (
+                                                <td key={colIndex} className="p-4">
+                                                    {col.render ? col.render(row) : (row[col.accessor] || '-')}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    );
+                                })
+                            ) : (
+                                <tr>
+                                    <td colSpan={columns.length + (selection ? 1 : 0)} className="p-8 text-center text-gray-500">
+                                        No data found
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

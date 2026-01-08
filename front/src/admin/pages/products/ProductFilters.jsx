@@ -87,7 +87,7 @@ const ProductFilters = ({ products, filters, setFilters }) => {
             <div className="mb-6">
                 <div className="flex justify-between items-center mb-3">
                     <h3 className="text-sm font-bold text-gray-900">Category</h3>
-                    <button className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline" onClick={() => setFilters({ ...filters, categories: [] })}>Clear</button>
+                    <button className="text-xs text-black hover:text-gray-700 hover:underline" onClick={() => setFilters({ ...filters, categories: [] })}>Clear</button>
                 </div>
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                     {categories.map((cat) => (
@@ -110,7 +110,7 @@ const ProductFilters = ({ products, filters, setFilters }) => {
             <div className="mb-6">
                 <div className="flex justify-between items-center mb-3">
                     <h3 className="text-sm font-bold text-gray-900">Brands</h3>
-                    <button className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline" onClick={() => setFilters({ ...filters, brands: [] })}>Clear</button>
+                    <button className="text-xs text-black hover:text-gray-700 hover:underline" onClick={() => setFilters({ ...filters, brands: [] })}>Clear</button>
                 </div>
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                     {brands.map((brand) => (
@@ -134,7 +134,7 @@ const ProductFilters = ({ products, filters, setFilters }) => {
                 <div className="flex justify-between items-center mb-3">
                     <h3 className="text-sm font-bold text-gray-900">Rating</h3>
                     {filters.rating && (
-                        <button className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline" onClick={() => setFilters({ ...filters, rating: null })}>Clear</button>
+                        <button className="text-xs text-black hover:text-gray-700 hover:underline" onClick={() => setFilters({ ...filters, rating: null })}>Clear</button>
                     )}
                 </div>
                 <div className="space-y-2">

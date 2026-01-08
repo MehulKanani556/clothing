@@ -28,7 +28,7 @@ const ProductGridItem = ({ product, onEdit, onDelete }) => {
                 <div className="absolute top-3 right-3 z-20">
                     <button
                         onClick={() => setShowMenu(!showMenu)}
-                        className="w-8 h-8 bg-[#5a67d8] text-white rounded-md flex items-center justify-center shadow-lg hover:bg-[#4c51bf] transition-colors"
+                        className="w-8 h-8 bg-black text-white rounded-md flex items-center justify-center shadow-lg hover:bg-gray-800 transition-colors"
                     >
                         <MdMoreHoriz size={20} />
                     </button>
@@ -79,7 +79,7 @@ const ProductGridItem = ({ product, onEdit, onDelete }) => {
                 {/* Price and Rating */}
                 <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center gap-2">
-                        <span className="text-[#3b82f6] font-bold text-lg">${price}</span>
+                        <span className="text-black font-bold text-lg">${price}</span>
                         {mrp > price && (
                             <span className="text-gray-400 text-sm line-through decoration-gray-400">${mrp}</span>
                         )}
@@ -93,7 +93,7 @@ const ProductGridItem = ({ product, onEdit, onDelete }) => {
 
                 {/* Title and Category */}
                 <h3
-                    className="font-bold text-gray-900 text-base mb-1 line-clamp-1 hover:text-[#5a67d8] cursor-pointer"
+                    className="font-bold text-gray-900 text-base mb-1 line-clamp-1 hover:text-black cursor-pointer"
                     onClick={() => onEdit(product)}
                 >
                     {product.name}

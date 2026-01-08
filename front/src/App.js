@@ -34,6 +34,7 @@ import TermsPage from './pages/TermsPage';
 import PaymentPage from './pages/PaymentPage';
 import CategoriesProduct from './admin/pages/categories/CategoriesProduct';
 import ProductsDetails from './admin/pages/products/ProductsDetails';
+import Reviews from './admin/pages/reviews/Reviews';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -43,14 +44,10 @@ function App() {
     <>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
+          <Toaster position="top-center" reverseOrder={false} />
           <Routes>
-            {/* User Routes - Wrapped in Header/Footer implicitly if we want, or explicitly here. 
-              The original App.js wrapped everything in Header...Footer. 
-              We need to separate Admin from User layout. 
-          */}
             <Route path="/*" element={
               <>
-                <Toaster position="top-center" reverseOrder={false} />
                 <Header />
                 <Routes>
                   <Route path="/" element={<Home />} />
@@ -73,6 +70,7 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="products" element={<Products />} />
+              <Route path="reviews" element={<Reviews />} />
               <Route path="products/:id" element={<ProductsDetails />} />
               <Route path="categories" element={<Categories />} />
               <Route path="categories/:id" element={<CategoriesProduct />} />
@@ -92,7 +90,7 @@ function App() {
 
           </Routes>
         </PersistGate>
-      </Provider>
+      </Provider >
     </>
   );
 }
