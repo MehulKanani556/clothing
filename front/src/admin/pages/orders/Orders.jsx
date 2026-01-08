@@ -92,7 +92,7 @@ const Orders = () => {
             Refunded: 'bg-gray-100 text-gray-700',
         };
         return (
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
+            <span className={`px-3 py-1 rounded-sm text-xs font-semibold ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
                 {status}
             </span>
         );

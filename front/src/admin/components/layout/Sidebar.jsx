@@ -47,14 +47,12 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             ]
         },
         {
-            type: 'submenu',
+            type: 'item',
             key: 'orders',
             name: 'Orders',
+            path: '/admin/orders' ,
             icon: <MdShoppingCart size={20} />,
-            children: [
-                { name: 'Orders', path: '/admin/orders' },
-                { name: 'Order Details', path: '/admin/order-details' },
-            ]
+           
         },
         {
             type: 'item',
