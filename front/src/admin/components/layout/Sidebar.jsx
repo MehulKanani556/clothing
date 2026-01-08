@@ -42,9 +42,7 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             name: 'Products',
             icon: <MdShoppingCart size={20} />,
             children: [
-                { name: 'Listing', path: '/admin/products' }, // Was 'Listings'
-                { name: 'Products Grid', path: '/admin/products-grid' },
-                { name: 'Product Details', path: '/admin/product-details' },
+                { name: 'Listing', path: '/admin/products' },
                 { name: 'Add Product', path: '/admin/add-product' },
             ]
         },

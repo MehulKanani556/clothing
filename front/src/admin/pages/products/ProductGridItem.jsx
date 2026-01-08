@@ -84,8 +84,9 @@ const ProductGridItem = ({ product, onEdit, onDelete }) => {
                             <span className="text-gray-400 text-sm line-through decoration-gray-400">${mrp}</span>
                         )}
                     </div>
+                    {console.log(product)}
                     <div className="flex items-center gap-1 text-gray-700 font-bold text-sm">
-                        <span>{product.rating?.average || 4.9}</span>
+                        <span>{product?.averageRating || 0}</span>
                         <MdStar className="text-amber-400 mb-0.5" />
                     </div>
                 </div>
@@ -106,7 +107,7 @@ const ProductGridItem = ({ product, onEdit, onDelete }) => {
                         <span className="text-gray-400 text-xs mt-0.5">Stocks</span>
                     </div>
                     <div className="flex flex-col items-center px-2">
-                        <span className="font-bold text-gray-900 text-sm">{product.orderCount || 48}</span>
+                        <span className="font-bold text-gray-900 text-sm">{product.orderCount || 0}</span>
                         <span className="text-gray-400 text-xs mt-0.5">Orders</span>
                     </div>
                     <div className="flex flex-col items-center px-2">
