@@ -2,6 +2,7 @@ const Product = require('../models/product.model');
 const Category = require('../models/category.model');
 const { validationResult } = require('express-validator');
 const Review = require('../models/review.model');
+const Order = require('../models/order.model');
 
 // Upload Image Helper Endpoint
 exports.uploadProductImage = async (req, res) => {
@@ -86,13 +87,72 @@ exports.getAllProducts = async (req, res) => {
 
         const total = await Product.countDocuments(query);
 
+        // Get Orders Count for these products
+        const productIds = products.map(p => p._id);
+
+        // Aggregate to count distinct orders per product
+        // We want: For each product, how many unique orders contain it?
+        const orderStats = await Order.aggregate([
+            { $match: { "items.product": { $in: productIds } } },
+            // Unwind to filter specifically for our products (an order might have other products)
+            { $unwind: "$items" },
+            { $match: { "items.product": { $in: productIds } } },
+            // Group by Product + Order to identify unique orders for that product
+            { $group: { _id: { product: "$items.product", order: "$_id" } } },
+            // Group by Product to count those unique orders
+            { $group: { _id: "$_id.product", count: { $sum: 1 } } }
+        ]);
+
+        const statsMap = {};
+        orderStats.forEach(stat => {
+            statsMap[stat._id.toString()] = stat.count;
+        });
+
+        // Get Reviews for these products
+        const allReviews = await Review.find({
+            product: { $in: productIds },
+            status: 'Published'
+        })
+            .populate('user', 'firstName lastName photo')
+            .sort({ createdAt: -1 });
+
+        const reviewsMap = {};
+        allReviews.forEach(r => {
+            const pId = r.product.toString();
+            if (!reviewsMap[pId]) {
+                reviewsMap[pId] = { reviews: [], totalRating: 0, count: 0 };
+            }
+            reviewsMap[pId].reviews.push(r);
+            reviewsMap[pId].totalRating += r.rating;
+            reviewsMap[pId].count += 1;
+        });
+
+        const productsWithStats = products.map(p => {
+            const pObj = p.toObject();
+            pObj.orderCount = statsMap[p._id.toString()] || 0;
+
+            // Attach review stats
+            const rStat = reviewsMap[p._id.toString()];
+            if (rStat) {
+                pObj.reviews = rStat.reviews;
+                pObj.reviewCount = rStat.count;
+                pObj.averageRating = Number((rStat.totalRating / rStat.count).toFixed(1));
+            } else {
+                pObj.reviews = [];
+                pObj.reviewCount = 0;
+                pObj.averageRating = 0;
+            }
+
+            return pObj;
+        });
+
         res.status(200).json({
             success: true,
-            count: products.length,
+            count: productsWithStats.length,
             total,
             page: Number(page),
             pages: Math.ceil(total / Number(limit)),
-            data: products
+            data: productsWithStats
         });
 
     } catch (error) {
