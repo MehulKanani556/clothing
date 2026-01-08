@@ -37,6 +37,7 @@ import CategoriesProduct from './admin/pages/categories/CategoriesProduct';
 import ProductsDetails from './admin/pages/products/ProductsDetails';
 import Reviews from './admin/pages/reviews/Reviews';
 import ProductForm from './admin/pages/products/ProductForm';
+import AdminProfile from './admin/pages/profile/AdminProfile';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -88,7 +89,9 @@ function App() {
               <Route path="size-charts" element={<SizeCharts />} />
               <Route path="blogs" element={<Blogs />} />
               <Route path="pricing-rules" element={<PricingRules />} />
+              <Route path="pricing-rules" element={<PricingRules />} />
               <Route path="support" element={<Support />} />
+              <Route path="profile" element={<AdminProfile />} />
               {/* Fallback */}
               <Route index element={<Dashboard />} />
             </Route>

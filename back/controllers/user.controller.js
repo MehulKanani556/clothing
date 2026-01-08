@@ -40,9 +40,8 @@ exports.deleteUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
     try {
         const { id } = req.user;
-        const { firstName, lastName, email, role, mobileNumber, dateOfBirth, gender } = req.body;
-
-        let updateData = { firstName, lastName, email, role, mobileNumber, dateOfBirth, gender };
+        const { firstName, lastName, email, role, mobileNumber, dateOfBirth, gender, bio } = req.body;
+        let updateData = { firstName, lastName, email, role, mobileNumber, dateOfBirth, gender, bio };
 
         if (req.file) {
             updateData.photo = req.file.location;

@@ -11,7 +11,8 @@ const initialState = {
     error: null,
     loggedIn: false,
     isLoggedOut: false,
-    message: null
+    message: null,
+    isLocked: false // New state for lock screen
 };
 const handleErrors = (error, dispatch, rejectWithValue) => {
 
@@ -158,7 +159,7 @@ export const logout = createAsyncThunk(
             clearAuthState();
             return response.data;
         } catch (error) {
-             clearAuthState();
+            clearAuthState();
             return handleErrors(error, null, rejectWithValue);
         }
     }
@@ -240,6 +241,12 @@ export const authSlice = createSlice({
         clearMessage: (state) => {
             state.message = null;
             state.error = null;
+        },
+        lockSession: (state) => {
+            state.isLocked = true;
+        },
+        unlockSession: (state) => {
+            state.isLocked = false;
         }
     },
 
@@ -439,5 +446,5 @@ export const authSlice = createSlice({
 
 });
 
-export const { clearAuthState, clearMessage } = authSlice.actions;
+export const { clearAuthState, clearMessage, lockSession, unlockSession } = authSlice.actions;
 export default authSlice.reducer;

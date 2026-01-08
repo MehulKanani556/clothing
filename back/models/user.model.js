@@ -10,6 +10,9 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    bio: {
+        type: String,
+    },
     photo: {
         type: String,
         default: "" // Made optional or default empty as user might not upload immediately on register? Actually registration uses upload, so it might be required. Keeping it as is but careful with updates.

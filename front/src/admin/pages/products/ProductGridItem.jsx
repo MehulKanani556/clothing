@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MdEdit, MdDelete, MdVisibility, MdMoreHoriz, MdStar } from 'react-icons/md';
 
-const ProductGridItem = ({ product, onEdit, onDelete }) => {
+const ProductGridItem = ({ product, onEdit, onDelete, onView }) => {
     const [showMenu, setShowMenu] = useState(false);
 
     const variant = product.variants[0];
@@ -14,7 +14,7 @@ const ProductGridItem = ({ product, onEdit, onDelete }) => {
     const date = new Date(product.createdAt || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 h-full flex flex-col relative group hover:shadow-md transition-all duration-300">
+        <div onClick={() => onView(product)} className="bg-white cursor-pointer rounded-xl shadow-sm border border-gray-100 p-4 h-full flex flex-col relative group hover:shadow-md transition-all duration-300">
             {/* Top Section: Image, Badge, Menu */}
             <div className="relative bg-[#f8f9fa] rounded-lg h-48 mb-4 flex items-center justify-center overflow-hidden">
                 {/* Discount Badge */}
@@ -94,7 +94,7 @@ const ProductGridItem = ({ product, onEdit, onDelete }) => {
                 {/* Title and Category */}
                 <h3
                     className="font-bold text-gray-900 text-base mb-1 line-clamp-1 hover:text-black cursor-pointer"
-                    onClick={() => onEdit(product)}
+                // onClick={() => onEdit(product)}
                 >
                     {product.name}
                 </h3>

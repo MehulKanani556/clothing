@@ -56,6 +56,10 @@ const Products = () => {
         setProductToDelete(null);
     };
 
+    const handleView = (row) => {
+        navigate(`/admin/products/${row._id}`);
+    };
+
     const columns = [
         {
             header: 'Product',
@@ -71,7 +75,7 @@ const Products = () => {
                         )}
                     </div>
                     <div>
-                        <p className="font-medium text-gray-900 line-clamp-1 cursor-pointer hover:text-black" onClick={() => handleEdit(row)}>{row.name}</p>
+                        <p className="font-medium text-gray-900 line-clamp-1 cursor-pointer hover:text-black">{row.name}</p>
                         <p className="text-xs text-gray-500">{row.brand}</p>
                     </div>
                 </div>
@@ -141,6 +145,7 @@ const Products = () => {
             header: 'Actions',
             render: (row) => (
                 <div className="flex items-center gap-2 text-gray-400">
+                    <button className="hover:text-black" onClick={() => handleView(row)}><MdVisibility size={18} /></button>
                     <button className="hover:text-black" onClick={() => handleEdit(row)}><MdEdit size={18} /></button>
                     <button className="hover:text-red-600" onClick={() => handleDeleteClick(row._id)}><MdDelete size={18} /></button>
                 </div>
@@ -223,6 +228,7 @@ const Products = () => {
                         product={product}
                         onEdit={handleEdit}
                         onDelete={handleDeleteClick}
+                        onView={handleView}
                     />
                 )}
                 selectedIds={selectedIds}
