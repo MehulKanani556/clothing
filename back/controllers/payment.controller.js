@@ -1,3 +1,5 @@
+const Order = require('../models/order.model');
+const Cart = require('../models/cart.model');
 const { Cashfree } = require('cashfree-pg');
 
 // Configure Credentials
@@ -28,7 +30,7 @@ exports.createCashfreeOrder = async (req, res) => {
                 "customer_email": customerEmail
             },
             "order_meta": {
-                "return_url": `${process.env.FRONTEND_URL || 'http://localhost:3000'}/cart?order_id={order_id}`
+                "return_url": `${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout/payment?order_id={order_id}`
             }
         };
 
@@ -68,10 +70,28 @@ exports.verifyPayment = async (req, res) => {
         const successTransaction = transactions.find(t => t.payment_status === 'SUCCESS');
 
         if (successTransaction) {
+            // Update Order Status in DB
+            const updatedOrder = await Order.findOneAndUpdate(
+                { orderId: orderId },
+                {
+                    status: 'Confirmed',
+                    paymentStatus: 'Paid',
+                    paymentGatewayDetails: successTransaction,
+                    confirmedAt: new Date()
+                },
+                { new: true }
+            );
+            const updateCart = await Cart.findOneAndUpdate(
+                { user: updatedOrder.user },
+                { items: [] },
+                { new: true }
+            );
+
             res.status(200).json({
                 success: true,
                 message: "Payment Verified",
-                data: successTransaction
+                data: successTransaction,
+                order: updatedOrder
             });
         } else {
             res.status(400).json({

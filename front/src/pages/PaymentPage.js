@@ -2,13 +2,16 @@ import { FiCreditCard, FiLock, FiMapPin, FiChevronDown, FiChevronUp, FiSmartphon
 import { BsWallet2, BsBank, BsCashCoin } from 'react-icons/bs';
 import { load } from '@cashfreepayments/cashfree-js';
 import { useDispatch, useSelector } from 'react-redux';
-import { createPaymentOrder, processPaymentOrder, createDbOrder, updateDbOrder } from '../redux/slice/payment.slice';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { createPaymentOrder, processPaymentOrder, createDbOrder, updateDbOrder, verifyPayment } from '../redux/slice/payment.slice';
 import { fetchCart, clearCart } from '../redux/slice/cart.slice';
-import { useState } from 'react';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function PaymentPage() {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const orderIdParam = searchParams.get('order_id');
     const { items, totalPrice } = useSelector(state => state.cart);
     const { user } = useSelector(state => state.auth);
 
@@ -28,6 +31,29 @@ export default function PaymentPage() {
         save: false
     });
     const [errors, setErrors] = useState({});
+
+    // Verify Payment on Return
+    useEffect(() => {
+        if (orderIdParam) {
+            const verify = async () => {
+                setLoading(true);
+                try {
+                    const result = await dispatch(verifyPayment(orderIdParam)).unwrap();
+                    if (result.success) {
+                        dispatch(clearCart());
+                        alert("Payment Successful!");
+                        navigate('/profile'); // Redirect to my orders
+                    }
+                } catch (error) {
+                    console.error("Verification failed", error);
+                    alert("Payment Verification Failed. Please contact support if money was deducted.");
+                } finally {
+                    setLoading(false);
+                }
+            };
+            verify();
+        }
+    }, [orderIdParam, dispatch, navigate]);
 
     // Fetch cart on mount if empty (optional safety check)
     useEffect(() => {
