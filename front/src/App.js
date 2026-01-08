@@ -35,6 +35,7 @@ import PaymentPage from './pages/PaymentPage';
 import CategoriesProduct from './admin/pages/categories/CategoriesProduct';
 import ProductsDetails from './admin/pages/products/ProductsDetails';
 import Reviews from './admin/pages/reviews/Reviews';
+import ProductForm from './admin/pages/products/ProductForm';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -70,6 +71,8 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="products" element={<Products />} />
+              <Route path="add-product" element={<ProductForm />} />
+              <Route path="product/edit/:id" element={<ProductForm />} />
               <Route path="reviews" element={<Reviews />} />
               <Route path="products/:id" element={<ProductsDetails />} />
               <Route path="categories" element={<Categories />} />

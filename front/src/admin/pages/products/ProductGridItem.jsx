@@ -84,7 +84,7 @@ const ProductGridItem = ({ product, onEdit, onDelete }) => {
                             <span className="text-gray-400 text-sm line-through decoration-gray-400">${mrp}</span>
                         )}
                     </div>
-                    {console.log(product)}
+
                     <div className="flex items-center gap-1 text-gray-700 font-bold text-sm">
                         <span>{product?.averageRating || 0}</span>
                         <MdStar className="text-amber-400 mb-0.5" />
