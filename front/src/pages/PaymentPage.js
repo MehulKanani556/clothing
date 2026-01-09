@@ -3,9 +3,11 @@ import { BsWallet2, BsBank, BsCashCoin } from 'react-icons/bs';
 import { load } from '@cashfreepayments/cashfree-js';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { createPaymentOrder, processPaymentOrder, createDbOrder, updateDbOrder, verifyPayment } from '../redux/slice/payment.slice';
+import { createPaymentOrder, processPaymentOrder, processCODPayment, createDbOrder, updateDbOrder, verifyPayment } from '../redux/slice/payment.slice';
 import { fetchCart, clearCart } from '../redux/slice/cart.slice';
 import { useState, useEffect } from 'react';
+
+
 
 export default function PaymentPage() {
     const dispatch = useDispatch();
@@ -23,6 +25,14 @@ export default function PaymentPage() {
     const [isItemsExpanded, setIsItemsExpanded] = useState(false);
     const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
 
+    useEffect(() => {
+        load({
+            env: 'sandbox',
+            app_id: process.env.REACT_APP_CASHFREE_APP_ID,
+            app_secret: process.env.REACT_APP_CASHFREE_APP_SECRET
+        });
+    }, []);
+
     const [cardDetails, setCardDetails] = useState({
         number: '',
         expiry: '',
@@ -30,6 +40,19 @@ export default function PaymentPage() {
         holder: '',
         save: false
     });
+
+    const [upiDetails, setUpiDetails] = useState({
+        upiId: ''
+    });
+
+    const [walletDetails, setWalletDetails] = useState({
+        provider: ''
+    });
+
+    const [netBankingDetails, setNetBankingDetails] = useState({
+        bankCode: ''
+    });
+
     const [errors, setErrors] = useState({});
 
     // Verify Payment on Return
@@ -130,11 +153,6 @@ export default function PaymentPage() {
     };
 
     const handlePayment = async () => {
-        if (selectedMethod !== 'card') {
-            alert(`Payment method ${selectedMethod} is not yet implemented.`);
-            return;
-        }
-
         const token = localStorage.getItem("token");
         if (!token) {
             alert("Session expired or token missing. Please login again.");
@@ -142,21 +160,32 @@ export default function PaymentPage() {
             return;
         }
 
-        if (!validateForm()) {
-            alert('Please fill all card details correctly');
-            return;
+        // Validate based on payment method
+        if (selectedMethod === 'card') {
+            if (!validateForm()) {
+                alert('Please fill all card details correctly');
+                return;
+            }
+        } else if (selectedMethod === 'upi') {
+            if (!upiDetails.upiId || !upiDetails.upiId.includes('@')) {
+                alert('Please enter a valid UPI ID');
+                return;
+            }
+        } else if (selectedMethod === 'wallet') {
+            if (!walletDetails.provider) {
+                alert('Please select a wallet provider');
+                return;
+            }
+        } else if (selectedMethod === 'netbanking') {
+            if (!netBankingDetails.bankCode) {
+                alert('Please select a bank');
+                return;
+            }
         }
 
         setLoading(true);
 
         try {
-            // Check if we already have an active order ID to retry? 
-            // For now, let's create a NEW order for every attempt unless we store it in state/session.
-            // If user retries, we likely want to use the SAME order if it's Pending.
-            // But simplifying to new order for robust flow unless stated otherwise clearly.
-            // Actually, "if user retry... complete this flow".
-            // If we have `items`, we create order.
-
             // Map items to backend expected structure
             const orderItems = items.map(item => {
                 let sku = 'UNKNOWN';
@@ -171,7 +200,7 @@ export default function PaymentPage() {
                     productId: item.product._id,
                     sku: sku,
                     quantity: item.quantity,
-                    size: item.size, // Optional but good for DB
+                    size: item.size,
                     color: item.color
                 };
             });
@@ -179,26 +208,35 @@ export default function PaymentPage() {
             // Step 1: Create Database Order (Pending)
             const dbOrderData = {
                 items: orderItems,
-                shippingAddress: activeAddress, // Ensure this matches backend schema
-                paymentMethod: 'Online',
-                paymentInfo: { method: 'Cashfree' }
+                shippingAddress: activeAddress,
+                paymentMethod: selectedMethod === 'cod' ? 'COD' : 'Online',
+                paymentInfo: { method: selectedMethod === 'cod' ? 'COD' : 'Cashfree' }
             };
 
-
-
-            // Dispatch createDbOrder
             const dbOrderResult = await dispatch(createDbOrder(dbOrderData)).unwrap();
             const orderId = dbOrderResult.data.orderId; // e.g. ORD-123
             const dbId = dbOrderResult.data._id;
 
-            // Step 2: Create Cashfree Session with Order ID
+            // Handle COD separately (no payment gateway needed)
+            if (selectedMethod === 'cod') {
+                const codResult = await dispatch(processCODPayment(orderId)).unwrap();
+
+                if (codResult.success) {
+                    alert("Order Confirmed! You will pay on delivery.");
+                    dispatch(clearCart());
+                    navigate('/profile');
+                }
+                return;
+            }
+
+            // Step 2: Create Cashfree Session for Online Payments
             const sessionData = {
                 orderAmount: totalPrice,
                 customerId: user?._id || 'guest',
                 customerPhone: user?.mobileNumber || '9999999999',
                 customerName: user?.firstName || 'Guest',
                 customerEmail: user?.email || 'guest@example.com',
-                orderId: orderId // Pass the DB Order ID
+                orderId: orderId
             };
 
             const sessionResult = await dispatch(createPaymentOrder(sessionData)).unwrap();
@@ -207,35 +245,66 @@ export default function PaymentPage() {
                 throw new Error('Failed to create payment session');
             }
 
-            // Step 3: Process Payment (S2S)
-            let mm = "", yy = "";
-            if (cardDetails.expiry && cardDetails.expiry.includes('/')) {
-                [mm, yy] = cardDetails.expiry.split('/');
-            } else {
-                throw new Error("Invalid Expiry Date Format");
-            }
-
-            const cleanCardNumber = cardDetails.number.replace(/\s/g, '');
-
-            const paymentData = {
+            // Step 3: Process Payment based on method
+            let paymentData = {
                 paymentSessionId: sessionResult.paymentSessionId,
-                card_number: cleanCardNumber,
-                card_holder_name: cardDetails.holder,
-                expiry_mm: mm,
-                expiry_yy: yy,
-                cvv: cardDetails.cvv
+                paymentMethod: selectedMethod
             };
+
+            switch (selectedMethod) {
+                case 'card':
+                    let mm = "", yy = "";
+                    if (cardDetails.expiry && cardDetails.expiry.includes('/')) {
+                        [mm, yy] = cardDetails.expiry.split('/');
+                    } else {
+                        throw new Error("Invalid Expiry Date Format");
+                    }
+                    const cleanCardNumber = cardDetails.number.replace(/\s/g, '');
+                    paymentData = {
+                        ...paymentData,
+                        card_number: cleanCardNumber,
+                        card_holder_name: cardDetails.holder,
+                        expiry_mm: mm,
+                        expiry_yy: yy,
+                        cvv: cardDetails.cvv
+                    };
+                    break;
+
+                case 'upi':
+                    paymentData = {
+                        ...paymentData,
+                        upi_id: upiDetails.upiId
+                    };
+                    break;
+
+                case 'wallet':
+                    paymentData = {
+                        ...paymentData,
+                        wallet_provider: walletDetails.provider,
+                        phone: user?.mobileNumber || '9999999999',
+                        customerPhone: user?.mobileNumber || '9999999999'
+                    };
+                    break;
+
+                case 'netbanking':
+                    paymentData = {
+                        ...paymentData,
+                        netbanking_bank_code: netBankingDetails.bankCode
+                    };
+                    break;
+
+                default:
+                    throw new Error('Invalid payment method');
+            }
 
             const result = await dispatch(processPaymentOrder(paymentData)).unwrap();
 
             // Step 4: Handle Response
             if (result.url) {
-                // Redirect for 3DS
+                // Redirect for authentication/completion
                 window.location.href = result.url;
             } else if (result.success && (result.data?.payment_status === 'SUCCESS' || result.data?.status === 'SUCCESS')) {
-                // Payment Completed
-
-                // Update DB Order Status
+                // Payment Completed (rare for most methods)
                 await dispatch(updateDbOrder({
                     orderId: dbId,
                     status: 'Confirmed',
@@ -244,17 +313,11 @@ export default function PaymentPage() {
                 })).unwrap();
 
                 alert("Payment Completed!");
-
-                // Clear Cart
                 dispatch(clearCart());
-
-                // Redirect to My Orders or Success Page
-                // window.location.href = '/my-orders'; 
+                navigate('/profile');
             } else {
                 if (result.data?.payment_status) {
-                    // Status might be FAILED, PENDING, USER_DROPPED
                     alert(`Payment Status: ${result.data?.payment_status}`);
-                    // Order status remains Pending in DB, which is correct.
                 } else {
                     alert("Payment processing initiated. Please check status.");
                 }
@@ -401,12 +464,192 @@ export default function PaymentPage() {
                                         {loading ? 'Processing...' : `Pay ₹${totalPrice.toLocaleString()}`}
                                     </button>
                                 </div>
+                            ) : selectedMethod === 'upi' ? (
+                                <div className="space-y-6">
+                                    <div className="mb-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <FiSmartphone size={24} className="text-purple-600" />
+                                            <h3 className="text-lg font-semibold text-gray-800">Pay with UPI</h3>
+                                        </div>
+                                        <p className="text-sm text-gray-500">Enter your UPI ID to complete the payment</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                            UPI ID
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={upiDetails.upiId}
+                                                onChange={(e) => setUpiDetails({ upiId: e.target.value })}
+                                                placeholder="yourname@upi"
+                                                className="w-full px-4 py-3 bg-gray-100 border-none rounded focus:ring-1 focus:ring-purple-400 placeholder-gray-400 text-gray-800 text-sm"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-400 mt-1">Example: 9876543210@paytm, user@oksbi</p>
+                                    </div>
+
+                                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg">
+                                        <p className="text-xs font-semibold text-gray-600 mb-3">Supported UPI Apps</p>
+                                        <div className="flex gap-4 flex-wrap justify-center">
+                                            <div className="flex flex-col items-center">
+                                                <img src="https://img.icons8.com/color/48/google-pay.png" className="h-12 w-12" alt="GPay" />
+                                                {/* <span className="text-xs text-gray-600 mt-1">GPay</span> */}
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <img src="https://img.icons8.com/color/48/phone-pe.png" className="h-12 w-12" alt="PhonePe" />
+                                                {/* <span className="text-xs text-gray-600 mt-1">PhonePe</span> */}
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <img src="https://img.icons8.com/color/48/paytm.png" className="h-12 w-12" alt="Paytm" />
+                                                {/* <span className="text-xs text-gray-600 mt-1">Paytm</span> */}
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <img src="https://img.icons8.com/color/48/bhim.png" className="h-12 w-12" alt="BHIM" />
+                                                {/* <span className="text-xs text-gray-600 mt-1">BHIM</span> */}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={handlePayment}
+                                        disabled={loading}
+                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 shadow-md"
+                                    >
+                                        {loading ? 'Processing...' : `Pay ₹${totalPrice.toLocaleString()}`}
+                                    </button>
+                                </div>
+                            ) : selectedMethod === 'wallet' ? (
+                                <div className="space-y-6">
+                                    <div className="mb-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <BsWallet2 size={24} className="text-orange-600" />
+                                            <h3 className="text-lg font-semibold text-gray-800">Pay with Wallet</h3>
+                                        </div>
+                                        <p className="text-sm text-gray-500">Select your preferred wallet</p>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {[
+                                            { id: 'phonepe', name: 'PhonePe', icon: 'https://img.icons8.com/color/48/phone-pe.png', color: 'border-purple-500' },
+                                            { id: 'paytm', name: 'Paytm', icon: 'https://img.icons8.com/color/48/paytm.png', color: 'border-blue-500' },
+                                            { id: 'amazonpay', name: 'Amazon Pay', icon: 'https://img.icons8.com/color/48/amazon.png', color: 'border-orange-500' },
+                                            { id: 'freecharge', name: 'Freecharge', icon: 'https://img.icons8.com/fluency/48/wallet--v1.png', color: 'border-yellow-500' },
+                                            { id: 'mobikwik', name: 'Mobikwik', icon: 'https://img.icons8.com/fluency/48/money-bag.png', color: 'border-red-500' },
+                                        ].map(wallet => (
+                                            <button
+                                                key={wallet.id}
+                                                onClick={() => setWalletDetails({ provider: wallet.id })}
+                                                className={`w-full flex items-center gap-3 p-4 border-2 rounded-lg transition-all ${walletDetails.provider === wallet.id
+                                                        ? `${wallet.color} bg-gray-50 shadow-md`
+                                                        : 'border-gray-200 hover:border-gray-400 hover:shadow-sm'
+                                                    }`}
+                                            >
+                                                <div className="flex-shrink-0">
+                                                    <img src={wallet.icon} className="h-10 w-10" alt={wallet.name} />
+                                                </div>
+                                                <span className="font-medium text-gray-800 flex-grow text-left">{wallet.name}</span>
+                                                {walletDetails.provider === wallet.id && (
+                                                    <span className="ml-auto text-green-600 font-bold text-lg">✓</span>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <button
+                                        onClick={handlePayment}
+                                        disabled={loading || !walletDetails.provider}
+                                        className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 shadow-md"
+                                    >
+                                        {loading ? 'Processing...' : `Pay ₹${totalPrice.toLocaleString()}`}
+                                    </button>
+                                </div>
+                            ) : selectedMethod === 'netbanking' ? (
+                                <div className="space-y-6">
+                                    <div className="mb-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <BsBank size={24} className="text-blue-600" />
+                                            <h3 className="text-lg font-semibold text-gray-800">Net Banking</h3>
+                                        </div>
+                                        <p className="text-sm text-gray-500">Select your bank to proceed</p>
+                                    </div>
+
+                                    {/* <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                                        <div className="flex gap-3 flex-wrap justify-center">
+                                            <img src="https://img.icons8.com/color/48/sbi.png" className="h-10" alt="SBI" title="State Bank of India" />
+                                            <img src="https://img.icons8.com/color/48/hdfc-bank.png" className="h-10" alt="HDFC" title="HDFC Bank" />
+                                            <img src="https://img.icons8.com/color/48/icici-bank.png" className="h-10" alt="ICICI" title="ICICI Bank" />
+                                            <img src="https://img.icons8.com/color/48/axis-bank.png" className="h-10" alt="Axis" title="Axis Bank" />
+                                            <img src="https://img.icons8.com/color/48/bank-building.png" className="h-10" alt="Other Banks" title="Other Banks" />
+                                        </div>
+                                    </div> */}
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                            Select Bank
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                value={netBankingDetails.bankCode}
+                                                onChange={(e) => setNetBankingDetails({ bankCode: e.target.value })}
+                                                className="w-full px-4 py-3 bg-gray-100 border-none rounded focus:ring-1 focus:ring-blue-400 text-gray-800 text-sm appearance-none cursor-pointer"
+                                            >
+                                                <option value="">Choose your bank</option>
+                                                <option value={3333}>🏦 Test Bank</option>
+                                                <option value="3003">🏦 Axis Bank</option>
+                                                <option value="3005">🏦 Bank of Baroda</option>
+                                                <option value="3009">🏦 HDFC Bank</option>
+                                                <option value="3010">🏦 ICICI Bank</option>
+                                                <option value="3013">🏦 IDBI Bank</option>
+                                                <option value="3014">🏦 IndusInd Bank</option>
+                                                <option value="3020">🏦 Kotak Mahindra Bank</option>
+                                                <option value="3024">🏦 Punjab National Bank</option>
+                                                <option value="3027">🏦 State Bank of India</option>
+                                                <option value="3029">🏦 Union Bank of India</option>
+                                                <option value="3032">🏦 Yes Bank</option>
+                                            </select>
+                                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                                <FiChevronDown className="text-gray-500" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={handlePayment}
+                                        disabled={loading || !netBankingDetails.bankCode}
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 shadow-md"
+                                    >
+                                        {loading ? 'Processing...' : `Pay ₹${totalPrice.toLocaleString()}`}
+                                    </button>
+                                </div>
+                            ) : selectedMethod === 'cod' ? (
+                                <div className="space-y-6">
+                                    <div className="text-center py-8">
+                                        <BsCashCoin size={64} className="mx-auto text-gray-400 mb-4" />
+                                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Cash on Delivery</h3>
+                                        <p className="text-sm text-gray-500 mb-6">
+                                            Pay when you receive your order at your doorstep
+                                        </p>
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+                                            <p className="text-sm text-blue-800">
+                                                <strong>Note:</strong> Please keep exact change ready. Our delivery partner will collect ₹{totalPrice.toLocaleString()} at the time of delivery.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={handlePayment}
+                                        disabled={loading}
+                                        className="w-full bg-gray-400 hover:bg-gray-500 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50"
+                                        style={{ backgroundColor: '#AFAFAF' }}
+                                    >
+                                        {loading ? 'Processing...' : 'Confirm Order'}
+                                    </button>
+                                </div>
                             ) : (
                                 <div className="h-full flex flex-col items-center justify-center text-gray-500">
                                     <p className="mb-4">Select this payment method to proceed</p>
-                                    <button className="bg-gray-800 text-white px-6 py-2 rounded shadow-md">
-                                        Pay with {tabs.find(t => t.id === selectedMethod)?.label}
-                                    </button>
                                 </div>
                             )}
                         </div>

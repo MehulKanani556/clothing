@@ -74,6 +74,18 @@ export const processPaymentOrder = createAsyncThunk(
     }
 );
 
+export const processCODPayment = createAsyncThunk(
+    'payment/processCODPayment',
+    async (orderId, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post(`${BASE_URL}/payment/cod`, { orderId });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || { message: error.message });
+        }
+    }
+);
+
 
 
 export const paymentSlice = createSlice({

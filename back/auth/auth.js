@@ -39,10 +39,10 @@ exports.generateNewToken = async (req, res) => {
         }
 
         // Verify if session exists
-        const session = await Session.findOne({ token });
-        if (!session) {
-            return res.status(401).json({ message: "Session expired or invalid" });
-        }
+        // const session = await Session.findOne({ token });
+        // if (!session) {
+        //     return res.status(401).json({ message: "Session expired or invalid" });
+        // }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (!decoded) {
@@ -54,7 +54,7 @@ exports.generateNewToken = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        await Session.findByIdAndDelete(session._id);
+        // await Session.findByIdAndDelete(session._id);
 
         const { accessToken, refreshToken } = await generateToken(user._id);
 

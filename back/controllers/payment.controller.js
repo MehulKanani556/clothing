@@ -245,10 +245,25 @@ exports.verifyPayment = async (req, res) => {
     }
 };
 
-// Process Payment via S2S
+// Process Payment via S2S - Supports Card, UPI, Wallet, NetBanking
 exports.processPayment = async (req, res) => {
     try {
-        const { paymentSessionId, card_number, card_holder_name, expiry_mm, expiry_yy, cvv } = req.body;
+        const {
+            paymentSessionId,
+            paymentMethod,
+            // Card details
+            card_number,
+            card_holder_name,
+            expiry_mm,
+            expiry_yy,
+            cvv,
+            // UPI details
+            upi_id,
+            // Wallet details
+            wallet_provider, // 'phonepe', 'paytm', 'amazonpay', 'freecharge', 'mobikwik', 'jio'
+            // NetBanking details
+            netbanking_bank_code // Bank code from Cashfree
+        } = req.body;
 
         if (!paymentSessionId) {
             return res.status(400).json({
@@ -257,48 +272,102 @@ exports.processPayment = async (req, res) => {
             });
         }
 
-        const createPayRequest = (channel) => ({
+        if (!paymentMethod) {
+            return res.status(400).json({
+                success: false,
+                message: "Payment Method is required"
+            });
+        }
+
+        let paymentRequest = {
             "payment_session_id": paymentSessionId,
-            "payment_method": {
-                "card": {
-                    "channel": channel,
+            "payment_method": {}
+        };
+
+        // Build payment method based on type
+        switch (paymentMethod) {
+            case 'card':
+                if (!card_number || !card_holder_name || !expiry_mm || !expiry_yy || !cvv) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Card details are incomplete"
+                    });
+                }
+                paymentRequest.payment_method.card = {
+                    "channel": "link",
                     "card_number": card_number,
                     "card_holder_name": card_holder_name,
                     "card_expiry_mm": expiry_mm,
                     "card_expiry_yy": expiry_yy,
                     "card_cvv": cvv
-                }
-            }
-        });
+                };
+                break;
 
-        let response;
-        try {
-            // Try with channel 'post' first
-            response = await Cashfree.PGPayOrder("2023-08-01", createPayRequest("post"));
-        } catch (error) {
-            const errMessage = error.response?.data?.message || "";
-            // Check for specific error indicating 'post' is not enabled
-            if (errMessage.includes("mode not enabled") || error.response?.data?.code === "payment_method_not_allowed") {
-                console.log("Channel 'post' not enabled, retrying with 'link'...");
-                // Retry with channel 'link'
-                response = await Cashfree.PGPayOrder("2023-08-01", createPayRequest("link"));
-            } else {
-                throw error;
-            }
+            case 'upi':
+                if (!upi_id) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "UPI ID is required"
+                    });
+                }
+                paymentRequest.payment_method.upi = {
+                    "channel": "collect",
+                    "upi_id": upi_id
+                };
+                break;
+
+            case 'wallet':
+                if (!wallet_provider) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Wallet provider is required"
+                    });
+                }
+                paymentRequest.payment_method.app = {
+                    "channel": "link",
+                    "provider": wallet_provider,
+                    "phone": req.body.phone || req.body.customerPhone
+                };
+                break;
+
+            case 'netbanking':
+                if (!netbanking_bank_code) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Bank selection is required"
+                    });
+                }
+                paymentRequest.payment_method.netbanking = {
+                    "channel": "link",
+                    "netbanking_bank_code": Number(netbanking_bank_code)
+                };
+                break;
+
+            default:
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid payment method"
+                });
         }
+
+        console.log("Payment Request:", JSON.stringify(paymentRequest, null, 2));
+
+        // Make payment request to Cashfree
+        const response = await Cashfree.PGPayOrder("2023-08-01", paymentRequest);
 
         console.log("Payment Response:", response.data);
 
         const responseData = response.data;
 
-        // Handle Action: Most S2S card payments require an OTP (Redirection)
+        // Handle Action: Most payments require redirection for authentication
         if (responseData.action === "link" || (responseData.data && responseData.data.url)) {
             res.status(200).json({
                 success: true,
-                url: responseData.data?.url || responseData.data?.payload?.url || responseData.data?.url,
+                url: responseData.data?.url || responseData.data?.payload?.url || responseData.url,
                 data: responseData
             });
         } else {
+            // Direct success (rare for most payment methods)
             res.status(200).json({
                 success: true,
                 data: responseData
@@ -311,6 +380,59 @@ exports.processPayment = async (req, res) => {
             success: false,
             message: error.response?.data?.message || error.message,
             details: error.response?.data
+        });
+    }
+};
+
+// Process COD Payment
+exports.processCODPayment = async (req, res) => {
+    try {
+        const { orderId } = req.body;
+
+        if (!orderId) {
+            return res.status(400).json({
+                success: false,
+                message: "Order ID is required"
+            });
+        }
+
+        // Update Order Status for COD
+        const updatedOrder = await Order.findOneAndUpdate(
+            { orderId: orderId },
+            {
+                status: 'Confirmed',
+                paymentStatus: 'Pending', // COD payment is pending until delivery
+                paymentMethod: 'COD',
+                confirmedAt: new Date()
+            },
+            { new: true }
+        );
+
+        if (!updatedOrder) {
+            return res.status(404).json({
+                success: false,
+                message: "Order not found"
+            });
+        }
+
+        // Clear cart
+        await Cart.findOneAndUpdate(
+            { user: updatedOrder.user },
+            { items: [] },
+            { new: true }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: "COD Order Confirmed",
+            order: updatedOrder
+        });
+
+    } catch (error) {
+        console.error("COD Payment Error:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message
         });
     }
 };

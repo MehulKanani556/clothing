@@ -19,14 +19,14 @@ const rateLimit = require('express-rate-limit');
 // Security Middleware
 app.use(helmet());
 
-// Rate Limiting (Global)
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Limit each IP to 100 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
+// // Rate Limiting (Global)
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 200, // Limit each IP to 100 requests per windowMs
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
+// app.use(limiter);
 
 const corsOptions = {
   origin: ['http://localhost:3000', 'http://localhost:3001'],
