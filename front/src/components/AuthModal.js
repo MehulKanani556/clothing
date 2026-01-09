@@ -193,7 +193,7 @@ export default function AuthModal({ isOpen, closeModal, initialView = 'login' })
                                         id="remember-me"
                                         name="remember-me"
                                         type="checkbox"
-                                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                        className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                     />
                                     <label htmlFor="remember-me" className="ml-2 block text-xs text-gray-500">
                                         Remember Me

@@ -304,7 +304,7 @@ export default function CategoryPage() {
                                                                             type="checkbox"
                                                                             checked={filters.gender.includes(option)}
                                                                             onChange={() => handleFilterChange('gender', option)}
-                                                                            className="peer h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                            className="peer h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                         />
                                                                     </div>
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
@@ -327,7 +327,7 @@ export default function CategoryPage() {
                                                         <div className="space-y-2">
                                                             {filterOptions.size.map(option => (
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
-                                                                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black" />
+                                                                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black" />
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                 </label>
                                                             ))}
@@ -352,7 +352,7 @@ export default function CategoryPage() {
                                                                         type="checkbox"
                                                                         checked={filters.color.includes(option.name)}
                                                                         onChange={() => handleFilterChange('color', option.name)}
-                                                                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                        className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
                                                                     <div className="flex items-center gap-2">
                                                                         <span
@@ -411,7 +411,7 @@ export default function CategoryPage() {
                                                                         type="checkbox"
                                                                         checked={filters.discount.includes(option)}
                                                                         onChange={() => handleFilterChange('discount', option)}
-                                                                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                        className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                 </label>
@@ -437,7 +437,7 @@ export default function CategoryPage() {
                                                                         type="checkbox"
                                                                         checked={filters.rating.includes(option)}
                                                                         onChange={() => handleFilterChange('rating', option)}
-                                                                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                        className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                 </label>
@@ -463,7 +463,7 @@ export default function CategoryPage() {
                                                                         type="checkbox"
                                                                         checked={filters.productType.includes(option)}
                                                                         onChange={() => handleFilterChange('productType', option)}
-                                                                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                        className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                 </label>
@@ -489,7 +489,7 @@ export default function CategoryPage() {
                                                                         type="checkbox"
                                                                         checked={filters.brand.includes(option)}
                                                                         onChange={() => handleFilterChange('brand', option)}
-                                                                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                        className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>

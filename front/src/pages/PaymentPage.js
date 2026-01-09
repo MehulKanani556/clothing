@@ -385,7 +385,7 @@ export default function PaymentPage() {
                                             name="save"
                                             checked={cardDetails.save}
                                             onChange={handleInputChange}
-                                            className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-500"
+                                            className="w-4 h-4 accent-black border-gray-300 rounded focus:ring-gray-500"
                                         />
                                         <label htmlFor="saveCard" className="text-sm text-gray-500">
                                             Save your card for future transactions

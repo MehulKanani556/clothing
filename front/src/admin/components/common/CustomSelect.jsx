@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MdKeyboardArrowDown } from 'react-icons/md';
 
-const CustomSelect = ({ value, options, onChange, className = "w-32", placeholder }) => {
+const CustomSelect = ({ value, options, onChange, className = "w-32", placeholder, disabled }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -21,8 +21,13 @@ const CustomSelect = ({ value, options, onChange, className = "w-32", placeholde
         <div className={`relative ${className}`} ref={dropdownRef}>
             <button
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full bg-white border border-gray-200 text-gray-700 text-sm rounded-md px-3 py-2 flex items-center justify-between shadow-sm hover:border-gray-400 hover:text-black transition-all duration-200"
+                disabled={disabled}
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                className={`w-full bg-white border border-gray-200 text-gray-700 text-sm rounded-md px-3 py-2 flex items-center justify-between shadow-sm transition-all duration-200 
+                    ${disabled
+                        ? 'bg-gray-100 cursor-not-allowed text-gray-400 border-gray-200'
+                        : 'hover:border-gray-400 hover:text-black'
+                    }`}
             >
                 <span className={`truncate mr-2 ${selectedOption ? 'font-medium' : 'text-gray-400'}`}>
                     {selectedOption?.label || placeholder || value}

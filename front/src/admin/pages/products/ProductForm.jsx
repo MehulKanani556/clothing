@@ -4,10 +4,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { MdCloudUpload, MdDelete, MdClose, MdAdd } from 'react-icons/md';
-import { CircularProgress, Button } from '@mui/material';
+import { CircularProgress } from '@mui/material';
 import { createProduct, updateProduct, fetchAdminProducts } from '../../../redux/slice/adminProductSlice';
 import { fetchCategories, fetchSubCategoriesByCategoryId } from '../../../redux/slice/category.slice';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
+import CustomSelect from '../../components/common/CustomSelect';
 
 const ProductSchema = Yup.object().shape({
     name: Yup.string().required('Required'),
@@ -66,6 +67,7 @@ const ProductForm = () => {
             {
                 color: '',
                 colorFamily: '',
+                colorCode: '',
                 images: [],
                 options: [{ sku: '', size: '', price: 0, mrp: 0, stock: 0 }]
             }
@@ -144,6 +146,7 @@ const ProductForm = () => {
                     variants: product.variants.map(v => ({
                         color: v.color,
                         colorFamily: v.colorFamily,
+                        colorCode: v.colorCode,
                         images: v.images,
                         options: v.options.map(o => ({
                             sku: o.sku,
@@ -160,8 +163,7 @@ const ProductForm = () => {
     }, [isEdit, id, products, dispatch]);
 
 
-    const handleCategoryChange = (e) => {
-        const categoryId = e.target.value;
+    const handleCategoryChange = (categoryId) => {
         formik.setFieldValue('category', categoryId);
         formik.setFieldValue('subCategory', '');
         if (categoryId) {
@@ -174,6 +176,7 @@ const ProductForm = () => {
         const newVariant = {
             color: '',
             colorFamily: '',
+            colorCode: '',
             images: [],
             options: [{ sku: '', size: '', price: 0, mrp: 0, stock: 0 }]
         };
@@ -220,236 +223,279 @@ const ProductForm = () => {
                 ]}
             />
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-6 max-w-4xl mx-auto">
-                <form onSubmit={formik.handleSubmit} className="space-y-6">
-                    {/* Basic Info Section */}
-                    <div className="space-y-4">
-                        <h3 className="font-bold text-gray-900 text-lg border-b pb-2">Basic Information</h3>
+            <div className="mt-6 max-w-5xl mx-auto">
+                <div className="bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden">
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                        <h3 className="text-lg font-bold text-gray-800">
+                            {isEdit ? 'Edit Product Details' : 'Add New Product'}
+                        </h3>
+                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Product Name</label>
-                                <input
-                                    type="text"
-                                    name="name"
+                    <form onSubmit={formik.handleSubmit} className="p-6 space-y-8">
+                        {/* Basic Info Section */}
+                        <div className="space-y-6">
+                            <h4 className="text-sm font-bold text-gray-900 border-l-4 border-black pl-3 uppercase tracking-wider">
+                                Basic Information
+                            </h4>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Name */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Product Name</label>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.name}
+                                        placeholder="e.g. Classic Cotton T-Shirt"
+                                        className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-1 transition-colors ${formik.touched.name && formik.errors.name
+                                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                            : 'border-gray-300 focus:ring-black focus:border-black'
+                                            }`}
+                                    />
+                                    {formik.touched.name && formik.errors.name && (
+                                        <p className="text-xs text-red-500 mt-1">{formik.errors.name}</p>
+                                    )}
+                                </div>
+
+                                {/* Brand */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Brand</label>
+                                    <input
+                                        type="text"
+                                        name="brand"
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.brand}
+                                        placeholder="e.g. Nike"
+                                        className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-1 transition-colors ${formik.touched.brand && formik.errors.brand
+                                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                            : 'border-gray-300 focus:ring-black focus:border-black'
+                                            }`}
+                                    />
+                                    {formik.touched.brand && formik.errors.brand && (
+                                        <p className="text-xs text-red-500 mt-1">{formik.errors.brand}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Description */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Description</label>
+                                <textarea
+                                    name="description"
+                                    rows="4"
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
-                                    value={formik.values.name}
-                                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-black focus:border-black transition-colors"
-                                    placeholder="e.g. Classic Cotton T-Shirt"
+                                    value={formik.values.description}
+                                    placeholder="Write a detailed description..."
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors resize-none"
                                 />
-                                {formik.touched.name && formik.errors.name && (
-                                    <div className="text-red-500 text-xs mt-1 font-medium">{formik.errors.name}</div>
-                                )}
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Brand</label>
-                                <input
-                                    type="text"
-                                    name="brand"
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    value={formik.values.brand}
-                                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-black focus:border-black transition-colors"
-                                    placeholder="e.g. Nike, Adidas"
-                                />
-                                {formik.touched.brand && formik.errors.brand && (
-                                    <div className="text-red-500 text-xs mt-1 font-medium">{formik.errors.brand}</div>
-                                )}
-                            </div>
-                        </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
-                            <textarea
-                                name="description"
-                                rows="4"
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                value={formik.values.description}
-                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-black focus:border-black transition-colors"
-                                placeholder="Write a detailed description of the product..."
-                            />
-                        </div>
+                            {/* Categories */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Category</label>
+                                    <CustomSelect
+                                        value={formik.values.category}
+                                        onChange={handleCategoryChange}
+                                        options={categories.map(cat => ({ label: cat.name, value: cat._id }))}
+                                        placeholder="Select Category"
+                                        className="w-full"
+                                    />
+                                    {formik.touched.category && formik.errors.category && (
+                                        <p className="text-xs text-red-500 mt-1">{formik.errors.category}</p>
+                                    )}
+                                </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Category</label>
-                                <select
-                                    name="category"
-                                    onChange={handleCategoryChange}
-                                    onBlur={formik.handleBlur}
-                                    value={formik.values.category}
-                                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-black focus:border-black transition-colors"
-                                >
-                                    <option value="">Select Category</option>
-                                    {categories.map(cat => (
-                                        <option key={cat._id} value={cat._id}>{cat.name}</option>
-                                    ))}
-                                </select>
-                                {formik.touched.category && formik.errors.category && (
-                                    <div className="text-red-500 text-xs mt-1 font-medium">{formik.errors.category}</div>
-                                )}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Sub Category</label>
+                                    <CustomSelect
+                                        value={formik.values.subCategory}
+                                        onChange={(val) => formik.setFieldValue('subCategory', val)}
+                                        options={subCategories.map(sub => ({ label: sub.name, value: sub._id }))}
+                                        disabled={!formik.values.category}
+                                        placeholder="Select Sub Category"
+                                        className="w-full"
+                                    />
+                                    {formik.touched.subCategory && formik.errors.subCategory && (
+                                        <p className="text-xs text-red-500 mt-1">{formik.errors.subCategory}</p>
+                                    )}
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Sub Category</label>
-                                <select
-                                    name="subCategory"
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    value={formik.values.subCategory}
-                                    disabled={!formik.values.category}
-                                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-black focus:border-black transition-colors disabled:bg-gray-100"
-                                >
-                                    <option value="">Select Sub Category</option>
-                                    {subCategories.map(sub => (
-                                        <option key={sub._id} value={sub._id}>{sub.name}</option>
-                                    ))}
-                                </select>
-                                {formik.touched.subCategory && formik.errors.subCategory && (
-                                    <div className="text-red-500 text-xs mt-1 font-medium">{formik.errors.subCategory}</div>
-                                )}
-                            </div>
-                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Size Chart Data</label>
-                                <div className="mt-1 flex items-center gap-4">
-                                    <label className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors shadow-sm">
-                                        <MdCloudUpload className="text-lg" />
-                                        {formik.values.sizeChart ? 'Change File' : 'Upload Image'}
+                            {/* Additional Info */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Gender</label>
+                                    <CustomSelect
+                                        value={formik.values.gender}
+                                        onChange={(val) => formik.setFieldValue('gender', val)}
+                                        options={[
+                                            { label: 'Men', value: 'Men' },
+                                            { label: 'Women', value: 'Women' },
+                                            { label: 'Kids', value: 'Kids' },
+                                            { label: 'Unisex', value: 'Unisex' }
+                                        ]}
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">GST %</label>
+                                    <input
+                                        type="number"
+                                        name="gstPercentage"
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.gstPercentage}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors"
+                                    />
+                                </div>
+
+                                <div className="flex items-center pt-8">
+                                    <label className="flex items-center gap-3 cursor-pointer group select-none">
                                         <input
-                                            type="file"
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={(e) => {
-                                                if (e.target.files[0]) {
-                                                    formik.setFieldValue('sizeChart', e.target.files[0]);
-                                                }
-                                            }}
+                                            type="checkbox"
+                                            name="isExchangeOnly"
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            checked={formik.values.isExchangeOnly}
+                                            className="rounded border-gray-300 accent-black focus:ring-black transition-colors cursor-pointer"
                                         />
+                                        <span className="text-sm font-semibold text-gray-700 group-hover:text-black transition-colors">Exchange Only Item</span>
                                     </label>
+                                </div>
+                            </div>
 
+                            {/* Size Chart Upload */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">Size Chart</label>
+                                <div className="flex items-center gap-4">
                                     {formik.values.sizeChart && (
-                                        <div className="flex items-center gap-2 text-sm">
+                                        <div className="w-16 h-16 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
                                             {formik.values.sizeChart instanceof File ? (
-                                                <span className="text-green-600 font-medium truncate max-w-[150px]">{formik.values.sizeChart.name}</span>
+                                                <MdCloudUpload className="text-gray-400" size={24} />
                                             ) : (
-                                                <a href={formik.values.sizeChart} target='_blank' rel="noreferrer" className="text-blue-600 hover:underline font-medium">View Current</a>
+                                                <img src={formik.values.sizeChart} alt="Size Chart" className="w-full h-full object-cover" />
                                             )}
                                         </div>
                                     )}
+                                    <div className="flex-1">
+                                        <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                            <div className="flex items-center gap-2 text-gray-500">
+                                                <MdCloudUpload size={20} />
+                                                <span className="text-sm font-medium">
+                                                    {formik.values.sizeChart
+                                                        ? (formik.values.sizeChart instanceof File ? formik.values.sizeChart.name : 'Change Size Chart')
+                                                        : 'Upload Size Chart Image'}
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    if (e.target.files[0]) {
+                                                        formik.setFieldValue('sizeChart', e.target.files[0]);
+                                                    }
+                                                }}
+                                            />
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Gender</label>
-                                <select
-                                    name="gender"
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    value={formik.values.gender}
-                                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-black focus:border-black transition-colors"
-                                >
-                                    <option value="Men">Men</option>
-                                    <option value="Women">Women</option>
-                                    <option value="Kids">Kids</option>
-                                    <option value="Unisex">Unisex</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">GST %</label>
-                                <input
-                                    type="number"
-                                    name="gstPercentage"
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    value={formik.values.gstPercentage}
-                                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-black focus:border-black transition-colors"
-                                />
-                            </div>
-                            <div className="flex items-center pt-8">
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <input
-                                        type="checkbox"
-                                        name="isExchangeOnly"
-                                        onChange={formik.handleChange}
-                                        checked={formik.values.isExchangeOnly}
-                                        className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black transition-colors cursor-pointer"
-                                    />
-                                    <span className="text-sm font-semibold text-gray-700 group-hover:text-black transition-colors">Exchange Only Item</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
+                        {/* Variants Section */}
+                        <div className="space-y-6 pt-4 border-t border-gray-100">
+                            <h4 className="text-sm font-bold text-gray-900 border-l-4 border-black pl-3 uppercase tracking-wider">
+                                Product Variants
+                            </h4>
 
-                    {/* Variants Section */}
-                    <div className="space-y-4 pt-6">
-                        <div className="flex justify-between items-center border-b border-gray-200 pb-4">
-                            <h3 className="font-bold text-gray-900 text-lg">Product Variants</h3>
-                        </div>
+                            <div className="space-y-6">
+                                {formik.values.variants.map((variant, index) => (
+                                    <div key={index} className="bg-gray-50 p-6 rounded-lg border border-gray-200 relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => removeVariant(index)}
+                                            className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"
+                                            title="Remove Variant"
+                                        >
+                                            <MdClose size={24} />
+                                        </button>
 
-                        <div className="space-y-8">
-                            {formik.values.variants.map((variant, index) => (
-                                <div key={index} className="bg-gray-50 p-6 rounded-xl border border-gray-200 relative shadow-sm">
-                                    <button
-                                        type="button"
-                                        onClick={() => removeVariant(index)}
-                                        className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors"
-                                        title="Remove Variant"
-                                    >
-                                        <MdDelete size={20} />
-                                    </button>
+                                        <h5 className="font-bold text-gray-800 mb-4 text-sm uppercase tracking-wide flex items-center gap-2">
+                                            <span className="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-xs">{index + 1}</span>
+                                            Variant Config
+                                        </h5>
 
-                                    <h4 className="font-bold text-gray-800 mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
-                                        <span className="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-xs">{index + 1}</span>
-                                        Variant Details
-                                    </h4>
-
-                                    {/* Variant Details */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Color Name</label>
-                                            <input
-                                                type="text"
-                                                name={`variants[${index}].color`}
-                                                onChange={formik.handleChange}
-                                                onBlur={formik.handleBlur}
-                                                value={formik.values.variants[index].color}
-                                                className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-black focus:border-black"
-                                                placeholder="e.g. Navy Blue"
-                                            />
-                                            {formik.touched.variants?.[index]?.color && formik.errors.variants?.[index]?.color && (
-                                                <div className="text-red-500 text-xs mt-1">{formik.errors.variants[index].color}</div>
-                                            )}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Color Name</label>
+                                                <input
+                                                    type="text"
+                                                    name={`variants[${index}].color`}
+                                                    onChange={formik.handleChange}
+                                                    onBlur={formik.handleBlur}
+                                                    value={formik.values.variants[index].color}
+                                                    placeholder="e.g. Navy Blue"
+                                                    className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-1 transition-colors ${formik.touched.variants?.[index]?.color && formik.errors.variants?.[index]?.color
+                                                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                                        : 'border-gray-300 focus:ring-black focus:border-black'
+                                                        }`}
+                                                />
+                                                {formik.touched.variants?.[index]?.color && formik.errors.variants?.[index]?.color && (
+                                                    <p className="text-xs text-red-500 mt-1">{formik.errors.variants[index].color}</p>
+                                                )}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Color Family</label>
+                                                <input
+                                                    type="text"
+                                                    name={`variants[${index}].colorFamily`}
+                                                    onChange={formik.handleChange}
+                                                    onBlur={formik.handleBlur}
+                                                    value={formik.values.variants[index].colorFamily}
+                                                    placeholder="e.g. Blue"
+                                                    className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-1 transition-colors ${formik.touched.variants?.[index]?.colorFamily && formik.errors.variants?.[index]?.colorFamily
+                                                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                                        : 'border-gray-300 focus:ring-black focus:border-black'
+                                                        }`}
+                                                />
+                                                {formik.touched.variants?.[index]?.colorFamily && formik.errors.variants?.[index]?.colorFamily && (
+                                                    <p className="text-xs text-red-500 mt-1">{formik.errors.variants[index].colorFamily}</p>
+                                                )}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Color Code</label>
+                                                <input
+                                                    type="text"
+                                                    name={`variants[${index}].colorCode`}
+                                                    onChange={formik.handleChange}
+                                                    onBlur={formik.handleBlur}
+                                                    value={formik.values.variants[index].colorCode}
+                                                    placeholder="e.g. #000000"
+                                                    className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-1 transition-colors ${formik.touched.variants?.[index]?.colorCode && formik.errors.variants?.[index]?.colorCode
+                                                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                                        : 'border-gray-300 focus:ring-black focus:border-black'
+                                                        }`}
+                                                />
+                                                {formik.touched.variants?.[index]?.colorCode && formik.errors.variants?.[index]?.colorCode && (
+                                                    <p className="text-xs text-red-500 mt-1">{formik.errors.variants[index].colorCode}</p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Color Family</label>
-                                            <input
-                                                type="text"
-                                                name={`variants[${index}].colorFamily`}
-                                                onChange={formik.handleChange}
-                                                onBlur={formik.handleBlur}
-                                                value={formik.values.variants[index].colorFamily}
-                                                className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-black focus:border-black"
-                                                placeholder="e.g. Blue"
-                                            />
-                                            {formik.touched.variants?.[index]?.colorFamily && formik.errors.variants?.[index]?.colorFamily && (
-                                                <div className="text-red-500 text-xs mt-1">{formik.errors.variants[index].colorFamily}</div>
-                                            )}
-                                        </div>
-                                    </div>
 
-                                    {/* Images Array */}
-                                    <div className="mb-6">
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Variant Images</label>
-                                        <div className="grid grid-cols-1 gap-4">
+                                        {/* Images */}
+                                        <div className="mb-6 space-y-2">
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Variant Images</label>
                                             <div className="flex flex-wrap gap-4">
                                                 {variant.images.map((img, imgIndex) => (
-                                                    <div key={imgIndex} className="relative w-24 h-24 border border-gray-200 rounded-lg overflow-hidden group bg-white shadow-sm">
+                                                    <div key={imgIndex} className="relative w-24 h-24 border border-gray-200 rounded-lg overflow-hidden group bg-white">
                                                         {img instanceof File ? (
                                                             <img src={URL.createObjectURL(img)} alt="Preview" className="w-full h-full object-cover" />
                                                         ) : (
@@ -458,148 +504,141 @@ const ProductForm = () => {
                                                         <button
                                                             type="button"
                                                             onClick={() => removeImage(index, imgIndex)}
-                                                            className="absolute top-1 right-1 bg-white/90 text-red-600 p-1 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50"
+                                                            className="absolute top-1 right-1 bg-white/90 text-red-600 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50"
                                                         >
                                                             <MdClose size={16} />
                                                         </button>
                                                     </div>
                                                 ))}
-                                                <label className={`w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-white hover:border-black hover:text-black text-gray-400 transition-all`}>
-                                                    <MdCloudUpload size={24} />
-                                                    <span className="text-[10px] mt-1 font-medium">Upload</span>
+                                                <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 hover:border-gray-400 transition-all bg-white">
+                                                    <MdCloudUpload size={24} className="text-gray-400" />
+                                                    <span className="text-[10px] mt-1 font-medium text-gray-500">Upload</span>
                                                     <input
                                                         type="file"
                                                         className="hidden"
                                                         multiple
                                                         accept="image/*"
-                                                        onChange={(e) => {
-                                                            const files = Array.from(e.target.files);
-                                                            pushImage(index, files);
-                                                        }}
+                                                        onChange={(e) => pushImage(index, Array.from(e.target.files))}
                                                     />
                                                 </label>
                                             </div>
                                             {formik.touched.variants?.[index]?.images && typeof formik.errors.variants?.[index]?.images === 'string' && (
-                                                <div className="text-red-500 text-xs font-medium">{formik.errors.variants[index].images}</div>
+                                                <p className="text-xs text-red-500 font-medium">{formik.errors.variants[index].images}</p>
                                             )}
                                         </div>
-                                    </div>
 
-                                    {/* Options (Sizes) Array */}
-                                    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                                        <label className="block text-xs font-bold text-gray-700 mb-3 uppercase tracking-wide">Sizes & Inventory</label>
-                                        <div className="space-y-3">
-                                            {variant.options.map((option, optIndex) => (
-                                                <div key={optIndex} className="grid grid-cols-6 gap-3 items-end p-2 bg-gray-50 rounded border border-gray-100 hover:border-gray-300 transition-colors">
-                                                    <div className="col-span-1">
-                                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">SKU</label>
-                                                        <input
-                                                            type="text"
-                                                            name={`variants[${index}].options[${optIndex}].sku`}
-                                                            onChange={formik.handleChange}
-                                                            onBlur={formik.handleBlur}
-                                                            value={formik.values.variants[index].options[optIndex].sku}
-                                                            className="w-full border border-gray-300 p-1.5 rounded text-sm focus:border-black focus:ring-1 focus:ring-black outline-none"
-                                                        />
+                                        {/* Sizes */}
+                                        <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wide block mb-3">Sizes & Inventory</label>
+                                            <div className="space-y-2">
+                                                {variant.options.map((option, optIndex) => (
+                                                    <div key={optIndex} className="grid grid-cols-6 gap-2 items-start">
+                                                        <div>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="SKU"
+                                                                name={`variants[${index}].options[${optIndex}].sku`}
+                                                                onChange={formik.handleChange}
+                                                                value={formik.values.variants[index].options[optIndex].sku}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-black focus:ring-1 focus:ring-black outline-none"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Size"
+                                                                name={`variants[${index}].options[${optIndex}].size`}
+                                                                onChange={formik.handleChange}
+                                                                value={formik.values.variants[index].options[optIndex].size}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-black focus:ring-1 focus:ring-black outline-none"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <input
+                                                                type="number"
+                                                                placeholder="Price"
+                                                                name={`variants[${index}].options[${optIndex}].price`}
+                                                                onChange={formik.handleChange}
+                                                                value={formik.values.variants[index].options[optIndex].price}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-black focus:ring-1 focus:ring-black outline-none"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <input
+                                                                type="number"
+                                                                placeholder="MRP"
+                                                                name={`variants[${index}].options[${optIndex}].mrp`}
+                                                                onChange={formik.handleChange}
+                                                                value={formik.values.variants[index].options[optIndex].mrp}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-black focus:ring-1 focus:ring-black outline-none"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <input
+                                                                type="number"
+                                                                placeholder="Stock"
+                                                                name={`variants[${index}].options[${optIndex}].stock`}
+                                                                onChange={formik.handleChange}
+                                                                value={formik.values.variants[index].options[optIndex].stock}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-black focus:ring-1 focus:ring-black outline-none"
+                                                            />
+                                                        </div>
+                                                        <div className="flex justify-center pt-1">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeOption(index, optIndex)}
+                                                                className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                                                            >
+                                                                <MdDelete size={18} />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="col-span-1">
-                                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Size</label>
-                                                        <input
-                                                            type="text"
-                                                            name={`variants[${index}].options[${optIndex}].size`}
-                                                            onChange={formik.handleChange}
-                                                            onBlur={formik.handleBlur}
-                                                            value={formik.values.variants[index].options[optIndex].size}
-                                                            className="w-full border border-gray-300 p-1.5 rounded text-sm focus:border-black focus:ring-1 focus:ring-black outline-none"
-                                                        />
-                                                    </div>
-                                                    <div className="col-span-1">
-                                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Price</label>
-                                                        <input
-                                                            type="number"
-                                                            name={`variants[${index}].options[${optIndex}].price`}
-                                                            onChange={formik.handleChange}
-                                                            onBlur={formik.handleBlur}
-                                                            value={formik.values.variants[index].options[optIndex].price}
-                                                            className="w-full border border-gray-300 p-1.5 rounded text-sm focus:border-black focus:ring-1 focus:ring-black outline-none"
-                                                        />
-                                                    </div>
-                                                    <div className="col-span-1">
-                                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">MRP</label>
-                                                        <input
-                                                            type="number"
-                                                            name={`variants[${index}].options[${optIndex}].mrp`}
-                                                            onChange={formik.handleChange}
-                                                            onBlur={formik.handleBlur}
-                                                            value={formik.values.variants[index].options[optIndex].mrp}
-                                                            className="w-full border border-gray-300 p-1.5 rounded text-sm focus:border-black focus:ring-1 focus:ring-black outline-none"
-                                                        />
-                                                    </div>
-                                                    <div className="col-span-1">
-                                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Stock</label>
-                                                        <input
-                                                            type="number"
-                                                            name={`variants[${index}].options[${optIndex}].stock`}
-                                                            onChange={formik.handleChange}
-                                                            onBlur={formik.handleBlur}
-                                                            value={formik.values.variants[index].options[optIndex].stock}
-                                                            className="w-full border border-gray-300 p-1.5 rounded text-sm focus:border-black focus:ring-1 focus:ring-black outline-none"
-                                                        />
-                                                    </div>
-                                                    <div className="col-span-1 flex justify-center pb-1">
-                                                        <button type="button" onClick={() => removeOption(index, optIndex)} className="text-gray-400 hover:text-red-600 transition-colors p-1">
-                                                            <MdDelete size={18} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            <button type="button" onClick={() => pushOption(index)} className="text-xs font-bold text-black hover:text-gray-700 mt-3 block w-full text-center border border-dashed border-gray-300 p-2 rounded hover:bg-gray-50 transition-colors uppercase tracking-wide">
-                                                + Add Size Option
-                                            </button>
+                                                ))}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => pushOption(index)}
+                                                    className="w-full py-2 mt-2 text-xs font-bold text-gray-500 border border-dashed border-gray-300 rounded hover:bg-gray-50 hover:text-black transition-colors uppercase tracking-wide"
+                                                >
+                                                    + Add Size Option
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
 
-                            <button
-                                type="button"
-                                onClick={pushVariant}
-                                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-black hover:text-black transition-all flex items-center justify-center gap-2 font-semibold hover:bg-white"
-                            >
-                                <MdAdd size={22} /> Add Another Variant
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={pushVariant}
+                                    className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-black hover:text-black hover:bg-gray-50 transition-all flex items-center justify-center gap-2 font-semibold"
+                                >
+                                    <MdAdd size={20} /> Add Another Variant
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 mt-8">
-                            <Button
+                        {/* Footer / Actions */}
+                        <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+                            <button
+                                type="button"
                                 onClick={() => navigate('/admin/products')}
-                                color="inherit"
-                                className="text-gray-600 hover:text-gray-900 font-medium px-6"
+                                className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
                             >
                                 Cancel
-                            </Button>
-                            <Button
+                            </button>
+                            <button
                                 type="submit"
-                                variant="contained"
                                 disabled={formik.isSubmitting}
-                                sx={{
-                                    bgcolor: 'black',
-                                    color: 'white',
-                                    borderRadius: '8px',
-                                    paddingX: '24px',
-                                    '&:hover': { bgcolor: '#222' },
-                                    '&.Mui-disabled': { bgcolor: '#f0f0f0', color: '#ccc' }
-                                }}
+                                className="px-6 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors shadow-sm disabled:bg-gray-300 flex items-center justify-center min-w-[140px]"
                             >
                                 {formik.isSubmitting ? (
-                                    <CircularProgress size={24} color="inherit" />
+                                    <CircularProgress size={20} color="inherit" />
                                 ) : (
                                     isEdit ? 'Update Product' : 'Create Product'
                                 )}
-                            </Button>
+                            </button>
                         </div>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     );
