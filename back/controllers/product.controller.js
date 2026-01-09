@@ -1,5 +1,6 @@
 const Product = require('../models/product.model');
 const Category = require('../models/category.model');
+const SubCategory = require('../models/subCategory.model');
 const { validationResult } = require('express-validator');
 const Review = require('../models/review.model');
 const Order = require('../models/order.model');
@@ -31,6 +32,7 @@ exports.getAllProducts = async (req, res) => {
     try {
         const {
             category,
+            subCategory,
             brand,
             minPrice,
             maxPrice,
@@ -46,6 +48,18 @@ exports.getAllProducts = async (req, res) => {
 
         // Filtering
         if (category) query.category = category; // Assuming ID is passed, check frontend
+
+        if (subCategory) {
+            const subCatDoc = await SubCategory.findOne({ slug: subCategory });
+            if (subCatDoc) {
+                query.subCategory = subCatDoc._id;
+            } else {
+                // If slug provided but not found, return no results for this filter opacity
+                // We'll set it to a non-existent ID
+                query.subCategory = "000000000000000000000000";
+            }
+        }
+
         if (gender) query.gender = { $regex: gender, $options: 'i' };
         if (brand) query.brand = { $regex: brand, $options: 'i' };
 

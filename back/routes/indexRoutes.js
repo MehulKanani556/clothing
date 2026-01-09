@@ -6,14 +6,10 @@ const { createUser, verifyRegistration, login, logout, forgotPassword, verifyOtp
 const { auth } = require('../middleware/auth');
 const { getAllUsers, getSingleUser, deleteUser, updateUser, addAddress, deleteAddress, setDefaultAddress } = require('../controllers/user.controller');
 
-// ... existing routes ...
-
-router.post('/users/address', auth, addAddress);
-router.delete('/users/address/:addressId', auth, deleteAddress);
-router.put('/users/address/:addressId/default', auth, setDefaultAddress);
 const { getAllProducts, getProductById, getRelatedProducts, createProduct, uploadProductImage, updateProduct, deleteProduct } = require('../controllers/product.controller');
 const { getAllCategories, createCategory, updateCategory, deleteCategory, getCategoryById, getAlladminCategories } = require('../controllers/category.controller');
-const { getAllSubCategories, createSubCategory, getSubCategoriesByCategoryId } = require('../controllers/subCategory.controller');
+const { getAllSubCategories, createSubCategory, getSubCategoriesByCategoryId, updateSubCategory, deleteSubCategory, getAllAdminSubCategories } = require('../controllers/subCategory.controller');
+
 const { addToCart, getCart, removeFromCart, updateCartItem } = require('../controllers/cart.controller');
 const { addToWishlist, getWishlist, removeFromWishlist } = require('../controllers/wishlist.controller');
 
@@ -44,6 +40,7 @@ router.delete('/users/:id', auth, deleteUser);
 router.put('/users/profile', auth, upload.single("photo"), updateUser);
 router.post('/users/address', auth, addAddress);
 router.delete('/users/address/:addressId', auth, deleteAddress);
+router.put('/users/address/:addressId/default', auth, setDefaultAddress);
 
 // products
 router.get('/products', getAllProducts);
@@ -64,8 +61,11 @@ router.delete('/categories/:id', deleteCategory);
 
 // subcategories
 router.get('/subcategories', getAllSubCategories);
+router.get('/adminsubcategories', getAllAdminSubCategories);
 router.get('/subcategories/:categoryId', getSubCategoriesByCategoryId);
 router.post('/subcategories', createSubCategory);
+router.put('/subcategories/:id', updateSubCategory);
+router.delete('/subcategories/:id', deleteSubCategory);
 
 // Cart
 router.post('/cart', auth, addToCart);

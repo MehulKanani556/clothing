@@ -5,71 +5,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import AuthModal from './AuthModal';
 import { logout } from '../redux/slice/auth.slice';
 import { fetchCart } from '../redux/slice/cart.slice';
+import { fetchCategories, fetchSubCategories } from '../redux/slice/category.slice';
+import { fetchProducts } from '../redux/slice/product.slice';
 import { fetchWishlist } from '../redux/slice/wishlist.slice';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MdKeyboardArrowDown, MdLogout, MdPerson, MdSettings } from 'react-icons/md';
 import { FiSearch, FiX } from 'react-icons/fi';
-
-const navigation = [
-  { name: 'New Arrivals', href: '/category/new-arrivals' },
-  {
-    name: 'Men',
-    href: '/category/men',
-    type: 'dropdown',
-    columns: [
-      {
-        heading: 'Topwear',
-        items: ['T-Shirts', 'Casual Shirts', 'Formal Outfits', 'Sweaters', 'Denim Jackets', 'Suits', 'Rain Jackets', 'Hoodies']
-      },
-      {
-        heading: 'Indian & Festive Wear',
-        items: ['Kurta Sets', 'Sherwanis', 'Dhotis', 'Nehru Jackets']
-      },
-      {
-        heading: 'Bottomwear',
-        items: ['Jeans', 'Casual Trousers', 'Formal Trousers', 'Shorts', 'Track Pants', 'Joggers']
-      }
-    ],
-    images: [
-      { name: 'New Arrivals', url: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=2187&auto=format&fit=crop', href: '/category/men' },
-      { name: 'Best Sellers', url: 'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?q=80&w=2187&auto=format&fit=crop', href: '/category/men' },
-    ]
-  },
-  {
-    name: 'Women',
-    href: '/category/women',
-    type: 'dropdown',
-    columns: [
-      {
-        heading: 'Indian Wear',
-        items: ['Sarees', 'Kurtis & Suits', 'Tunics & Tops', 'Ethnic Wear', 'Skirts, Salwars & Palazoos', 'Dress Materials', 'Lehenga Cholis', 'Dupattas & Shawls']
-      },
-      {
-        heading: 'Western Wear',
-        items: ['Dresses', 'Tops', 'T-shirts', 'Jeans', 'Shorts & Skirts', 'Co-ords', 'Playsuits', 'Sweaters & Sweatshirts', 'Jackets & Coats', 'Blazers & Waistcoats']
-      }
-    ],
-    images: [
-      { name: 'New Arrival', url: 'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?q=80&w=2235&auto=format&fit=crop', href: '/category/women' },
-      { name: 'Best Sellers', url: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=2187&auto=format&fit=crop', href: '/category/women' },
-      { name: 'Top Rated', url: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=2187&auto=format&fit=crop', href: '/category/women' }
-    ]
-  },
-  {
-    name: 'Premium',
-    href: '/category/premium',
-    type: 'dropdown',
-    columns: [],
-    images: [
-      { name: 'Oversized T shirts', url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=2264&auto=format&fit=crop', href: '/category/premium' },
-      { name: 'Bottom wear', url: 'https://images.unsplash.com/photo-1542272617-08f086302542?q=80&w=2187&auto=format&fit=crop', href: '/category/premium' },
-      { name: 'Premium Shirts', url: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?q=80&w=2225&auto=format&fit=crop', href: '/category/premium' },
-      { name: 'New Arrival', url: 'https://images.unsplash.com/photo-1550246140-5119ae4790b8?q=80&w=2255&auto=format&fit=crop', href: '/category/premium' },
-      { name: 'Best Sellers', url: 'https://images.unsplash.com/photo-1620799140408-ed5341cd2431?q=80&w=2272&auto=format&fit=crop', href: '/category/premium' }
-    ]
-  },
-  { name: 'Best Sellers', href: '/category/best-sellers' },
-]
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
@@ -78,9 +19,9 @@ function classNames(...classes) {
 export default function Header() {
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { categories, subCategories } = useSelector((state) => state.category);
   const dropdownRef = useRef(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [imgError, setImgError] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const name = user?.firstName + ' ' + user?.lastName;
@@ -88,84 +29,82 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const searchSuggestions = [
-    'Shirts', 'Shirts for Women', 'Shirts for Men', 'Knitted Shirts', 'T-Shirt', 'Printed Shirts', 'Blend Shirts', 'White Shirt', 'Jeans', 'Denim', 'Trousers'
-  ];
+  const dispatch = useDispatch();
+  const { items: cartItems } = useSelector((state) => state.cart);
+  const { items: wishlistItems } = useSelector((state) => state.wishlist);
+  const { products } = useSelector((state) => state.product);
 
-  const trendingProducts = [
-    {
-      id: 1,
-      title: 'Men Solid Polo T-Shirt',
-      price: 599,
-      originalPrice: 999,
-      discount: '40% OFF',
-      rating: 4.5,
-      image: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?q=80&w=600&auto=format&fit=crop',
-      category: 'T-Shirt'
-    },
-    {
-      id: 2,
-      title: 'Women Embroidered Polo T-Shirt',
-      price: 1299,
-      originalPrice: 2699,
-      discount: '52% OFF',
-      rating: 4.5,
-      image: 'https://images.unsplash.com/photo-1554568218-0f1715e72254?q=80&w=600&auto=format&fit=crop',
-      category: 'T-Shirt'
-    },
-    {
-      id: 3,
-      title: 'Stripes Slim Fit Men\'s Casual Shirt',
-      price: 1699,
-      originalPrice: 2099,
-      discount: '19% OFF',
-      rating: 4.5,
-      image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=600&auto=format&fit=crop',
-      category: 'Shirt'
-    },
-    {
-      id: 4,
-      title: 'Printed Cotton Women\'s T-Shirt',
-      price: 999,
-      originalPrice: 1299,
-      discount: '23% OFF',
-      rating: 4.5,
-      image: 'https://images.unsplash.com/photo-1503342394128-c104d54dba01?q=80&w=600&auto=format&fit=crop',
-      category: 'T-Shirt'
-    },
-    {
-      id: 5,
-      title: 'Checks Cotton Men\'s Casual Shirt',
-      price: 1599,
-      originalPrice: 1899,
-      discount: '15% OFF',
-      rating: 4.5,
-      image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=600&auto=format&fit=crop',
-      category: 'Shirt'
-    },
-    {
-      id: 6,
-      title: 'Drop Oversized Trendy Crop T-Shirt',
-      price: 999,
-      originalPrice: 1299,
-      discount: '23% OFF',
-      rating: 4.5,
-      image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=600&auto=format&fit=crop',
-      category: 'T-Shirt'
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchCart());
+      dispatch(fetchWishlist());
     }
+    dispatch(fetchProducts({}));
+    dispatch(fetchCategories());
+    dispatch(fetchSubCategories());
+  }, [isAuthenticated, dispatch, user]);
+
+  // Static images map for styling (optional: could come from backend images if available)
+  const categoryImages = {
+    'Men': [
+      { name: 'New Arrivals', url: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=2187&auto=format&fit=crop', href: '/category/men' },
+      { name: 'Best Sellers', url: 'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?q=80&w=2187&auto=format&fit=crop', href: '/category/men' }
+    ],
+    'Women': [
+      { name: 'New Arrival', url: 'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?q=80&w=2235&auto=format&fit=crop', href: '/category/women' },
+      { name: 'Best Sellers', url: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=2187&auto=format&fit=crop', href: '/category/women' },
+      { name: 'Top Rated', url: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=2187&auto=format&fit=crop', href: '/category/women' }
+    ],
+    'Premium': [
+      { name: 'Oversized T shirts', url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=2264&auto=format&fit=crop', href: '/category/premium' },
+      { name: 'Bottom wear', url: 'https://images.unsplash.com/photo-1542272617-08f086302542?q=80&w=2187&auto=format&fit=crop', href: '/category/premium' }
+    ]
+  };
+
+  const navigation = [
+    { name: 'New Arrivals', href: '/category/new-arrivals' },
+    ...categories.map(cat => {
+      const catSubs = subCategories.filter(sub => sub.category && (sub.category._id === cat._id || sub.category === cat._id));
+
+      // Group subcategories into chunks of 8 for columns, or just use one column
+      const columns = [];
+      if (catSubs.length > 0) {
+        // Just one generic column for now as we don't have "Topwear/Bottomwear" grouping data
+        columns.push({
+          heading: 'Collection',
+          items: catSubs.map(s => ({ name: s.name, slug: s.slug || s.name.toLowerCase().replace(/\s+/g, '-') }))
+        });
+      }
+
+      return {
+        name: cat.name,
+        href: `/category/${cat._id}`,
+        type: 'dropdown',
+        columns: columns,
+        images: categoryImages[cat.name] || []
+      };
+    }),
+    { name: 'Best Sellers', href: '/category/best-sellers' }
   ];
 
-  // Logic for filtering
+  // Dynamic Search Logic
+  const uniqueCategories = [...new Set(products.map(p => p.category?.name || p.category).filter(Boolean))];
+  const uniqueBrands = [...new Set(products.map(p => p.brand).filter(Boolean))];
+
+  const searchSuggestions = [...uniqueCategories, ...uniqueBrands].slice(0, 10);
+
+  // Filter Logic
   const filteredSuggestions = searchQuery
     ? searchSuggestions.filter(item => item.toLowerCase().includes(searchQuery.toLowerCase()))
     : searchSuggestions;
 
   const filteredProducts = searchQuery
-    ? trendingProducts.filter(item =>
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchQuery.toLowerCase())
+    ? products.filter(item =>
+      (item.name || item.title).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.category?.name || item.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.brand || '').toLowerCase().includes(searchQuery.toLowerCase())
     )
-    : trendingProducts;
+    : products;
 
   const hasResults = filteredSuggestions.length > 0 || filteredProducts.length > 0;
 
@@ -173,23 +112,9 @@ export default function Header() {
     e.preventDefault();
     if (searchQuery.trim()) {
       setIsSearchOpen(false);
-      // navigate(`/search?q=${searchQuery}`);
+      navigate(`/category/all-products?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
-
-  useEffect(() => {
-    setImgError(false);
-  }, [user?.photo]);
-  const { items: cartItems } = useSelector((state) => state.cart);
-  const { items: wishlistItems } = useSelector((state) => state.wishlist);
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      dispatch(fetchCart());
-      dispatch(fetchWishlist());
-    }
-  }, [isAuthenticated, dispatch, user]);
 
   const handleProfileClick = () => {
     if (!isAuthenticated) {
@@ -216,6 +141,28 @@ export default function Header() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const getProductDisplay = (product) => {
+    const variant = product.variants?.[0];
+    const option = variant?.options?.[0];
+
+    const price = product.price || option?.price || 0;
+    const originalPrice = product.originalPrice || option?.mrp || 0;
+    const image = product.image || variant?.images?.[0] || 'https://via.placeholder.com/150';
+
+    const discount = product.discount || (price && originalPrice ? `${Math.round(((originalPrice - price) / originalPrice) * 100)}% OFF` : null);
+    const rating = product.averageRating || (typeof product.rating === 'number' ? product.rating : 0) || 0;
+
+    return {
+      id: product.id || product._id,
+      title: product.title || product.name,
+      price,
+      originalPrice,
+      image,
+      discount,
+      rating
+    };
+  };
 
   return (
     <Disclosure
@@ -256,52 +203,75 @@ export default function Header() {
                           <MdKeyboardArrowDown className="transition-transform duration-200 group-hover:rotate-180" />
                         </Link>
 
-                        {/* Mega Menu Dropdown */}
-                        <div className="absolute top-full left-0 w-screen max-w-screen-xl -translate-x-1/4 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out z-50">
+                        {/* Mega Menu / Dropdown */}
+                        <div className={`absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out z-50 ${item.images && item.images.length > 0 ? 'w-screen max-w-screen-xl -translate-x-1/4' : 'w-64'}`}>
                           <div className="bg-white rounded-xl shadow-2xl ring-1 ring-black ring-opacity-5 overflow-hidden">
-                            <div className="p-8">
-                              <div className={`grid gap-8 ${item.name === 'Premium' ? 'grid-cols-5' : 'grid-cols-[1.5fr_1fr_1fr]'}`}>
+                            <div className={`${item.images && item.images.length > 0 ? 'p-8' : 'p-6'}`}>
+                              {/* Content Logic */}
+                              {item.images && item.images.length > 0 ? (
+                                // Full Mega Menu Layout
+                                <div className={`grid gap-8 ${item.name === 'Premium' ? 'grid-cols-5' : 'grid-cols-[1.5fr_1fr_1fr]'}`}>
+                                  {/* Columns Section */}
+                                  {!['Premium'].includes(item.name) && (
+                                    <div className="col-span-1 grid grid-cols-2 gap-8">
+                                      {item.columns.map((col) => (
+                                        <div key={col.heading}>
+                                          <h3 className="font-bold text-gray-900 mb-4">{col.heading}</h3>
+                                          <ul className="space-y-3">
+                                            {col.items.map((subItem) => (
+                                              <li key={typeof subItem === 'string' ? subItem : subItem.name}>
+                                                <Link
+                                                  to={`${item.href}?sub=${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : subItem.slug}`}
+                                                  className="text-sm text-gray-500 hover:text-black transition-colors"
+                                                >
+                                                  {typeof subItem === 'string' ? subItem : subItem.name}
+                                                </Link>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
 
-                                {/* Columns Section (For Men/Women) */}
-                                {!['Premium'].includes(item.name) && (
-                                  <div className="col-span-1 grid grid-cols-2 gap-8">
-                                    {item.columns.map((col) => (
-                                      <div key={col.heading}>
-                                        <h3 className="font-bold text-gray-900 mb-4">{col.heading}</h3>
-                                        <ul className="space-y-3">
-                                          {col.items.map((subItem) => (
-                                            <li key={subItem}>
-                                              <Link
-                                                to={`${item.href}?sub=${subItem.toLowerCase().replace(/\s+/g, '-')}`}
-                                                className="text-sm text-gray-500 hover:text-black transition-colors"
-                                              >
-                                                {subItem}
-                                              </Link>
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
+                                  {/* Images Section */}
+                                  <div className={`${item.name === 'Premium' ? 'col-span-5 grid grid-cols-5' : 'col-span-2 grid grid-cols-3'} gap-6`}>
+                                    {item.images.map((img) => (
+                                      <Link key={img.name} to={img.href} className="group/img block">
+                                        <div className="aspect-[3/4] overflow-hidden rounded-lg mb-3 bg-gray-100">
+                                          <img
+                                            src={img.url}
+                                            alt={img.name}
+                                            className="w-full h-full object-cover object-center group-hover/img:scale-105 transition-transform duration-500"
+                                          />
+                                        </div>
+                                        <p className="text-center text-sm font-medium text-gray-900">{img.name}</p>
+                                      </Link>
                                     ))}
                                   </div>
-                                )}
-
-                                {/* Images Section */}
-                                <div className={`${item.name === 'Premium' ? 'col-span-5 grid grid-cols-5' : 'col-span-2 grid grid-cols-3'} gap-6`}>
-                                  {item.images.map((img) => (
-                                    <Link key={img.name} to={img.href} className="group/img block">
-                                      <div className="aspect-[3/4] overflow-hidden rounded-lg mb-3 bg-gray-100">
-                                        <img
-                                          src={img.url}
-                                          alt={img.name}
-                                          className="w-full h-full object-cover object-center group-hover/img:scale-105 transition-transform duration-500"
-                                        />
-                                      </div>
-                                      <p className="text-center text-sm font-medium text-gray-900">{img.name}</p>
-                                    </Link>
+                                </div>
+                              ) : (
+                                // Simple Dropdown Layout (No Images)
+                                <div className="flex flex-col gap-4">
+                                  {item.columns.map((col) => (
+                                    <div key={col.heading}>
+                                      <h3 className="font-bold text-gray-900 mb-3">{col.heading}</h3>
+                                      <ul className="space-y-2">
+                                        {col.items.map((subItem) => (
+                                          <li key={typeof subItem === 'string' ? subItem : subItem.name}>
+                                            <Link
+                                              to={`${item.href}?sub=${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : subItem.slug}`}
+                                              className="text-sm text-gray-500 hover:text-black transition-colors block py-1"
+                                            >
+                                              {typeof subItem === 'string' ? subItem : subItem.name}
+                                            </Link>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
                                   ))}
                                 </div>
-
-                              </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -517,30 +487,33 @@ export default function Header() {
                           </div>
                         </div>
 
-                        {/* Trending Products Mock Data */}
+                        {/* Trending Products */}
                         <div className="mb-8">
                           <h3 className="text-sm font-bold text-gray-900 mb-4">Trending Products</h3>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {trendingProducts.slice(0, 4).map((product) => (
-                              <div key={product.id} className="group relative flex gap-4 p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                <div className="w-20 h-24 flex-shrink-0 bg-gray-200 rounded-md overflow-hidden">
-                                  <img src={product.image} alt={product.title} className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300" />
-                                </div>
-                                <div className="flex flex-col justify-center">
-                                  <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">{product.title}</h4>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-bold">₹{product.price.toLocaleString()}</span>
-                                    <span className="text-xs text-gray-500 line-through">₹{product.originalPrice.toLocaleString()}</span>
-                                    <span className="text-xs text-green-600 font-medium">{product.discount}</span>
+                            {products.slice(0, 4).map((p) => {
+                              const product = getProductDisplay(p);
+                              return (
+                                <div key={product.id} className="group relative flex gap-4 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                  <div className="w-20 h-24 flex-shrink-0 bg-gray-200 rounded-md overflow-hidden">
+                                    <img src={product.image} alt={product.title} className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300" />
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-yellow-400">★</span>
-                                    <span className="text-xs text-gray-600">{product.rating}</span>
+                                  <div className="flex flex-col justify-center">
+                                    <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">{product.title}</h4>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-sm font-bold">₹{product.price.toLocaleString()}</span>
+                                      <span className="text-xs text-gray-500 line-through">₹{product.originalPrice.toLocaleString()}</span>
+                                      <span className="text-xs text-green-600 font-medium">{product.discount}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-yellow-400">★</span>
+                                      <span className="text-xs text-gray-600">{product.rating}</span>
+                                    </div>
                                   </div>
+                                  <Link to={`/product/${product.id}`} className="absolute inset-0" onClick={() => setIsSearchOpen(false)} />
                                 </div>
-                                <Link to={`/product/${product.id}`} className="absolute inset-0" onClick={() => setIsSearchOpen(false)} />
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
 
@@ -578,25 +551,28 @@ export default function Header() {
                         <div className="col-span-1 md:col-span-3">
                           <h3 className="text-sm font-bold text-gray-900 mb-4">Suggested Products</h3>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredProducts.slice(0, 6).map((product) => (
-                              <div key={product.id} className="group relative flex flex-col gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                <div className="aspect-[4/5] w-full bg-gray-200 rounded-lg overflow-hidden relative">
-                                  <img src={product.image} alt={product.title} className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300" />
-                                  <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
-                                    <span className="text-yellow-400">★</span> {product.rating}
+                            {filteredProducts.slice(0, 6).map((p) => {
+                              const product = getProductDisplay(p);
+                              return (
+                                <div key={product.id} className="group relative flex flex-col gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                  <div className="aspect-[4/5] w-full bg-gray-200 rounded-lg overflow-hidden relative">
+                                    <img src={product.image} alt={product.title} className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300" />
+                                    <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                                      <span className="text-yellow-400">★</span> {product.rating}
+                                    </div>
                                   </div>
-                                </div>
-                                <div className="flex flex-col mt-2">
-                                  <h4 className="text-sm font-medium text-gray-900 line-clamp-1">{product.title}</h4>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-sm font-bold">₹{product.price.toLocaleString()}</span>
-                                    <span className="text-xs text-gray-500 line-through">₹{product.originalPrice.toLocaleString()}</span>
-                                    <span className="text-xs text-green-600 font-medium">{product.discount}</span>
+                                  <div className="flex flex-col mt-2">
+                                    <h4 className="text-sm font-medium text-gray-900 line-clamp-1">{product.title}</h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-sm font-bold">₹{product.price.toLocaleString()}</span>
+                                      <span className="text-xs text-gray-500 line-through">₹{product.originalPrice.toLocaleString()}</span>
+                                      <span className="text-xs text-green-600 font-medium">{product.discount}</span>
+                                    </div>
                                   </div>
+                                  <Link to={`/product/${product.id}`} className="absolute inset-0" onClick={() => setIsSearchOpen(false)} />
                                 </div>
-                                <Link to={`/product/${product.id}`} className="absolute inset-0" onClick={() => setIsSearchOpen(false)} />
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       </div>

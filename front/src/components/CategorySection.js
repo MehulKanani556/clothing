@@ -10,12 +10,10 @@ export default function CategorySection() {
     const dispatch = useDispatch();
 
     const { categories } = useSelector((state) => state.category);
-    console.log(categories);
 
     useEffect(() => {
         dispatch(fetchCategories());
     }, []);
-
 
     const scroll = (direction) => {
         if (scrollRef.current) {

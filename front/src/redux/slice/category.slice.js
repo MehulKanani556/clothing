@@ -83,6 +83,62 @@ export const fetchSubCategoriesByCategoryId = createAsyncThunk(
     }
 );
 
+// Fetch Admin SubCategories
+export const fetchAdminSubCategories = createAsyncThunk(
+    'category/fetchAdminSubCategories',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await axios.get(`${BASE_URL}/adminsubcategories`);
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred';
+            return rejectWithValue(error.response?.data || { message: errorMessage });
+        }
+    }
+);
+
+// Create SubCategory
+export const createSubCategory = createAsyncThunk(
+    'category/createSubCategory',
+    async (data, { rejectWithValue }) => {
+        try {
+            const response = await axios.post(`${BASE_URL}/subcategories`, data);
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred';
+            return rejectWithValue(error.response?.data || { message: errorMessage });
+        }
+    }
+);
+
+// Update SubCategory
+export const updateSubCategory = createAsyncThunk(
+    'category/updateSubCategory',
+    async ({ id, data }, { rejectWithValue }) => {
+        try {
+            const response = await axios.put(`${BASE_URL}/subcategories/${id}`, data);
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred';
+            return rejectWithValue(error.response?.data || { message: errorMessage });
+        }
+    }
+);
+
+// Delete SubCategory (Soft Delete)
+export const deleteSubCategory = createAsyncThunk(
+    'category/deleteSubCategory',
+    async (id, { rejectWithValue }) => {
+        try {
+            await axios.delete(`${BASE_URL}/subcategories/${id}`);
+            return { id };
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred';
+            return rejectWithValue(error.response?.data || { message: errorMessage });
+        }
+    }
+);
+
 // Create Category
 export const createCategory = createAsyncThunk(
     'category/createCategory',
@@ -233,7 +289,70 @@ export const categorySlice = createSlice({
 
             // SubCategories by ID (replacing list or handling separate state? - keeping simple for now)
             .addCase(fetchSubCategoriesByCategoryId.fulfilled, (state, action) => {
-                state.subCategories = action.payload.data; // Note: this overwrites generalized subcategories list, which matches usual expected behavior for a filtered view
+                state.subCategories = action.payload.data;
+            })
+
+            // Admin SubCategories
+            .addCase(fetchAdminSubCategories.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(fetchAdminSubCategories.fulfilled, (state, action) => {
+                state.loading = false;
+                state.subCategories = action.payload.data;
+            })
+            .addCase(fetchAdminSubCategories.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+
+            // Create SubCategory
+            .addCase(createSubCategory.fulfilled, (state, action) => {
+                state.subCategories.push(action.payload.data);
+                state.loading = false;
+            })
+            .addCase(createSubCategory.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(createSubCategory.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+
+            // Update SubCategory
+            .addCase(updateSubCategory.fulfilled, (state, action) => {
+                const index = state.subCategories.findIndex(c => c._id === action.payload.data._id);
+                if (index !== -1) {
+                    state.subCategories[index] = action.payload.data;
+                }
+                state.loading = false;
+            })
+            .addCase(updateSubCategory.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(updateSubCategory.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+
+            // Delete SubCategory
+            .addCase(deleteSubCategory.fulfilled, (state, action) => {
+                // Soft delete often returns the object, but if it returns ID or we filter by visual state:
+                // If we are in admin view showing all, we might want to update the status instead of removing.
+                // Assuming standard removal from list for now or mapped update.
+                const index = state.subCategories.findIndex(c => c._id === action.payload.id); // Assuming payload has id, or logic below
+                if (index !== -1) {
+                    // Update local state to reflect soft delete (set deletedAt) if we want to keep showing it
+                    // Or remove it if we want to hide it
+                    state.subCategories[index] = { ...state.subCategories[index], deletedAt: new Date().toISOString(), isActive: false };
+                }
+                state.loading = false;
+            })
+            .addCase(deleteSubCategory.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(deleteSubCategory.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
             });
     }
 });

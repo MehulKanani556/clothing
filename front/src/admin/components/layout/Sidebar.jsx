@@ -36,6 +36,7 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             // badge: { text: '02', color: 'bg-green-500' }
         },
         { type: 'item', key: 'categories', name: 'Categories', path: '/admin/categories', icon: <MdInventory size={20} /> },
+        { type: 'item', key: 'subcategories', name: 'Subcategories', path: '/admin/subcategories', icon: <MdInventory size={20} /> },
         {
             type: 'submenu',
             key: 'products',

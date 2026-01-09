@@ -1,6 +1,6 @@
 import React, { useState, Fragment, useEffect } from 'react';
 import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '../redux/slice/product.slice';
 import { fetchCategoryById } from '../redux/slice/category.slice';
@@ -9,6 +9,7 @@ import ProductCard from '../components/ProductCard';
 
 export default function CategoryPage() {
     const { id } = useParams();
+    const location = useLocation();
     const dispatch = useDispatch();
     const { products: allProducts, loading } = useSelector((state) => state.product);
     const { categoryDetails } = useSelector((state) => state.category);
@@ -18,32 +19,26 @@ export default function CategoryPage() {
     const [isSortOpen, setSortOpen] = useState(false);
     const [isFilterOpen, setFilterOpen] = useState(false);
 
-    // Fetch products and category details when id or sort changes
+    // Fetch products and category details when id, sort or search changes
     useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const searchQuery = searchParams.get('search');
+        const subQuery = searchParams.get('sub');
+
         const params = {
             category: id !== 'all-products' ? id : undefined,
-            sort: sortBy
+            sort: sortBy,
+            search: searchQuery,
+            subCategory: subQuery
         };
         dispatch(fetchProducts(params));
 
         if (id && id !== 'all-products') {
             dispatch(fetchCategoryById(id));
         }
-    }, [dispatch, id, sortBy]);
+    }, [dispatch, id, sortBy, location.search]);
 
-    // Fallback Mock Data
-    const mockProducts = [
-        { id: 1, name: "Relaxed Fit Cotton T-shirt", brand: "Puma", price: "₹599", oldPrice: "₹1999", discount: "70% OFF", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.5, reviews: "2.5k" },
-        { id: 2, name: "Slim Fit Polo T-shirt", brand: "US Polo Assn", price: "₹899", oldPrice: "₹1499", discount: "40% OFF", image: "https://images.unsplash.com/photo-1620012253295-c15cc3efb5ec?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.2, reviews: "1.2k" },
-        { id: 3, name: "Oversized Graphic Tee", brand: "Nike", price: "₹1299", oldPrice: "₹2499", discount: "48% OFF", image: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.7, reviews: "850" },
-        { id: 4, name: "Essential Crew Neck", brand: "H&M", price: "₹499", oldPrice: "₹999", discount: "50% OFF", image: "https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.1, reviews: "3.4k" },
-        { id: 5, name: "Striped Cotton Shirt", brand: "Zara", price: "₹1599", oldPrice: "₹2299", discount: "30% OFF", image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.4, reviews: "500" },
-        { id: 6, name: "Denim Jacket", brand: "Levi's", price: "₹2999", oldPrice: "₹4999", discount: "40% OFF", image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.8, reviews: "1.1k" },
-        { id: 7, name: "Casual Shorts", brand: "Adidas", price: "₹999", oldPrice: "₹1799", discount: "45% OFF", image: "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.3, reviews: "900" },
-        { id: 8, name: "Printed Hoodie", brand: "Jack & Jones", price: "₹1499", oldPrice: "₹2999", discount: "50% OFF", image: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", rating: 4.6, reviews: "1.5k" }
-    ];
-
-    const products = allProducts.length > 0 ? allProducts : mockProducts;
+    const products = allProducts.length > 0 ? allProducts : [];
 
     // Filter state
     const [filters, setFilters] = useState({
@@ -223,18 +218,30 @@ export default function CategoryPage() {
 
             {/* Product Grid */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
-                    {sortedProducts.map((product) => (
-                        <ProductCard
-                            key={product._id || product.id}
-                            product={{
-                                ...product,
-                                category: product.brand, // Mapping brand to category field for display
-                                tag: product.discount // Using discount as tag
-                            }}
-                        />
-                    ))}
-                </div>
+                {sortedProducts.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+                        {sortedProducts.map((product) => (
+                            <ProductCard
+                                key={product._id || product.id}
+                                product={{
+                                    ...product,
+                                    category: product.brand, // Mapping brand to category field for display
+                                    tag: product.discount // Using discount as tag
+                                }}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <div className="bg-gray-100 p-6 rounded-full mb-4">
+                            <FiFilter className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">No Products Found</h3>
+                        <p className="text-gray-500 max-w-md mx-auto">
+                            We couldn't find any products matching your current filters or search criteria. Try removing some filters or different keywords.
+                        </p>
+                    </div>
+                )}
             </div>
 
             <Transition show={isFilterOpen} as={Fragment}>

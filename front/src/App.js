@@ -38,6 +38,7 @@ import ProductsDetails from './admin/pages/products/ProductsDetails';
 import Reviews from './admin/pages/reviews/Reviews';
 import ProductForm from './admin/pages/products/ProductForm';
 import AdminProfile from './admin/pages/profile/AdminProfile';
+import SubCategory from './admin/pages/categories/Subcategory';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -78,6 +79,7 @@ function App() {
               <Route path="reviews" element={<Reviews />} />
               <Route path="products/:id" element={<ProductsDetails />} />
               <Route path="categories" element={<Categories />} />
+              <Route path="subcategories" element={<SubCategory />} />
               <Route path="categories/:id" element={<CategoriesProduct />} />
               <Route path="orders" element={<Orders />} />
               <Route path="orders/:id" element={<OrderDetails />} />
