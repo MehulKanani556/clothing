@@ -175,7 +175,7 @@ export default function Header() {
   return (
     <Disclosure
       as="nav"
-      className="relative bg-white z-50 dark:bg-white-800/50 dark:after:pointer-events-none dark:after:absolute dark:after:inset-x-0 dark:after:bottom-0 dark:after:h-px dark:after:bg-white/10"
+      className="relative sticky top-0 bg-white z-50 dark:bg-white-800/50 dark:after:pointer-events-none dark:after:absolute dark:after:inset-x-0 dark:after:bottom-0 dark:after:h-px dark:after:bg-white/10"
     >
       <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
@@ -330,6 +330,7 @@ export default function Header() {
               )}
             </Link>
             <Link
+              id="cart-icon"
               to="/cart"
               className="relative rounded-full p-1  text-black focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500 dark:hover:text-white"
             >

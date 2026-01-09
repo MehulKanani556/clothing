@@ -1,12 +1,11 @@
-import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../redux/slice/cart.slice';
-import { addToWishlist } from '../redux/slice/wishlist.slice';
+import { addToWishlist, removeFromWishlist } from '../redux/slice/wishlist.slice';
 import { FiShoppingCart, FiHeart, FiEye } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { FaStar } from 'react-icons/fa';
-
+import CustomFlyingButton from './CustomFlyingButton';
 export default function ProductCard({ product }) {
     const navigate = useNavigate();
     const {
@@ -15,7 +14,6 @@ export default function ProductCard({ product }) {
         price = product?.variants?.[0]?.options?.[0]?.price,
         oldPrice = product?.variants?.[0]?.options?.[0]?.mrp,
         image = product?.variants?.[0]?.images?.[0],
-        category = "Brand Name",
         rating,
         tag = null
     } = product || {};
@@ -46,14 +44,27 @@ export default function ProductCard({ product }) {
             return;
         }
 
-        dispatch(addToWishlist(_id))
-            .unwrap()
-            .then(() => {
-                toast.success("Added to wishlist");
-            })
-            .catch((err) => {
-                toast.error(err.message || "Failed to add to wishlist");
-            });
+        if (isInWishlist) {
+            // Remove from wishlist
+            dispatch(removeFromWishlist(_id))
+                .unwrap()
+                .then(() => {
+                    toast.success("Removed from wishlist");
+                })
+                .catch((err) => {
+                    toast.error(err.message || "Failed to remove from wishlist");
+                });
+        } else {
+            // Add to wishlist
+            dispatch(addToWishlist(_id))
+                .unwrap()
+                .then(() => {
+                    toast.success("Added to wishlist");
+                })
+                .catch((err) => {
+                    toast.error(err.message || "Failed to add to wishlist");
+                });
+        }
     };
 
     const handleAddToCart = (e) => {
@@ -77,6 +88,18 @@ export default function ProductCard({ product }) {
             }
         }
 
+        // Check if this specific variant is already in cart
+        const existingItem = cartItems && cartItems.find(item => 
+            (item.product._id === _id || item.product === _id) && 
+            item.size === selectedSize && 
+            item.color === selectedColor
+        );
+
+        if (existingItem) {
+            toast.error("This item is already in your cart!");
+            return;
+        }
+
         dispatch(addToCart({
             productId: _id,
             quantity: 1,
@@ -84,10 +107,14 @@ export default function ProductCard({ product }) {
             color: selectedColor
         })).unwrap()
             .then(() => {
-                toast.success("Added to cart successfully!"); // Changed alert to toast.success
+                toast.success("Added to cart successfully!");
             })
             .catch((err) => {
-                toast.error(err.message || "Failed to add to cart"); // Changed alert to toast.error
+                if (err.message && err.message.includes('already')) {
+                    toast.error("This item is already in your cart!");
+                } else {
+                    toast.error(err.message || "Failed to add to cart");
+                }
             });
     };
 
@@ -113,16 +140,41 @@ export default function ProductCard({ product }) {
 
                 {/* Hover Actions */}
                 <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                    {!isInCart ? (
+                        <CustomFlyingButton
+                            src={image || 'https://via.placeholder.com/150'}
+                            targetSelector="#cart-icon"
+                            flyingItemStyling={{
+                                startWidth: '100px',
+                                startHeight: '100px',
+                                endWidth: '25px',
+                                endHeight: '25px',
+                                borderRadius: '8px'
+                            }}
+                            animationDuration={500}
+                        >
+                            <button
+                                onClick={(e) => {
+                                    console.log('Flying button clicked!', { image, src: image || 'https://via.placeholder.com/150' });
+                                    handleAddToCart(e);
+                                }}
+                                className="p-2.5 rounded-full shadow-lg transition-colors bg-white hover:bg-black hover:text-white"
+                                title="Add to Cart">
+                                <FiShoppingCart size={18} fill="none" />
+                            </button>
+                        </CustomFlyingButton>
+                    ) : (
+                        <button
+                            onClick={(e) => { e.preventDefault(); navigate('/cart'); }}
+                            className="p-2.5 rounded-full shadow-lg transition-colors bg-black text-white"
+                            title="Go to Cart">
+                            <FiShoppingCart size={18} fill="currentColor" />
+                        </button>
+                    )}
                     <button
-                        onClick={isInCart ? (e) => { e.preventDefault(); navigate('/cart'); } : handleAddToCart}
-                        className={`p-2.5 rounded-full shadow-lg transition-colors ${isInCart ? 'bg-black text-white' : 'bg-white hover:bg-black hover:text-white'}`}
-                        title={isInCart ? "Go to Cart" : "Add to Cart"}>
-                        <FiShoppingCart size={18} fill={isInCart ? "currentColor" : "none"} />
-                    </button>
-                    <button
-                        onClick={isInWishlist ? (e) => { e.preventDefault(); navigate('/wishlist'); } : handleAddToWishlist}
+                        onClick={handleAddToWishlist}
                         className={`p-2.5 rounded-full shadow-lg transition-colors ${isInWishlist ? 'bg-red-50 text-red-500' : 'bg-white hover:bg-black hover:text-white'}`}
-                        title={isInWishlist ? "Go to Wishlist" : "Wishlist"}>
+                        title={isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}>
                         <FiHeart size={18} fill={isInWishlist ? "currentColor" : "none"} />
                     </button>
                     <button

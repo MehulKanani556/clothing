@@ -3,7 +3,8 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductById, fetchRelatedProducts } from '../redux/slice/product.slice';
 import { addToCart } from '../redux/slice/cart.slice';
-import { addToWishlist } from '../redux/slice/wishlist.slice';
+import { fetchCart } from '../redux/slice/cart.slice';
+import { addToWishlist, removeFromWishlist, fetchWishlist } from '../redux/slice/wishlist.slice';
 import toast from 'react-hot-toast';
 import { FiStar, FiShare2, FiHeart, FiShoppingBag, FiTruck, FiRefreshCw, FiChevronDown, FiChevronUp, FiCheck, FiInfo } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
@@ -17,9 +18,10 @@ export default function ProductDetails() {
     const productFromState = location.state?.product;
 
     // Redux State
-    // Redux State
     const { product: apiProduct, relatedProducts: apiRelated, loading } = useSelector((state) => state.product);
     const { isAuthenticated } = useSelector((state) => state.auth);
+    const { items: cartItems } = useSelector((state) => state.cart);
+    const { items: wishlistItems } = useSelector((state) => state.wishlist);
 
     // Priority: API Data > Location State
     const productData = apiProduct || productFromState;
@@ -39,7 +41,12 @@ export default function ProductDetails() {
             window.scrollTo(0, 0);
             setActiveImage(0);
         }
-    }, [dispatch, id]);
+        // Fetch cart and wishlist to check if items are already added
+        if (isAuthenticated) {
+            dispatch(fetchCart());
+            dispatch(fetchWishlist());
+        }
+    }, [dispatch, id, isAuthenticated]);
 
     // Initialize selection when data loads
     useEffect(() => {
@@ -106,6 +113,18 @@ export default function ProductDetails() {
     // User asked to remove defaultProduct only. I'll keep the related products logic simple.
     const displayRelated = apiRelated.length > 0 ? apiRelated : [];
 
+    // Check if current product with selected size and color is already in cart
+    const isInCart = cartItems && cartItems.length > 0 && cartItems.some(item => 
+        item.product._id === product._id && 
+        item.size === selectedSize && 
+        item.color === selectedColor
+    );
+
+    // Check if current product is in wishlist
+    const isInWishlist = wishlistItems && wishlistItems.length > 0 && wishlistItems.some(item => 
+        item._id === product._id
+    );
+
     const toggleSection = (section) => {
         setExpandedSection(expandedSection === section ? null : section);
     };
@@ -148,10 +167,20 @@ export default function ProductDetails() {
             toast.error("Please login to add to wishlist");
             return;
         }
-        dispatch(addToWishlist(product._id))
-            .unwrap()
-            .then(() => toast.success("Added to wishlist"))
-            .catch((err) => toast.error(err.message || "Failed to add"));
+
+        if (isInWishlist) {
+            // Remove from wishlist
+            dispatch(removeFromWishlist(product._id))
+                .unwrap()
+                .then(() => toast.success("Removed from wishlist"))
+                .catch((err) => toast.error(err.message || "Failed to remove from wishlist"));
+        } else {
+            // Add to wishlist
+            dispatch(addToWishlist(product._id))
+                .unwrap()
+                .then(() => toast.success("Added to wishlist"))
+                .catch((err) => toast.error(err.message || "Failed to add to wishlist"));
+        }
     };
 
     const handleAddToCart = () => {
@@ -161,6 +190,18 @@ export default function ProductDetails() {
         }
         if (!selectedSize || !selectedColor) {
             alert("Please select size and color");
+            return;
+        }
+
+        // Check if product with same size and color is already in cart
+        const existingItem = cartItems && cartItems.find(item => 
+            item.product._id === product._id && 
+            item.size === selectedSize && 
+            item.color === selectedColor
+        );
+
+        if (existingItem) {
+            toast.error("This item is already in your cart!");
             return;
         }
 
@@ -174,7 +215,12 @@ export default function ProductDetails() {
                 toast.success("Added to cart successfully!");
             })
             .catch((err) => {
-                toast.error(err.message || "Failed to add to cart");
+                // If the error is about item already existing, show appropriate message
+                if (err.message && err.message.includes('already')) {
+                    toast.error("This item is already in your cart!");
+                } else {
+                    toast.error(err.message || "Failed to add to cart");
+                }
             });
     };
 
@@ -372,14 +418,26 @@ export default function ProductDetails() {
                             </div>
                             <button
                                 onClick={handleAddToCart}
-                                className="flex-1 bg-black text-white h-12 rounded-lg font-bold text-sm hover:bg-gray-900 transition-all flex items-center justify-center gap-2 uppercase tracking-wide">
-                                <FiShoppingBag size={18} /> Add to Bag
+                                disabled={isInCart}
+                                className={`flex-1 h-12 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 uppercase tracking-wide ${
+                                    isInCart 
+                                        ? 'bg-gray-400 text-white cursor-not-allowed' 
+                                        : 'bg-black text-white hover:bg-gray-900'
+                                }`}
+                            >
+                                <FiShoppingBag size={18} /> 
+                                {isInCart ? 'Already in Cart' : 'Add to Bag'}
                             </button>
                             <button
                                 onClick={handleAddToWishlist}
-                                className="w-12 h-12 flex items-center justify-center border border-gray-200 rounded-lg hover:border-black transition-colors"
+                                className={`w-12 h-12 flex items-center justify-center border rounded-lg transition-colors ${
+                                    isInWishlist 
+                                        ? 'border-red-500 bg-red-50 text-red-500 hover:bg-red-100' 
+                                        : 'border-gray-200 hover:border-black'
+                                }`}
+                                title={isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
                             >
-                                <FiHeart size={20} />
+                                <FiHeart size={20} fill={isInWishlist ? "currentColor" : "none"} />
                             </button>
                         </div>
 

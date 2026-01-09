@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchWishlist, removeFromWishlist } from '../redux/slice/wishlist.slice';
-import { addToCart } from '../redux/slice/cart.slice';
+import { addToCart, fetchCart } from '../redux/slice/cart.slice';
 import { Link } from 'react-router-dom';
 import { FiTrash2, FiShoppingCart } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -10,10 +10,12 @@ export default function WishlistPage() {
     const dispatch = useDispatch();
     const { items, loading } = useSelector((state) => state.wishlist);
     const { isAuthenticated } = useSelector((state) => state.auth);
+    const { items: cartItems } = useSelector((state) => state.cart);
 
     useEffect(() => {
         if (isAuthenticated) {
             dispatch(fetchWishlist());
+            dispatch(fetchCart());
         }
     }, [dispatch, isAuthenticated]);
 
@@ -37,6 +39,18 @@ export default function WishlistPage() {
             }
         }
 
+        // Check if this specific variant is already in cart
+        const existingItem = cartItems && cartItems.find(item => 
+            (item.product._id === product._id || item.product === product._id) && 
+            item.size === selectedSize && 
+            item.color === selectedColor
+        );
+
+        if (existingItem) {
+            toast.error("This item is already in your cart!");
+            return;
+        }
+
         dispatch(addToCart({
             productId: product._id,
             quantity: 1,
@@ -48,7 +62,13 @@ export default function WishlistPage() {
                 // Optional: Remove from wishlist after moving to cart
                 // dispatch(removeFromWishlist(product._id)); 
             })
-            .catch((err) => toast.error(err.message || "Failed to add to cart"));
+            .catch((err) => {
+                if (err.message && err.message.includes('already')) {
+                    toast.error("This item is already in your cart!");
+                } else {
+                    toast.error(err.message || "Failed to add to cart");
+                }
+            });
     };
 
     if (!isAuthenticated) {
@@ -104,6 +124,22 @@ export default function WishlistPage() {
                             mrp = product.variants[0].options[0].mrp;
                         }
 
+                        // Check if this item is already in cart
+                        let selectedSize = '';
+                        let selectedColor = '';
+                        if (product?.variants?.length > 0) {
+                            const defaultVariant = product.variants[0];
+                            selectedColor = defaultVariant.color;
+                            if (defaultVariant.options?.length > 0) {
+                                selectedSize = defaultVariant.options[0].size;
+                            }
+                        }
+                        const isInCart = cartItems && cartItems.some(item => 
+                            (item.product._id === product._id || item.product === product._id) && 
+                            item.size === selectedSize && 
+                            item.color === selectedColor
+                        );
+
                         return (
                             <div key={product._id} className="group relative border border-gray-100 rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white">
                                 {/* Remove Button */}
@@ -127,9 +163,15 @@ export default function WishlistPage() {
                                     {/* Move to Cart Overlay */}
                                     <button
                                         onClick={() => handleMoveToCart(product)}
-                                        className="absolute bottom-0 left-0 right-0 bg-white/95 text-black py-3 font-semibold uppercase text-sm translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex items-center justify-center gap-2 hover:bg-black hover:text-white"
+                                        disabled={isInCart}
+                                        className={`absolute bottom-0 left-0 right-0 py-3 font-semibold uppercase text-sm translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex items-center justify-center gap-2 ${
+                                            isInCart 
+                                                ? 'bg-gray-400 text-white cursor-not-allowed' 
+                                                : 'bg-white/95 text-black hover:bg-black hover:text-white'
+                                        }`}
                                     >
-                                        <FiShoppingCart size={16} /> Add to Bag
+                                        <FiShoppingCart size={16} /> 
+                                        {isInCart ? 'Already in Cart' : 'Add to Bag'}
                                     </button>
                                 </div>
 
