@@ -91,6 +91,14 @@ export default function Header() {
   const uniqueCategories = [...new Set(products.map(p => p.category?.name || p.category).filter(Boolean))];
   const uniqueBrands = [...new Set(products.map(p => p.brand).filter(Boolean))];
 
+  const trendingTags = subCategories && subCategories.length > 0
+    ? subCategories.slice(0, 8).map(s => s.name)
+    : ['T-Shirts', 'Jeans'];
+
+  const popularBrands = uniqueBrands.length > 0
+    ? uniqueBrands.slice(0, 8)
+    : ['Levi\'s', 'Nike', 'Puma'];
+
   const searchSuggestions = [...uniqueCategories, ...uniqueBrands].slice(0, 10);
 
   // Filter Logic
@@ -479,7 +487,7 @@ export default function Header() {
                         <div className="mb-8">
                           <h3 className="text-sm font-bold text-gray-900 mb-4">Trending Search</h3>
                           <div className="flex flex-wrap gap-3">
-                            {['Shirts for Men', 'T-Shirts', 'Jeans', 'Trousers', 'Oversized T shirts'].map((tag) => (
+                            {trendingTags.map((tag) => (
                               <button key={tag} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:border-black hover:text-black transition-colors" onClick={() => setSearchQuery(tag)}>
                                 {tag}
                               </button>
@@ -521,7 +529,7 @@ export default function Header() {
                         <div>
                           <h3 className="text-sm font-bold text-gray-900 mb-4">Popular Brands</h3>
                           <div className="flex flex-wrap gap-3">
-                            {['Levi\'s', 'Cello', 'SNITCH', 'Rare Rabbit', 'Tommy Hilfiger'].map((brand) => (
+                            {popularBrands.map((brand) => (
                               <button key={brand} className="px-6 py-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-black hover:text-black transition-colors" onClick={() => setSearchQuery(brand)}>
                                 {brand}
                               </button>
