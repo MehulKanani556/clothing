@@ -6,28 +6,21 @@ import CategorySection from '../components/CategorySection';
 import ProductCard from '../components/ProductCard';
 import OfferBanner from '../components/OfferBanner';
 import Footer from '../components/Footer';
+import { Link } from 'react-router-dom';
 
 export default function Home() {
     const dispatch = useDispatch();
     const { newArrivals, bestSellers, products: allProducts, loading } = useSelector((state) => state.product);
 
-
     useEffect(() => {
         dispatch(fetchNewArrivals());
         dispatch(fetchBestSellers());
-        dispatch(fetchProducts({ limit: 8 })); // "Most Popular" can just be generic first 8
+        dispatch(fetchProducts({ limit: 8 }));
     }, [dispatch]);
 
-    // Fallback mock data if API returns empty (for demo purposes)
-
-
-    // Use Redux data if available, else Mock
     const displayProducts = allProducts.length > 0 ? allProducts : [];
-    const displayNewArrivals = newArrivals.length > 0 ? newArrivals : []; // In reality, better mock distinct, but ok for now
-    const displayBestSellers = bestSellers.length > 0 ? bestSellers : []; // "
-
-
-
+    const displayNewArrivals = newArrivals.length > 0 ? newArrivals : [];
+    const displayBestSellers = bestSellers.length > 0 ? bestSellers : [];
 
     return (
         <div className="bg-white">
@@ -41,9 +34,9 @@ export default function Home() {
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">Most Popular</h2>
-                    <a href="#" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
-                        Veiw All &rarr;
-                    </a>
+                    <Link to="/category/all-products" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
+                        View All &rarr;
+                    </Link>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     {displayProducts.map((product) => (
@@ -64,9 +57,9 @@ export default function Home() {
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">New Arrivals</h2>
-                    <a href="#" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
-                        Veiw All &rarr;
-                    </a>
+                    <Link to="/category/new-arrivals" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
+                        View All &rarr;
+                    </Link>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     {displayNewArrivals.map((product) => (

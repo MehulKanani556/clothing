@@ -26,7 +26,6 @@ const Header = ({ toggleSidebar }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { isAuthenticated, user } = useSelector((state) => state.auth);
-    console.log(user);
 
     const name = user?.firstName + ' ' + user?.lastName;
 
