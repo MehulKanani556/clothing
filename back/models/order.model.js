@@ -49,9 +49,29 @@ const orderSchema = new mongoose.Schema({
         city: String,
         state: String,
         pincode: String,
-        phone: String
+        phone: String,
+        buildingName: String,
+        landmark: String,
+        locality: String,
+        
+
     },
 
+    // Shipping & Tracking
+    shiprocketOrderId: { type: String },
+    shipmentId: { type: String },
+    trackingNumber: { type: String },
+    awbNumber: { type: String },
+    carrier: { type: String },
+    trackingUrl: { type: String },
+    shiprocketResponse: { type: Object },
+    shippingLabel: { type: String },
+    estimatedDeliveryDate: { type: Date },
+    actualDeliveryDate: { type: Date },
+    shiprocketStatus: { type: String },
+    lastStatusUpdate: { type: Date },
+    courierCompanyId: { type: String },
+    
     // Dates
     placedAt: { type: Date, default: Date.now },
     confirmedAt: { type: Date },

@@ -87,6 +87,142 @@ exports.verifyPayment = async (req, res) => {
                 { new: true }
             );
 
+            // Auto-create Shiprocket order for paid orders
+            try {
+                const shiprocketAPI = require('../utils/shiprocketAPI');
+
+                // Fetch user data if not populated
+                let userEmail = updatedOrder.user?.email;
+                let userMobile = null;
+                if (!userEmail) {
+                    const User = require('../models/user.model');
+                    const user = await User.findById(updatedOrder.user).select('email mobileNumber');
+                    userEmail = user?.email || 'customer@example.com';
+                    userMobile = user?.mobileNumber;
+                }
+
+
+                // Validate required fields before creating Shiprocket order
+                if (!updatedOrder.shippingAddress?.firstName ||
+                    !updatedOrder.shippingAddress?.pincode) {
+                    console.log('Skipping Shiprocket order creation - incomplete address:', {
+                        hasFirstName: !!updatedOrder.shippingAddress?.firstName,
+                        hasLastName: !!updatedOrder.shippingAddress?.lastName,
+                        hasCity: !!updatedOrder.shippingAddress?.city,
+                        hasState: !!updatedOrder.shippingAddress?.state,
+                        hasPincode: !!updatedOrder.shippingAddress?.pincode,
+                        hasPhone: !!(updatedOrder.shippingAddress?.phone || updatedOrder.shippingAddress?.mobileNo),
+                        address: updatedOrder.shippingAddress
+                    });
+                } else {
+                    // Helper functions for address handling
+                    const getAddressLine1 = (addr) => {
+                        const addressParts = [
+                            addr.addressLine1,
+                            addr.buildingName,
+                            addr.landmark,
+                            addr.locality
+                        ].filter(Boolean);
+
+                        if (addressParts.length > 0) {
+                            return addressParts.join(', ');
+                        }
+
+                        // Fallback if absolutely no address line is provided
+                        // Avoid just using "City, State" as it might trigger validation errors
+                        return 'Address Details Not Provided';
+                    };
+
+                    const getAddressLine2 = (addr) => {
+                        return addr.addressLine2 || addr.landmark || addr.locality || '';
+                    };
+
+                    const getPhone = (addr) => {
+                        return addr.phone || addr.mobileNo || userMobile || '9999999999'; // Default phone if missing
+                    };
+
+                    console.log('Creating Shiprocket order with processed address:', {
+                        firstName: updatedOrder.shippingAddress.firstName,
+                        lastName: updatedOrder.shippingAddress.lastName || updatedOrder.shippingAddress.firstName,
+                        addressLine1: getAddressLine1(updatedOrder.shippingAddress),
+                        city: updatedOrder.shippingAddress.city,
+                        state: updatedOrder.shippingAddress.state,
+                        pincode: updatedOrder.shippingAddress.pincode,
+                        phone: getPhone(updatedOrder.shippingAddress)
+                    });
+
+                    // Try to get pickup locations and use the first one if "Primary" doesn't work
+                    let pickupLocation = process.env.SHIPROCKET_PICKUP_LOCATION;
+                    try {
+                        const pickupLocations = await shiprocketAPI.getPickupLocations();
+                        if (pickupLocations && pickupLocations.data && pickupLocations.data.length > 0) {
+                            pickupLocation = pickupLocations.data[0].pickup_location || "Primary";
+                            console.log('Using pickup location:', pickupLocation);
+                        }
+                    } catch (pickupError) {
+                        console.log('Could not fetch pickup locations, using "Primary"');
+                    }
+
+                    // Prepare Shiprocket order data
+                    const shiprocketOrderData = {
+                        order_id: updatedOrder.orderId,
+                        order_date: updatedOrder.placedAt.toISOString().split('T')[0],
+                        pickup_location: pickupLocation,
+
+                        // Billing Address (required)
+                        billing_customer_name: updatedOrder.shippingAddress.firstName,
+                        billing_last_name: updatedOrder.shippingAddress.lastName || updatedOrder.shippingAddress.firstName,
+                        billing_address: getAddressLine1(updatedOrder.shippingAddress),
+                        billing_address_2: getAddressLine2(updatedOrder.shippingAddress),
+                        billing_city: updatedOrder.shippingAddress.city,
+                        billing_pincode: updatedOrder.shippingAddress.pincode,
+                        billing_state: updatedOrder.shippingAddress.state,
+                        billing_country: "India",
+                        billing_email: userEmail,
+                        billing_phone: getPhone(updatedOrder.shippingAddress),
+
+                        // Shipping same as billing
+                        shipping_is_billing: true,
+
+                        // Order items and other details
+                        order_items: updatedOrder.items.map(item => ({
+                            name: item.name,
+                            sku: item.sku,
+                            units: item.quantity,
+                            selling_price: item.price,
+                            discount: "",
+                            tax: "",
+                            hsn: 441122
+                        })),
+                        payment_method: updatedOrder.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
+                        shipping_charges: updatedOrder.shippingFee || 0,
+                        giftwrap_charges: 0,
+                        transaction_charges: 0,
+                        total_discount: updatedOrder.discountTotal || 0,
+                        sub_total: updatedOrder.subTotal,
+                        length: 10,
+                        breadth: 10,
+                        height: 10,
+                        weight: 0.5
+                    };
+
+                    // const shiprocketResponse = await shiprocketAPI.createOrder(shiprocketOrderData);
+
+                    // if (shiprocketResponse.status_code === 1) {
+                    //     await Order.findByIdAndUpdate(updatedOrder._id, {
+                    //         shiprocketOrderId: shiprocketResponse.order_id,
+                    //         shipmentId: shiprocketResponse.shipment_id,
+                    //         shiprocketResponse: shiprocketResponse,
+                    //         lastStatusUpdate: new Date()
+                    //     });
+                    //     console.log(`Shiprocket order created for ${updatedOrder.orderId}`);
+                    // }
+                }
+            } catch (shiprocketError) {
+                console.error('Failed to create Shiprocket order:', shiprocketError.message);
+                // Don't fail the payment verification if Shiprocket fails
+            }
+
             res.status(200).json({
                 success: true,
                 message: "Payment Verified",

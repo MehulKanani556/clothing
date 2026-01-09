@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FiArrowLeft, FiClock, FiCheck, FiTruck, FiX, FiMapPin, FiPhone, FiDownload, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import TrackingWidget from '../TrackingWidget';
 
 export default function OrderDetails({ order, onBack }) {
     const [showPriceDetails, setShowPriceDetails] = useState(false);
@@ -149,6 +150,13 @@ export default function OrderDetails({ order, onBack }) {
                     </div>
                 )}
             </div>
+
+            {/* Tracking Section */}
+            {(order.status === 'Processing' || order.status === 'Shipped' || order.status === 'Delivered') && (
+                <div className="mb-4">
+                    <TrackingWidget order={order} showFullDetails={true} />
+                </div>
+            )}
 
             {/* Shipping Details */}
             <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-6 mb-4">

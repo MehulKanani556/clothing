@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchOrderById, updateOrderStatus } from '../../../redux/slice/adminOrderSlice';
+import { createShiprocketOrder, requestPickup, syncTrackingData } from '../../../redux/slice/tracking.slice';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
+import TrackingWidget from '../../../components/TrackingWidget';
+import ShippingLabelModal from '../../../components/ShippingLabelModal';
 import {
     MdArrowBack, MdDownload, MdEdit, MdDelete, MdLocalShipping, MdPerson,
     MdEmail, MdPhone, MdLocationOn, MdPayment, MdCheckCircle, MdCancel,
-    MdMoreVert, MdPrint
+    MdMoreVert, MdPrint, MdSync
 } from 'react-icons/md';
 import { RiVisaLine, RiMastercardLine, RiPaypalLine, RiWallet3Line } from 'react-icons/ri';
 import toast from 'react-hot-toast';
@@ -17,7 +20,9 @@ const OrderDetails = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { currentOrder: order, loading, error } = useSelector(state => state.adminOrders);
+    const { loading: trackingLoading } = useSelector(state => state.tracking);
     const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+    const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -31,6 +36,39 @@ const OrderDetails = () => {
             toast.success(`Order status updated to ${newStatus}`);
         } catch (err) {
             toast.error('Failed to update status');
+        }
+    };
+
+    const handleCreateShiprocketOrder = async () => {
+        try {
+            await dispatch(createShiprocketOrder(order._id)).unwrap();
+            toast.success('Shiprocket order created successfully');
+            // Refresh order data
+            dispatch(fetchOrderById(id));
+        } catch (err) {
+            toast.error(err.message || 'Failed to create Shiprocket order');
+        }
+    };
+
+    const handleRequestPickup = async () => {
+        try {
+            await dispatch(requestPickup(order._id)).unwrap();
+            toast.success('Pickup requested successfully');
+            // Refresh order data
+            dispatch(fetchOrderById(id));
+        } catch (err) {
+            toast.error(err.message || 'Failed to request pickup');
+        }
+    };
+
+    const handleSyncTracking = async () => {
+        try {
+            await dispatch(syncTrackingData()).unwrap();
+            toast.success('Tracking data synced successfully');
+            // Refresh order data
+            dispatch(fetchOrderById(id));
+        } catch (err) {
+            toast.error(err.message || 'Failed to sync tracking data');
         }
     };
 
@@ -101,6 +139,49 @@ const OrderDetails = () => {
                         <MdPrint size={20} />
                         <span>Invoice</span>
                     </button>
+                    
+                    {/* Shiprocket Controls */}
+                    {order.paymentStatus === 'Paid' && !order.shiprocketOrderId && (
+                        <button
+                            onClick={handleCreateShiprocketOrder}
+                            disabled={trackingLoading}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm transition-all disabled:opacity-50"
+                        >
+                            <MdLocalShipping size={20} />
+                            <span>Create Shipment</span>
+                        </button>
+                    )}
+                    
+                    {order.shiprocketOrderId && !order.awbNumber && (
+                        <button
+                            onClick={handleRequestPickup}
+                            disabled={trackingLoading}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-all disabled:opacity-50"
+                        >
+                            <MdLocalShipping size={20} />
+                            <span>Request Pickup</span>
+                        </button>
+                    )}
+                    
+                    {order.shipmentId && (
+                        <button
+                            onClick={() => setIsLabelModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium shadow-sm transition-all"
+                        >
+                            <MdDownload size={20} />
+                            <span>Shipping Label</span>
+                        </button>
+                    )}
+                    
+                    <button
+                        onClick={handleSyncTracking}
+                        disabled={trackingLoading}
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium shadow-sm transition-all disabled:opacity-50"
+                    >
+                        <MdSync size={20} />
+                        <span>Sync Tracking</span>
+                    </button>
+                    
                     <select
                         value={order.status}
                         onChange={(e) => handleStatusUpdate(e.target.value)}
@@ -191,6 +272,11 @@ const OrderDetails = () => {
                             </table>
                         </div>
                     </div>
+
+                    {/* Tracking Widget */}
+                    {(order.status === 'Processing' || order.status === 'Shipped' || order.status === 'Delivered') && (
+                        <TrackingWidget order={order} showFullDetails={true} />
+                    )}
 
                     {/* Timeline (Simplified) */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -310,6 +396,11 @@ const OrderDetails = () => {
             <InvoiceModal
                 isOpen={isInvoiceOpen}
                 onClose={() => setIsInvoiceOpen(false)}
+                order={order}
+            />
+            <ShippingLabelModal
+                isOpen={isLabelModalOpen}
+                onClose={() => setIsLabelModalOpen(false)}
                 order={order}
             />
         </div>

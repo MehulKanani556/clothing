@@ -136,4 +136,8 @@ router.get('/reviews/admin', auth, getAllReviews);
 router.put('/reviews/:id', auth, updateReviewStatus);
 router.delete('/reviews/:id', auth, deleteReview);
 
+// Shiprocket Integration
+const shiprocketRoutes = require('./shiprocket.routes');
+router.use('/shiprocket', shiprocketRoutes);
+
 module.exports = router;
