@@ -56,7 +56,7 @@ export const fetchBestSellers = createAsyncThunk(
             // Assuming backend supports featured=best-sellers
             // const response = await axios.get(`${BASE_URL}/products?featured=best-sellers&limit=8`);
             const response = await axios.get(`${BASE_URL}/products`);
-            console.log("response", response.data);
+            // console.log("response", response.data);
             return response.data;
         } catch (error) {
             return handleErrors(error, rejectWithValue);
@@ -132,13 +132,13 @@ export const productSlice = createSlice({
 
             // New Arrivals
             .addCase(fetchNewArrivals.fulfilled, (state, action) => {
-                console.log("newArrivals action.payload.data", action.payload.data);
+                // console.log("newArrivals action.payload.data", action.payload.data);
                 state.newArrivals = action.payload.data;
             })
 
             // Best Sellers
             .addCase(fetchBestSellers.fulfilled, (state, action) => {
-                console.log("action.payload.data", action.payload.data);
+                // console.log("action.payload.data", action.payload.data);
                 state.bestSellers = action.payload.data;
             })
 

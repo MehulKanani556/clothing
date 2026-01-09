@@ -3,27 +3,33 @@ import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/re
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '../redux/slice/product.slice';
+import { fetchCategoryById } from '../redux/slice/category.slice';
 import { FiFilter, FiChevronDown, FiGrid, FiList, FiX, FiMinus, FiPlus } from 'react-icons/fi';
 import ProductCard from '../components/ProductCard';
 
 export default function CategoryPage() {
-    const { categoryName } = useParams();
+    const { id } = useParams();
     const dispatch = useDispatch();
     const { products: allProducts, loading } = useSelector((state) => state.product);
+    const { categoryDetails } = useSelector((state) => state.category);
 
     const [viewMode, setViewMode] = useState('grid');
     const [sortBy, setSortBy] = useState('recommended');
     const [isSortOpen, setSortOpen] = useState(false);
     const [isFilterOpen, setFilterOpen] = useState(false);
 
-    // Fetch products when category or sort changes
+    // Fetch products and category details when id or sort changes
     useEffect(() => {
         const params = {
-            category: categoryName !== 'all-products' ? categoryName : undefined, // Handle 'All Products' case if needed
+            category: id !== 'all-products' ? id : undefined,
             sort: sortBy
         };
         dispatch(fetchProducts(params));
-    }, [dispatch, categoryName, sortBy]);
+
+        if (id && id !== 'all-products') {
+            dispatch(fetchCategoryById(id));
+        }
+    }, [dispatch, id, sortBy]);
 
     // Fallback Mock Data
     const mockProducts = [
@@ -49,7 +55,8 @@ export default function CategoryPage() {
         productType: [],
         pattern: [],
         sleeveLength: [],
-        brand: []
+        brand: [],
+        priceRange: [0, 10000]
     });
 
     // Toggle section state
@@ -71,6 +78,22 @@ export default function CategoryPage() {
         }));
     };
 
+    const handleFilterChange = (section, value) => {
+        setFilters(prev => {
+            const sectionFilters = prev[section];
+            const isSelected = sectionFilters.includes(value);
+            if (isSelected) {
+                return { ...prev, [section]: sectionFilters.filter(item => item !== value) };
+            } else {
+                return { ...prev, [section]: [...sectionFilters, value] };
+            }
+        });
+    };
+
+    const handlePriceChange = (e) => {
+        setFilters(prev => ({ ...prev, priceRange: [0, parseInt(e.target.value)] }));
+    };
+
     const filterOptions = {
         gender: ['Men', 'Women'],
         size: ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
@@ -90,6 +113,49 @@ export default function CategoryPage() {
         brand: ['Puma', 'Nike', 'Adidas', 'Zara', 'H&M', 'Levis', 'Jack & Jones']
     };
 
+    // Filter Logic
+    const filteredProducts = products.filter(product => {
+        // Gender Filter
+        if (filters.gender.length > 0 && !filters.gender.includes(product.gender)) return false;
+
+        // Brand Filter
+        if (filters.brand.length > 0 && !filters.brand.includes(product.brand)) return false;
+
+        // Size Filter (Assuming product.sizes is an array)
+        if (filters.size.length > 0) {
+            const hasSize = product.sizes?.some(size => filters.size.includes(size));
+            if (!hasSize) return false;
+        }
+
+        // Color Filter (Assuming product.colors is an array of strings or objects)
+        if (filters.color.length > 0) {
+            const hasColor = product.colors?.some(color => filters.color.includes(typeof color === 'string' ? color : color.name));
+            if (!hasColor) return false;
+        }
+
+        // Price Filter
+        const price = parseInt(product.price?.toString().replace(/[^0-9]/g, '') || 0);
+        if (price > filters.priceRange[1]) return false;
+
+        return true;
+    });
+
+    // Sort Logic
+    const sortedProducts = [...filteredProducts].sort((a, b) => {
+        if (sortBy === 'price-low-high') {
+            const priceA = parseInt(a.price?.toString().replace(/[^0-9]/g, '') || 0);
+            const priceB = parseInt(b.price?.toString().replace(/[^0-9]/g, '') || 0);
+            return priceA - priceB;
+        } else if (sortBy === 'price-high-low') {
+            const priceA = parseInt(a.price?.toString().replace(/[^0-9]/g, '') || 0);
+            const priceB = parseInt(b.price?.toString().replace(/[^0-9]/g, '') || 0);
+            return priceB - priceA;
+        } else if (sortBy === 'newest') {
+            return new Date(b.createdAt) - new Date(a.createdAt);
+        }
+        return 0; // Default: Recommended (no specific sort)
+    });
+
 
 
     return (
@@ -100,7 +166,7 @@ export default function CategoryPage() {
                     <div className="flex items-center text-sm text-gray-500 mb-4">
                         <Link to="/" className="hover:text-black">Home</Link>
                         <span className="mx-2">/</span>
-                        <span className="capitalize text-black font-medium">{categoryName ? categoryName.replace(/-/g, ' ') : 'All Products'}</span>
+                        <span className="capitalize text-black font-medium">{id !== 'all-products' ? categoryDetails?.name || 'Category' : 'All Products'}</span>
                     </div>
 
                     {/* Filters Bar */}
@@ -114,7 +180,7 @@ export default function CategoryPage() {
                                 <span className="font-medium">Filters</span>
                             </button>
                             <div className="hidden sm:block w-px h-8 bg-gray-200"></div>
-                            <span className="text-gray-500">Showing {products.length} Results</span>
+                            <span className="text-gray-500">Showing {sortedProducts.length} Results</span>
                         </div>
 
                         <div className="flex items-center gap-4">
@@ -158,7 +224,7 @@ export default function CategoryPage() {
             {/* Product Grid */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
-                    {products.map((product) => (
+                    {sortedProducts.map((product) => (
                         <ProductCard
                             key={product._id || product.id}
                             product={{
@@ -227,7 +293,12 @@ export default function CategoryPage() {
                                                             {filterOptions.gender.map(option => (
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
                                                                     <div className="relative flex items-center">
-                                                                        <input type="checkbox" className="peer h-4 w-4 rounded border-gray-300 text-black focus:ring-black" />
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={filters.gender.includes(option)}
+                                                                            onChange={() => handleFilterChange('gender', option)}
+                                                                            className="peer h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                        />
                                                                     </div>
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                 </label>
@@ -270,7 +341,12 @@ export default function CategoryPage() {
                                                         <div className="space-y-2">
                                                             {filterOptions.color.map(option => (
                                                                 <label key={option.name} className="flex items-center gap-3 cursor-pointer group">
-                                                                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black" />
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={filters.color.includes(option.name)}
+                                                                        onChange={() => handleFilterChange('color', option.name)}
+                                                                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                    />
                                                                     <div className="flex items-center gap-2">
                                                                         <span
                                                                             className={`w-4 h-4 rounded-full border ${option.border ? 'border-gray-200' : 'border-transparent'}`}
@@ -295,10 +371,17 @@ export default function CategoryPage() {
                                                     </button>
                                                     {expandedSections.price && (
                                                         <div className="px-2">
-                                                            <input type="range" min="0" max="10000" className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black" />
+                                                            <input
+                                                                type="range"
+                                                                min="0"
+                                                                max="10000"
+                                                                value={filters.priceRange[1]}
+                                                                onChange={handlePriceChange}
+                                                                className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+                                                            />
                                                             <div className="flex justify-between mt-2 text-sm text-gray-500">
                                                                 <span>₹0</span>
-                                                                <span>₹10,000+</span>
+                                                                <span>₹{filters.priceRange[1].toLocaleString()}</span>
                                                             </div>
                                                         </div>
                                                     )}
@@ -317,7 +400,12 @@ export default function CategoryPage() {
                                                         <div className="space-y-2">
                                                             {filterOptions.discount.map(option => (
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
-                                                                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black" />
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={filters.discount.includes(option)}
+                                                                        onChange={() => handleFilterChange('discount', option)}
+                                                                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                    />
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                 </label>
                                                             ))}
@@ -338,7 +426,12 @@ export default function CategoryPage() {
                                                         <div className="space-y-2">
                                                             {filterOptions.rating.map(option => (
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
-                                                                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black" />
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={filters.rating.includes(option)}
+                                                                        onChange={() => handleFilterChange('rating', option)}
+                                                                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                    />
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                 </label>
                                                             ))}
@@ -359,7 +452,12 @@ export default function CategoryPage() {
                                                         <div className="space-y-2">
                                                             {filterOptions.productType.map(option => (
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
-                                                                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black" />
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={filters.productType.includes(option)}
+                                                                        onChange={() => handleFilterChange('productType', option)}
+                                                                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                    />
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                 </label>
                                                             ))}
@@ -380,7 +478,13 @@ export default function CategoryPage() {
                                                         <div className="space-y-2">
                                                             {filterOptions.brand.map(option => (
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
-                                                                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black" />
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={filters.brand.includes(option)}
+                                                                        onChange={() => handleFilterChange('brand', option)}
+                                                                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                                                                    />
+                                                                    <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                 </label>
                                                             ))}

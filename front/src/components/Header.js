@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { Disclosure, DisclosureButton, Menu, MenuButton, MenuItem, MenuItems, DisclosurePanel, Transition } from '@headlessui/react'
+import { useState, useEffect, useRef, Fragment } from 'react'
+import { Disclosure, DisclosureButton, Menu, MenuButton, MenuItem, MenuItems, DisclosurePanel, Transition, Dialog, DialogPanel, TransitionChild } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useDispatch, useSelector } from 'react-redux';
 import AuthModal from './AuthModal';
@@ -8,12 +8,66 @@ import { fetchCart } from '../redux/slice/cart.slice';
 import { fetchWishlist } from '../redux/slice/wishlist.slice';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MdKeyboardArrowDown, MdLogout, MdPerson, MdSettings } from 'react-icons/md';
+import { FiSearch, FiX } from 'react-icons/fi';
 
 const navigation = [
   { name: 'New Arrivals', href: '/category/new-arrivals' },
-  { name: 'Men', href: '/category/men' },
-  { name: 'Women', href: '/category/women' },
-  { name: 'Premium', href: '/category/premium' },
+  {
+    name: 'Men',
+    href: '/category/men',
+    type: 'dropdown',
+    columns: [
+      {
+        heading: 'Topwear',
+        items: ['T-Shirts', 'Casual Shirts', 'Formal Outfits', 'Sweaters', 'Denim Jackets', 'Suits', 'Rain Jackets', 'Hoodies']
+      },
+      {
+        heading: 'Indian & Festive Wear',
+        items: ['Kurta Sets', 'Sherwanis', 'Dhotis', 'Nehru Jackets']
+      },
+      {
+        heading: 'Bottomwear',
+        items: ['Jeans', 'Casual Trousers', 'Formal Trousers', 'Shorts', 'Track Pants', 'Joggers']
+      }
+    ],
+    images: [
+      { name: 'New Arrivals', url: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?q=80&w=2187&auto=format&fit=crop', href: '/category/men' },
+      { name: 'Best Sellers', url: 'https://images.unsplash.com/photo-1617127365659-c47fa864d8bc?q=80&w=2187&auto=format&fit=crop', href: '/category/men' },
+    ]
+  },
+  {
+    name: 'Women',
+    href: '/category/women',
+    type: 'dropdown',
+    columns: [
+      {
+        heading: 'Indian Wear',
+        items: ['Sarees', 'Kurtis & Suits', 'Tunics & Tops', 'Ethnic Wear', 'Skirts, Salwars & Palazoos', 'Dress Materials', 'Lehenga Cholis', 'Dupattas & Shawls']
+      },
+      {
+        heading: 'Western Wear',
+        items: ['Dresses', 'Tops', 'T-shirts', 'Jeans', 'Shorts & Skirts', 'Co-ords', 'Playsuits', 'Sweaters & Sweatshirts', 'Jackets & Coats', 'Blazers & Waistcoats']
+      }
+    ],
+    images: [
+      { name: 'New Arrival', url: 'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?q=80&w=2235&auto=format&fit=crop', href: '/category/women' },
+      { name: 'Best Sellers', url: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=2187&auto=format&fit=crop', href: '/category/women' },
+      { name: 'Top Rated', url: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=2187&auto=format&fit=crop', href: '/category/women' }
+    ]
+  },
+  {
+    name: 'Premium',
+    href: '/category/premium',
+    type: 'dropdown',
+    columns: [],
+    images: [
+      { name: 'Oversized T shirts', url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=2264&auto=format&fit=crop', href: '/category/premium' },
+      { name: 'Bottom wear', url: 'https://images.unsplash.com/photo-1542272617-08f086302542?q=80&w=2187&auto=format&fit=crop', href: '/category/premium' },
+      { name: 'Premium Shirts', url: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?q=80&w=2225&auto=format&fit=crop', href: '/category/premium' },
+      { name: 'New Arrival', url: 'https://images.unsplash.com/photo-1550246140-5119ae4790b8?q=80&w=2255&auto=format&fit=crop', href: '/category/premium' },
+      { name: 'Best Sellers', url: 'https://images.unsplash.com/photo-1620799140408-ed5341cd2431?q=80&w=2272&auto=format&fit=crop', href: '/category/premium' }
+    ]
+  },
   { name: 'Best Sellers', href: '/category/best-sellers' },
 ]
 
@@ -30,6 +84,98 @@ export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const name = user?.firstName + ' ' + user?.lastName;
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const searchSuggestions = [
+    'Shirts', 'Shirts for Women', 'Shirts for Men', 'Knitted Shirts', 'T-Shirt', 'Printed Shirts', 'Blend Shirts', 'White Shirt', 'Jeans', 'Denim', 'Trousers'
+  ];
+
+  const trendingProducts = [
+    {
+      id: 1,
+      title: 'Men Solid Polo T-Shirt',
+      price: 599,
+      originalPrice: 999,
+      discount: '40% OFF',
+      rating: 4.5,
+      image: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?q=80&w=600&auto=format&fit=crop',
+      category: 'T-Shirt'
+    },
+    {
+      id: 2,
+      title: 'Women Embroidered Polo T-Shirt',
+      price: 1299,
+      originalPrice: 2699,
+      discount: '52% OFF',
+      rating: 4.5,
+      image: 'https://images.unsplash.com/photo-1554568218-0f1715e72254?q=80&w=600&auto=format&fit=crop',
+      category: 'T-Shirt'
+    },
+    {
+      id: 3,
+      title: 'Stripes Slim Fit Men\'s Casual Shirt',
+      price: 1699,
+      originalPrice: 2099,
+      discount: '19% OFF',
+      rating: 4.5,
+      image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?q=80&w=600&auto=format&fit=crop',
+      category: 'Shirt'
+    },
+    {
+      id: 4,
+      title: 'Printed Cotton Women\'s T-Shirt',
+      price: 999,
+      originalPrice: 1299,
+      discount: '23% OFF',
+      rating: 4.5,
+      image: 'https://images.unsplash.com/photo-1503342394128-c104d54dba01?q=80&w=600&auto=format&fit=crop',
+      category: 'T-Shirt'
+    },
+    {
+      id: 5,
+      title: 'Checks Cotton Men\'s Casual Shirt',
+      price: 1599,
+      originalPrice: 1899,
+      discount: '15% OFF',
+      rating: 4.5,
+      image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=600&auto=format&fit=crop',
+      category: 'Shirt'
+    },
+    {
+      id: 6,
+      title: 'Drop Oversized Trendy Crop T-Shirt',
+      price: 999,
+      originalPrice: 1299,
+      discount: '23% OFF',
+      rating: 4.5,
+      image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=600&auto=format&fit=crop',
+      category: 'T-Shirt'
+    }
+  ];
+
+  // Logic for filtering
+  const filteredSuggestions = searchQuery
+    ? searchSuggestions.filter(item => item.toLowerCase().includes(searchQuery.toLowerCase()))
+    : searchSuggestions;
+
+  const filteredProducts = searchQuery
+    ? trendingProducts.filter(item =>
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    : trendingProducts;
+
+  const hasResults = filteredSuggestions.length > 0 || filteredProducts.length > 0;
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setIsSearchOpen(false);
+      // navigate(`/search?q=${searchQuery}`);
+    }
+  };
 
   useEffect(() => {
     setImgError(false);
@@ -74,7 +220,7 @@ export default function Header() {
   return (
     <Disclosure
       as="nav"
-      className="relative bg-white dark:bg-white-800/50 dark:after:pointer-events-none dark:after:absolute dark:after:inset-x-0 dark:after:bottom-0 dark:after:h-px dark:after:bg-white/10"
+      className="relative bg-white z-50 dark:bg-white-800/50 dark:after:pointer-events-none dark:after:absolute dark:after:inset-x-0 dark:after:bottom-0 dark:after:h-px dark:after:bg-white/10"
     >
       <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
@@ -92,25 +238,104 @@ export default function Header() {
               LOGO
             </Link>
             <div className="hidden sm:ml-6 sm:block">
-              <div className="flex gap-3 space-x-4">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={classNames(
-                      location.pathname === item.href
-                        ? 'font-bold border-b-2 border-black'
-                        : 'font-regular',
-                      ' px-1 py-2 text-sm text-black',
-                    )}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
+              <div className="flex gap-3 space-x-4 h-full items-center">
+                {navigation.map((item) => {
+                  if (item.type === 'dropdown') {
+                    return (
+                      <div key={item.name} className="group relative h-full flex items-center">
+                        <Link
+                          to={item.href}
+                          className={classNames(
+                            location.pathname.startsWith(item.href)
+                              ? 'font-bold border-b-2 border-black'
+                              : 'font-regular',
+                            'px-1 py-2 text-sm text-black group-hover:text-gray-600 transition-colors inline-flex items-center gap-1',
+                          )}
+                        >
+                          {item.name}
+                          <MdKeyboardArrowDown className="transition-transform duration-200 group-hover:rotate-180" />
+                        </Link>
+
+                        {/* Mega Menu Dropdown */}
+                        <div className="absolute top-full left-0 w-screen max-w-screen-xl -translate-x-1/4 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out z-50">
+                          <div className="bg-white rounded-xl shadow-2xl ring-1 ring-black ring-opacity-5 overflow-hidden">
+                            <div className="p-8">
+                              <div className={`grid gap-8 ${item.name === 'Premium' ? 'grid-cols-5' : 'grid-cols-[1.5fr_1fr_1fr]'}`}>
+
+                                {/* Columns Section (For Men/Women) */}
+                                {!['Premium'].includes(item.name) && (
+                                  <div className="col-span-1 grid grid-cols-2 gap-8">
+                                    {item.columns.map((col) => (
+                                      <div key={col.heading}>
+                                        <h3 className="font-bold text-gray-900 mb-4">{col.heading}</h3>
+                                        <ul className="space-y-3">
+                                          {col.items.map((subItem) => (
+                                            <li key={subItem}>
+                                              <Link
+                                                to={`${item.href}?sub=${subItem.toLowerCase().replace(/\s+/g, '-')}`}
+                                                className="text-sm text-gray-500 hover:text-black transition-colors"
+                                              >
+                                                {subItem}
+                                              </Link>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Images Section */}
+                                <div className={`${item.name === 'Premium' ? 'col-span-5 grid grid-cols-5' : 'col-span-2 grid grid-cols-3'} gap-6`}>
+                                  {item.images.map((img) => (
+                                    <Link key={img.name} to={img.href} className="group/img block">
+                                      <div className="aspect-[3/4] overflow-hidden rounded-lg mb-3 bg-gray-100">
+                                        <img
+                                          src={img.url}
+                                          alt={img.name}
+                                          className="w-full h-full object-cover object-center group-hover/img:scale-105 transition-transform duration-500"
+                                        />
+                                      </div>
+                                      <p className="text-center text-sm font-medium text-gray-900">{img.name}</p>
+                                    </Link>
+                                  ))}
+                                </div>
+
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className={classNames(
+                        location.pathname === item.href
+                          ? 'font-bold border-b-2 border-black'
+                          : 'font-regular',
+                        ' px-1 py-2 text-sm text-black',
+                      )}
+                    >
+                      {item.name}
+                    </Link>
+                  )
+                })}
               </div>
             </div>
           </div>
           <div className="absolute inset-y-0 right-0 flex items-center gap-3 pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+            {/* Search Button */}
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="relative rounded-full p-1 text-black focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500 hover:bg-gray-100 transition-colors"
+            >
+              <span className="sr-only">Search</span>
+              <FiSearch size={22} />
+            </button>
             <Link
               to="/wishlist"
               className="relative rounded-full p-1  text-black focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500 "
@@ -222,6 +447,181 @@ export default function Header() {
           ))}
         </div>
       </DisclosurePanel>
+
+      {/* Search Overlay */}
+      <Transition appear show={isSearchOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setIsSearchOpen(false)}>
+          <TransitionChild
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+          </TransitionChild>
+
+          <div className="fixed inset-0 z-50 overflow-y-auto w-full">
+            <div className="min-h-full">
+              <TransitionChild
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 -translate-y-8"
+                enterTo="opacity-100 translate-y-0"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0"
+                leaveTo="opacity-0 -translate-y-8"
+              >
+                <DialogPanel className="w-full bg-white shadow-xl relative">
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    {/* Search Header */}
+                    <div className="flex items-center gap-2 mb-8 pt-4">
+                      <div className="flex-1 relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FiSearch className="text-gray-400" size={20} />
+                        </div>
+                        <form onSubmit={handleSearch}>
+                          <input
+                            type="text"
+                            className="block w-full pl-10 pr-3 py-3 border-none bg-gray-100 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 sm:text-sm"
+                            placeholder="Search for products, brands and more"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            autoFocus
+                          />
+                        </form>
+                      </div>
+                      {/* Close Button Absolute Top Right */}
+                      <button
+                        onClick={() => setIsSearchOpen(false)}
+                        className="p-2 text-gray-400 hover:text-black transition-colors z-10"
+                      >
+                        <FiX size={24} />
+                      </button>
+                    </div>
+
+                    {!searchQuery ? (
+                      /* Default/Trending UI */
+                      <>
+                        {/* Trending Searches using Mock Data */}
+                        <div className="mb-8">
+                          <h3 className="text-sm font-bold text-gray-900 mb-4">Trending Search</h3>
+                          <div className="flex flex-wrap gap-3">
+                            {['Shirts for Men', 'T-Shirts', 'Jeans', 'Trousers', 'Oversized T shirts'].map((tag) => (
+                              <button key={tag} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:border-black hover:text-black transition-colors" onClick={() => setSearchQuery(tag)}>
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Trending Products Mock Data */}
+                        <div className="mb-8">
+                          <h3 className="text-sm font-bold text-gray-900 mb-4">Trending Products</h3>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {trendingProducts.slice(0, 4).map((product) => (
+                              <div key={product.id} className="group relative flex gap-4 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div className="w-20 h-24 flex-shrink-0 bg-gray-200 rounded-md overflow-hidden">
+                                  <img src={product.image} alt={product.title} className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300" />
+                                </div>
+                                <div className="flex flex-col justify-center">
+                                  <h4 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">{product.title}</h4>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-sm font-bold">₹{product.price.toLocaleString()}</span>
+                                    <span className="text-xs text-gray-500 line-through">₹{product.originalPrice.toLocaleString()}</span>
+                                    <span className="text-xs text-green-600 font-medium">{product.discount}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-yellow-400">★</span>
+                                    <span className="text-xs text-gray-600">{product.rating}</span>
+                                  </div>
+                                </div>
+                                <Link to={`/product/${product.id}`} className="absolute inset-0" onClick={() => setIsSearchOpen(false)} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Popular Brands */}
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-900 mb-4">Popular Brands</h3>
+                          <div className="flex flex-wrap gap-3">
+                            {['Levi\'s', 'Cello', 'SNITCH', 'Rare Rabbit', 'Tommy Hilfiger'].map((brand) => (
+                              <button key={brand} className="px-6 py-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-black hover:text-black transition-colors" onClick={() => setSearchQuery(brand)}>
+                                {brand}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    ) : hasResults ? (
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        {/* Suggested List (Left Column) */}
+                        <div className="hidden md:block col-span-1 border-r border-gray-100 pr-4">
+                          <h3 className="text-sm font-bold text-gray-900 mb-4">Suggested</h3>
+                          <div className="flex flex-col gap-3">
+                            {filteredSuggestions.slice(0, 10).map((tag, idx) => (
+                              <button
+                                key={idx}
+                                className="text-left text-sm text-gray-600 hover:text-black hover:font-medium transition-colors py-1"
+                                onClick={() => { setSearchQuery(tag); }}
+                              >
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Suggested Products (Right Column) */}
+                        <div className="col-span-1 md:col-span-3">
+                          <h3 className="text-sm font-bold text-gray-900 mb-4">Suggested Products</h3>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredProducts.slice(0, 6).map((product) => (
+                              <div key={product.id} className="group relative flex flex-col gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div className="aspect-[4/5] w-full bg-gray-200 rounded-lg overflow-hidden relative">
+                                  <img src={product.image} alt={product.title} className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300" />
+                                  <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                                    <span className="text-yellow-400">★</span> {product.rating}
+                                  </div>
+                                </div>
+                                <div className="flex flex-col mt-2">
+                                  <h4 className="text-sm font-medium text-gray-900 line-clamp-1">{product.title}</h4>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-sm font-bold">₹{product.price.toLocaleString()}</span>
+                                    <span className="text-xs text-gray-500 line-through">₹{product.originalPrice.toLocaleString()}</span>
+                                    <span className="text-xs text-green-600 font-medium">{product.discount}</span>
+                                  </div>
+                                </div>
+                                <Link to={`/product/${product.id}`} className="absolute inset-0" onClick={() => setIsSearchOpen(false)} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Not Found UI */
+                      <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <div className="text-gray-500 mb-2 font-medium">You searched for <span className="text-black font-bold">“{searchQuery}”</span></div>
+
+                        <div className="relative w-24 h-24 my-6 flex items-center justify-center bg-gray-100 rounded-full">
+                          <FiSearch className="text-gray-400 w-10 h-10" />
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-gray-200 -rotate-45 hidden" /> {/* Strikethrough effect conceptual */}
+                        </div>
+
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">We couldn't find any matches!</h3>
+                        <p className="text-gray-500 text-sm">Please check the spelling or try searching for something else.</p>
+                      </div>
+                    )}
+
+                  </div>
+                </DialogPanel>
+              </TransitionChild>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </Disclosure >
   )
 }

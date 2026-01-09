@@ -150,8 +150,8 @@ export default function ProductCard({ product }) {
                 </h3>
                 {/* <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">{category}</p> */}
                 <div className="flex items-center gap-2">
-                    <span className="text-base font-bold text-green-600">${price}</span>
-                    {oldPrice && <span className="text-sm text-gray-400 line-through">${oldPrice}</span>}
+                    <span className="text-base font-bold text-green-600">₹{price}</span>
+                    {oldPrice && <span className="text-sm text-gray-400 line-through">₹{oldPrice}</span>}
                 </div>
             </div>
         </div>
