@@ -151,6 +151,63 @@ class ShiprocketAPI {
         }
     }
 
+    // Check pincode serviceability
+    async checkPincodeServiceability(deliveryPincode, weight = 0.5, codAmount = 0) {
+        try {
+            const pickupPincode = process.env.PICKUP_PINCODE || '110001';
+            const headers = await this.getHeaders();
+            
+            const response = await axios.get(`${this.baseURL}/courier/serviceability/`, {
+                headers,
+                params: {
+                    pickup_postcode: pickupPincode,
+                    delivery_postcode: deliveryPincode,
+                    weight: weight,
+                    cod: codAmount > 0 ? 1 : 0
+                }
+            });
+
+            if (response.data && response.data.status === 200) {
+                const availableCouriers = response.data.data?.available_courier_companies || [];
+                
+                if (availableCouriers.length > 0) {
+                    // Find the fastest delivery option
+                    const fastestCourier = availableCouriers.reduce((fastest, current) => {
+                        // Check different possible field names for ETD
+                        const currentDays = parseInt(current.etd) || parseInt(current.estimated_delivery_days) || parseInt(current.delivery_days) || 999;
+                        const fastestDays = parseInt(fastest.etd) || parseInt(fastest.estimated_delivery_days) || parseInt(fastest.delivery_days) || 999;
+                        return currentDays < fastestDays ? current : fastest;
+                    });
+
+                    return {
+                        serviceable: true,
+                        estimatedDays: parseInt(fastestCourier.etd) || parseInt(fastestCourier.estimated_delivery_days) || parseInt(fastestCourier.delivery_days) || null,
+                        courierName: fastestCourier.courier_name,
+                        codAvailable: fastestCourier.cod === 1,
+                        shippingCharge: parseFloat(fastestCourier.rate) || 0,
+                        availableCouriers: availableCouriers.length
+                    };
+                } else {
+                    return {
+                        serviceable: false,
+                        message: 'Delivery not available to this pincode'
+                    };
+                }
+            } else {
+                return {
+                    serviceable: false,
+                    message: 'Unable to check serviceability'
+                };
+            }
+        } catch (error) {
+            console.error('Shiprocket pincode check failed:', error.response?.data || error.message);
+            return {
+                serviceable: false,
+                message: 'Service temporarily unavailable'
+            };
+        }
+    }
+
     // Get pickup locations
     async getPickupLocations() {
         try {

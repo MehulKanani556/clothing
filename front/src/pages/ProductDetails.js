@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { FiStar, FiShare2, FiHeart, FiShoppingBag, FiTruck, FiRefreshCw, FiChevronDown, FiChevronUp, FiCheck, FiInfo } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 import ProductCard from '../components/ProductCard';
+import { BASE_URL } from '../utils/BASE_URL';
 
 export default function ProductDetails() {
     const { id } = useParams();
@@ -28,6 +29,8 @@ export default function ProductDetails() {
     const [activeImage, setActiveImage] = useState(0);
     const [expandedSection, setExpandedSection] = useState('description');
     const [pincode, setPincode] = useState('');
+    const [pincodeResult, setPincodeResult] = useState(null);
+    const [checkingPincode, setCheckingPincode] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -105,6 +108,37 @@ export default function ProductDetails() {
 
     const toggleSection = (section) => {
         setExpandedSection(expandedSection === section ? null : section);
+    };
+
+    const handlePincodeCheck = async () => {
+        if (!pincode || pincode.length !== 6) {
+            toast.error("Please enter a valid 6-digit pincode");
+            return;
+        }
+
+        setCheckingPincode(true);
+        setPincodeResult(null);
+
+        try {
+            const response = await fetch(`${BASE_URL}/shiprocket/check-pincode/${pincode}`);
+            const data = await response.json();
+
+            if (data.success) {
+                setPincodeResult(data.data);
+                if (data.data.serviceable) {
+                    // toast.success(`Delivery available in ${data.data.estimatedDays} days!`);
+                } else {
+                    toast.error(data.data.message || "Delivery not available to this pincode");
+                }
+            } else {
+                toast.error(data.message || "Failed to check pincode");
+            }
+        } catch (error) {
+            console.error('Pincode check error:', error);
+            toast.error("Failed to check pincode. Please try again.");
+        } finally {
+            setCheckingPincode(false);
+        }
     };
 
 
@@ -264,15 +298,57 @@ export default function ProductDetails() {
                                         type="text"
                                         placeholder="Enter Pincode"
                                         value={pincode}
-                                        onChange={(e) => setPincode(e.target.value)}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                                            if (value.length <= 6) {
+                                                setPincode(value);
+                                                if (pincodeResult) {
+                                                    setPincodeResult(null); // Clear previous result when typing
+                                                }
+                                            }
+                                        }}
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter' && pincode.length === 6 && !checkingPincode) {
+                                                handlePincodeCheck();
+                                            }
+                                        }}
                                         maxLength={6}
                                         className="w-full bg-gray-100 border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-black/5"
                                     />
-                                    <button className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500 uppercase hover:text-black px-2">
-                                        Check
+                                    <button 
+                                        onClick={handlePincodeCheck}
+                                        disabled={checkingPincode || pincode.length !== 6}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500 uppercase hover:text-black px-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {checkingPincode ? 'Checking...' : 'Check'}
                                     </button>
                                 </div>
                             </div>
+                            
+                            {/* Pincode Result */}
+                            {pincodeResult && (
+                                <div className={`mt-3 p-3 rounded-lg border ${pincodeResult.serviceable 
+                                    ? 'bg-green-50 border-green-200 text-green-800' 
+                                    : 'bg-red-50 border-red-200 text-red-800'
+                                }`}>
+                                    {pincodeResult.serviceable ? (
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <FiCheck size={16} />
+                                                <span className="font-semibold text-sm">{pincodeResult.message || 'Delivery available'}</span>
+                                            </div>
+                                           
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-semibold">
+                                                {pincodeResult.message || 'Delivery not available'}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="mt-4 flex flex-wrap gap-4">
                                 <span className="inline-flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
                                     <FiTruck className="text-gray-900" /> Dispatch in {product.deliveryDays} days

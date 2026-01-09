@@ -11,7 +11,8 @@ const {
     getAvailableCouriers,
     debugOrderData,
     checkPickupLocations,
-    testPickupLocations
+    testPickupLocations,
+    checkPincodeServiceability
 } = require('../controllers/shiprocket.controller');
 const shiprocketAPI = require('../utils/shiprocketAPI');
 
@@ -44,5 +45,6 @@ router.get('/test-pickup1', async (req, res) => {
 // Public routes
 router.post('/webhook', handleWebhook); // Webhook doesn't need auth
 router.get('/track/:orderId', getTrackingInfo); // Public tracking for customers
+router.get('/check-pincode/:pincode', checkPincodeServiceability); // Public pincode check
 
 module.exports = router;

@@ -673,5 +673,34 @@ exports.testPickupLocations = async (req, res) => {
     }
 };
 
+// Check pincode serviceability
+exports.checkPincodeServiceability = async (req, res) => {
+    try {
+        const { pincode } = req.params;
+        
+        // Validate pincode format
+        if (!pincode || !/^\d{6}$/.test(pincode)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid pincode. Please enter a valid 6-digit pincode.'
+            });
+        }
+
+        const serviceabilityData = await shiprocketAPI.checkPincodeServiceability(pincode);
+
+        res.status(200).json({
+            success: true,
+            data: serviceabilityData
+        });
+
+    } catch (error) {
+        console.error('Check pincode serviceability error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to check pincode serviceability'
+        });
+    }
+};
+
 // Add to your router:
 // router.get('/test-pickup', testPickupLocations);
