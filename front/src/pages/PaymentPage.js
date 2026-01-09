@@ -135,7 +135,7 @@ export default function PaymentPage() {
             return;
         }
 
-        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+        const token = localStorage.getItem("token");
         if (!token) {
             alert("Session expired or token missing. Please login again.");
             window.location.href = '/login';

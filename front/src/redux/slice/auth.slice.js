@@ -25,9 +25,8 @@ export const login = createAsyncThunk(
         try {
             try {
                 const response = await axiosInstance.post(`${BASE_URL}/login`, data,);
-                sessionStorage.setItem('token', response.data.token);
-                sessionStorage.setItem('userId', response.data.user._id);
-                console.log(response.data)
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('userId', response.data.user._id);
                 return response.data;
             } catch (error) {
                 return handleErrors(error, null, rejectWithValue);
@@ -55,9 +54,8 @@ export const verifyRegistration = createAsyncThunk(
     async ({ email, otp }, { rejectWithValue }) => {
         try {
             const response = await axios.post(`${BASE_URL}/verify-registration`, { email, otp });
-            sessionStorage.setItem('token', response.data.accessToken); // Or token depending on backend
-            // Check auth.js response: sends accessToken, refreshToken
-            sessionStorage.setItem('userId', response.data.user._id);
+            localStorage.setItem('token', response.data.accessToken);
+            localStorage.setItem('userId', response.data.user._id);
             return response.data;
         } catch (error) {
             return handleErrors(error, null, rejectWithValue);
@@ -148,13 +146,8 @@ export const logout = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             const response = await axiosInstance.post(`${BASE_URL}/logout`);
-            console.log(window);
-            console.log(window.persistor);
             localStorage.removeItem('token');
             localStorage.removeItem('userId');
-            sessionStorage.removeItem('token');
-            sessionStorage.removeItem('userId');
-
             window.persistor.purge();
             clearAuthState();
             return response.data;
@@ -173,8 +166,8 @@ export const deleteMyAccount = createAsyncThunk(
             // The route is /users/:id but the controller uses req.user.id for self-deletion
             // We pass userId in URL just to suffice the route param requirement
             const response = await axiosInstance.delete(`${BASE_URL}/users/${userId}`);
-            sessionStorage.removeItem('token');
-            sessionStorage.removeItem('userId');
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
             return response.data;
         } catch (error) {
             return handleErrors(error, null, rejectWithValue);
@@ -233,8 +226,6 @@ export const authSlice = createSlice({
             state.loading = false;
             state.error = null;
             state.message = "Logged out successfully";
-            sessionStorage.removeItem('token');
-            sessionStorage.removeItem('userId');
             localStorage.removeItem('token');
             localStorage.removeItem('userId');
         },
@@ -262,19 +253,14 @@ export const authSlice = createSlice({
                 state.loading = false;
                 state.error = null;
                 state.message = "Logged out successfully";
-                sessionStorage.removeItem('token');
-                sessionStorage.removeItem('userId');
                 localStorage.removeItem('token');
                 localStorage.removeItem('userId');
             })
             .addCase(logout.rejected, (state) => {
-                // Even if logout API fails, clear the state locally
                 state.user = null;
                 state.isAuthenticated = false;
                 state.loading = false;
                 state.message = "Logout Failed";
-                sessionStorage.removeItem('token');
-                sessionStorage.removeItem('userId');
                 localStorage.removeItem('token');
                 localStorage.removeItem('userId');
             })

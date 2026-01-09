@@ -1,8 +1,6 @@
 import axios from "axios";
 import { BASE_URL } from "./BASE_URL";
-import { logoutUser } from "../redux/slice/auth.slice";
-
-// const userId = localStorage.getItem("userId");
+import { logout } from "../redux/slice/auth.slice";
 
 // Create axios instance with default config
 const axiosInstance = axios.create({
@@ -27,7 +25,7 @@ const processQueue = (error, token = null) => {
 // Request Interceptor
 axiosInstance.interceptors.request.use(
   async (config) => {
-    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -83,7 +81,6 @@ axiosInstance.interceptors.response.use(
 
         if (response.data.success && response.data.accessToken) {
           localStorage.setItem("token", response.data.accessToken);
-          sessionStorage.setItem("token", response.data.accessToken);
           localStorage.setItem("refreshToken", response.data.refreshToken);
 
           processQueue(null, response.data.accessToken);
@@ -95,7 +92,7 @@ axiosInstance.interceptors.response.use(
         processQueue(refreshError, null);
 
         const { store } = require("../redux/Store").configureStore();
-        store.dispatch(logoutUser());
+        store.dispatch(logout());
         // alert("Logout");
         localStorage.removeItem("token");
         localStorage.removeItem("userId");

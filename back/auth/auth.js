@@ -11,34 +11,31 @@ const MAX_OTP_SEND_LIMIT = 5; // 5 OTPs per 5 minutes
 
 const generateToken = async (id) => {
     try {
-        const user = await User.findById(id);
-        if (!user) {
-            throw new Error('User not found');
+        if (!id) {
+            throw new Error('User ID is required');
         }
-        const accessToken = await jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '15m' });
-        const refreshToken = await jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' }); // Matching session expiry
+    const accessToken = jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '15m' });
+    const refreshToken = jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
-        // user.refreshToken = refreshToken; // No longer storing in User model
-        // await user.save();
+    await Session.findOneAndUpdate(
+        { userId: id },
+        { token: refreshToken },
+        { upsert: true, new: true }
+    );
 
-        // Create Session
-        await Session.create({
-            userId: id,
-            token: refreshToken
-        });
-
-        return { accessToken, refreshToken };
+    return { accessToken, refreshToken };
     } catch (error) {
         throw error;
     }
-}
+};
 
 exports.generateNewToken = async (req, res) => {
     try {
-        let token = req?.cookie?.refreshToken || req.header("Authorization")?.split(" ")[1];
+        // console.log(req.cookie,"cookies");
+        let token = req.cookies.refreshToken || req.header("Authorization")?.split(" ")[1];
 
         if (!token) {
-            return res.status(401).json({ message: "No token provided" });
+            return res.status(404).json({ message: "No token provided" });
         }
 
         // Verify if session exists
@@ -51,25 +48,19 @@ exports.generateNewToken = async (req, res) => {
         if (!decoded) {
             return res.status(401).json({ message: "Invalid token" });
         }
+
         const user = await User.findById(decoded.id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Rotate tokens? For now, we can just issue new access token and keep session or refresh session.
-        // Let's create a NEW session and remove old one to keep it clean 'Rotate'
         await Session.findByIdAndDelete(session._id);
 
         const { accessToken, refreshToken } = await generateToken(user._id);
 
         return res
-            .cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 7 * 60 * 60 * 1000, sameSite: "Strict" })
-            .cookie("refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: true,
-                maxAge: 30 * 24 * 60 * 60 * 1000,
-                sameSite: "Strict",
-            })
+            .cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 60 * 60 * 1000, sameSite: "Strict" })
+            .cookie("refreshToken", refreshToken, {httpOnly: true,secure: true,maxAge: 30 * 24 * 60 * 60 * 1000,sameSite: "Strict",})
             .status(200).json({ user, accessToken, refreshToken });
     } catch (error) {
         return res.status(500).json({ message: error.message });
@@ -174,13 +165,8 @@ exports.verifyRegistration = async (req, res) => {
         const { accessToken, refreshToken } = await generateToken(user._id);
 
         return res
-            .cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 7 * 60 * 60 * 1000, sameSite: "Strict" })
-            .cookie("refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: true,
-                maxAge: 30 * 24 * 60 * 60 * 1000,
-                sameSite: "Strict",
-            })
+            .cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 60 * 60 * 1000, sameSite: "Strict" })
+            .cookie("refreshToken", refreshToken, {httpOnly: true,secure: true,maxAge: 30 * 24 * 60 * 60 * 1000,sameSite: "Strict",})
             .status(201).json({ user, message: 'Account created successfully', accessToken, refreshToken });
 
     } catch (error) {
@@ -197,9 +183,9 @@ exports.logout = async (req, res) => {
         if (!refreshToken) {
             return res.status(401).json({ message: "Unauthorized" });
         }
-        if (refreshToken) {
-            await Session.findOneAndDelete({ token: refreshToken });
-        }
+        // if (refreshToken) {
+        //     await Session.findOneAndDelete({ token: refreshToken });
+        // }
 
         return res
             .clearCookie("accessToken")
@@ -247,13 +233,8 @@ exports.login = async (req, res) => {
 
         const user = await User.findOne({ email }).select("-password -__v -loginAttempts -lockUntil -createdAt -updatedAt")
         return res
-            .cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 7 * 60 * 60 * 1000, sameSite: "Strict" })
-            .cookie("refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: true,
-                maxAge: 30 * 24 * 60 * 60 * 1000,
-                sameSite: "Strict",
-            })
+            .cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 60 * 60 * 1000, sameSite: "Strict" })
+            .cookie("refreshToken", refreshToken, {httpOnly: true,secure: true,maxAge: 30 * 24 * 60 * 60 * 1000,sameSite: "Strict",})
             .status(200).json({
                 user: user,
                 message: "User Login successfully",

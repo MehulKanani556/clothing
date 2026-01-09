@@ -35,7 +35,7 @@ router.post('/logout', logout);
 router.post('/forgot-password', forgotPassword);
 router.post('/verify', verifyOtp);
 router.post('/change-password', changePassword);
-router.post('/generatenewtoken', auth, generateNewToken);
+router.post('/generateNewTokens', generateNewToken);
 
 // user
 router.get('/users', getAllUsers);
