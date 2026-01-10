@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-    MdDashboard,
-    MdShoppingCart,
-    MdInventory,
+    MdOutlineDashboard,
+    MdOutlineInventory,
     MdKeyboardArrowRight,
-    MdEmail,
+    MdOutlineCategory,
+    MdOutlineClass,
+    MdOutlineReceiptLong,
+    MdOutlineRateReview,
+    MdOutlineLocalOffer,
 } from 'react-icons/md';
 
 const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
@@ -32,16 +35,16 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             key: 'dashboard',
             name: 'Dashboards',
             path: '/admin/dashboard',
-            icon: <MdDashboard size={20} />,
+            icon: <MdOutlineDashboard size={20} />,
             // badge: { text: '02', color: 'bg-green-500' }
         },
-        { type: 'item', key: 'categories', name: 'Categories', path: '/admin/categories', icon: <MdInventory size={20} /> },
-        { type: 'item', key: 'subcategories', name: 'Subcategories', path: '/admin/subcategories', icon: <MdInventory size={20} /> },
+        { type: 'item', key: 'categories', name: 'Categories', path: '/admin/categories', icon: <MdOutlineCategory size={20} /> },
+        { type: 'item', key: 'subcategories', name: 'Subcategories', path: '/admin/subcategories', icon: <MdOutlineClass size={20} /> },
         {
             type: 'submenu',
             key: 'products',
             name: 'Products',
-            icon: <MdShoppingCart size={20} />,
+            icon: <MdOutlineInventory size={20} />,
             children: [
                 { name: 'Listing', path: '/admin/products' },
                 { name: 'Add Product', path: '/admin/add-product' },
@@ -52,7 +55,7 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             key: 'orders',
             name: 'Orders',
             path: '/admin/orders',
-            icon: <MdShoppingCart size={20} />,
+            icon: <MdOutlineReceiptLong size={20} />,
 
         },
         {
@@ -60,14 +63,14 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             key: 'reviews',
             name: 'Reviews',
             path: '/admin/reviews',
-            icon: <MdEmail size={20} />,
+            icon: <MdOutlineRateReview size={20} />,
             // badge: { text: 'New', color: 'bg-red-500' }
         },
         {
             type: 'submenu',
             key: 'offers',
             name: 'Offer-Zone',
-            icon: <MdShoppingCart size={20} />,
+            icon: <MdOutlineLocalOffer size={20} />,
             children: [
                 { name: 'Offers', path: '/admin/offers' },
                 { name: 'Add Offer', path: '/admin/add-offer' },
