@@ -4,10 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { fetchOffers, deleteOffer } from '../../../redux/slice/offer.slice';
 import { fetchCategories } from '../../../redux/slice/category.slice';
 import { fetchProducts } from '../../../redux/slice/product.slice';
-import { MdAdd, MdEdit, MdDelete } from 'react-icons/md';
+import { MdAdd, MdEdit, MdDelete, MdVisibility } from 'react-icons/md';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
 import DataTable from '../../components/common/DataTable';
 import CustomSelect from '../../components/common/CustomSelect';
+import ViewOfferModal from '../../components/modals/ViewOfferModal';
 import DeleteModal from '../../components/modals/DeleteModal';
 import toast from 'react-hot-toast';
 
@@ -15,14 +16,14 @@ const OfferZone = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { offers, loading } = useSelector(state => state.offers);
-    // Categories and Products fetching is mainly needed for the Form, but maybe good to modify here to avoid needing them in List view unless needed for display logic?
-    // Actually, I removed them from props passing, so I don't strictly need them here unless the Table needs them (it doesn't seem to).
-    // I'll keep the fetches to ensure store is populated or for consistency, but typically List view doesn't need detailed relation data unless resolving IDs to names (which we might need if displaying category/product names instead of IDs).
-    // The current table doesn't show categories/products. So I can remove those fetches if I want cleanup. But I'll leave them to be safe or minimal change.
+    const { categories } = useSelector(state => state.category);
+    const { products } = useSelector(state => state.product);
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [offerToDelete, setOfferToDelete] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [viewOfferData, setViewOfferData] = useState(null);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -31,6 +32,8 @@ const OfferZone = () => {
 
     useEffect(() => {
         dispatch(fetchOffers());
+        dispatch(fetchCategories());
+        dispatch(fetchProducts());
     }, [dispatch]);
 
     const handleAdd = () => {
@@ -39,6 +42,11 @@ const OfferZone = () => {
 
     const handleEdit = (offer) => {
         navigate(`/admin/offer/edit/${offer._id}`);
+    };
+
+    const handleView = (offer) => {
+        setViewOfferData(offer);
+        setIsViewModalOpen(true);
     };
 
     const handleDelete = (id) => {
@@ -108,13 +116,35 @@ const OfferZone = () => {
             header: 'Start Date',
             accessor: 'startDate',
             sortable: true,
-            render: (row) => <span className="text-gray-500">{new Date(row.startDate).toLocaleDateString()}</span>
+            render: (row) => (
+                <span className="text-gray-500">
+                    {new Date(row.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+            )
         },
         {
             header: 'End Date',
             accessor: 'endDate',
             sortable: true,
-            render: (row) => <span className="text-gray-500">{new Date(row.endDate).toLocaleDateString()}</span>
+            render: (row) => (
+                <span className="text-gray-500">
+                    {new Date(row.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+            )
+        },
+        {
+            header: 'Remaining Days',
+            accessor: 'endDate',
+            sortable: false,
+            render: (row) => {
+                const diff = Math.ceil((new Date(row.endDate) - new Date()) / (1000 * 60 * 60 * 24));
+                const colorClass = diff <= 0 ? 'bg-red-100 text-red-700' : diff <= 5 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
+                return (
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
+                        {diff > 0 ? `${diff} days` : '0 days'}
+                    </span>
+                );
+            }
         },
         {
             header: 'Status',
@@ -137,6 +167,7 @@ const OfferZone = () => {
             header: 'Actions',
             render: (row) => (
                 <div className="flex items-center gap-2 text-gray-400">
+                    <button className="hover:text-black" onClick={() => handleView(row)}><MdVisibility size={18} /></button>
                     <button className="hover:text-black" onClick={() => handleEdit(row)}><MdEdit size={18} /></button>
                     <button className="hover:text-red-600" onClick={() => handleDelete(row._id)}><MdDelete size={18} /></button>
                 </div>
@@ -231,6 +262,14 @@ const OfferZone = () => {
                     end: Math.min(startIndex + itemsPerPage, filteredOffers.length)
                 }}
                 onPageChange={(page) => setCurrentPage(page)}
+            />
+
+            <ViewOfferModal
+                isOpen={isViewModalOpen}
+                onClose={() => setIsViewModalOpen(false)}
+                offer={viewOfferData}
+                categories={categories}
+                products={products}
             />
 
             <DeleteModal
