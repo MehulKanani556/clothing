@@ -175,7 +175,7 @@ export default function Header() {
   return (
     <Disclosure
       as="nav"
-      className="relative sticky top-0 bg-white z-50 dark:bg-white-800/50 dark:after:pointer-events-none dark:after:absolute dark:after:inset-x-0 dark:after:bottom-0 dark:after:h-px dark:after:bg-white/10"
+      className="relative shadow sticky top-0 bg-white z-50 dark:bg-white-800/50 dark:after:pointer-events-none dark:after:absolute dark:after:inset-x-0 dark:after:bottom-0 dark:after:h-px dark:after:bg-white/10"
     >
       <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
@@ -363,11 +363,13 @@ export default function Header() {
                   className="flex items-center gap-3 cursor-pointer pl-4 hover:text-black transition-colors border-l border-gray-100"
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                 >
-                  <img
-                    src={user?.photo || "https://i.pravatar.cc/150?img=32"}
-                    alt={name}
-                    className="w-8 h-8 rounded-full border border-gray-200"
-                  />
+                  <div className='w-8 h-8'>
+                    <img
+                      src={user?.photo || "https://i.pravatar.cc/150?img=32"}
+                      alt={name}
+                      className="w-full h-full object-cover rounded-full border border-gray-200"
+                    />
+                  </div>
                   <div className="hidden md:flex items-center gap-1">
                     <MdKeyboardArrowDown size={16} className={`transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
                   </div>

@@ -1,10 +1,11 @@
-import { FiCreditCard, FiLock, FiMapPin, FiChevronDown, FiChevronUp, FiSmartphone } from 'react-icons/fi';
+import { FiCreditCard, FiLock, FiMapPin, FiChevronDown, FiChevronUp, FiSmartphone, FiTruck } from 'react-icons/fi';
 import { BsWallet2, BsBank, BsCashCoin } from 'react-icons/bs';
 import { load } from '@cashfreepayments/cashfree-js';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createPaymentOrder, processPaymentOrder, processCODPayment, createDbOrder, updateDbOrder, verifyPayment } from '../redux/slice/payment.slice';
 import { fetchCart, clearCart } from '../redux/slice/cart.slice';
+import { checkPincodeServiceability } from '../redux/slice/delivery.slice';
 import { useState, useEffect } from 'react';
 
 
@@ -16,6 +17,7 @@ export default function PaymentPage() {
     const orderIdParam = searchParams.get('order_id');
     const { items, totalPrice } = useSelector(state => state.cart);
     const { user } = useSelector(state => state.auth);
+    const { deliveryFee, deliveryInfo, loading: loadingDeliveryFee } = useSelector((state) => state.delivery);
 
     // Derived state for address
     const activeAddress = user?.addresses?.find(addr => addr.isDefault) || user?.addresses?.[0];
@@ -84,6 +86,32 @@ export default function PaymentPage() {
             dispatch(fetchCart());
         }
     }, [dispatch, items.length]);
+
+    // Check delivery fee when user has address
+    useEffect(() => {
+        const checkDeliveryFee = async () => {
+            if (!activeAddress?.pincode) {
+                return;
+            }
+
+            console.log('Checking delivery fee for pincode:', activeAddress.pincode);
+            dispatch(checkPincodeServiceability(activeAddress.pincode))
+                .unwrap()
+                .then((result) => {
+                    if (result.success && result.data.serviceable) {
+                        console.log('Original shipping charge:', result.data.shippingCharge);
+                        console.log('Rounded delivery fee:', Math.ceil(result.data.shippingCharge / 5) * 5);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Delivery check failed:', error);
+                });
+        };
+
+        if (activeAddress?.pincode) {
+            checkDeliveryFee();
+        }
+    }, [dispatch, activeAddress?.pincode]);
 
     const formatCardNumber = (value) => {
         const cleaned = value.replace(/\s/g, '').replace(/\D/g, '');
@@ -210,7 +238,8 @@ export default function PaymentPage() {
                 items: orderItems,
                 shippingAddress: activeAddress,
                 paymentMethod: selectedMethod === 'cod' ? 'COD' : 'Online',
-                paymentInfo: { method: selectedMethod === 'cod' ? 'COD' : 'Cashfree' }
+                paymentInfo: { method: selectedMethod === 'cod' ? 'COD' : 'Cashfree' },
+                shippingFee: deliveryFee
             };
 
             const dbOrderResult = await dispatch(createDbOrder(dbOrderData)).unwrap();
@@ -230,8 +259,9 @@ export default function PaymentPage() {
             }
 
             // Step 2: Create Cashfree Session for Online Payments
+            const totalAmount = totalPrice + deliveryFee;
             const sessionData = {
-                orderAmount: totalPrice,
+                orderAmount: totalAmount,
                 customerId: user?._id || 'guest',
                 customerPhone: user?.mobileNumber || '9999999999',
                 customerName: user?.firstName || 'Guest',
@@ -461,7 +491,7 @@ export default function PaymentPage() {
                                         className="w-full bg-gray-400 hover:bg-gray-500 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 mt-4"
                                         style={{ backgroundColor: '#AFAFAF' }}
                                     >
-                                        {loading ? 'Processing...' : `Pay ₹${totalPrice.toLocaleString()}`}
+                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice + deliveryFee).toLocaleString()}`}
                                     </button>
                                 </div>
                             ) : selectedMethod === 'upi' ? (
@@ -517,7 +547,7 @@ export default function PaymentPage() {
                                         disabled={loading}
                                         className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 shadow-md"
                                     >
-                                        {loading ? 'Processing...' : `Pay ₹${totalPrice.toLocaleString()}`}
+                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice + deliveryFee).toLocaleString()}`}
                                     </button>
                                 </div>
                             ) : selectedMethod === 'wallet' ? (
@@ -562,7 +592,7 @@ export default function PaymentPage() {
                                         disabled={loading || !walletDetails.provider}
                                         className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 shadow-md"
                                     >
-                                        {loading ? 'Processing...' : `Pay ₹${totalPrice.toLocaleString()}`}
+                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice + deliveryFee).toLocaleString()}`}
                                     </button>
                                 </div>
                             ) : selectedMethod === 'netbanking' ? (
@@ -620,7 +650,7 @@ export default function PaymentPage() {
                                         disabled={loading || !netBankingDetails.bankCode}
                                         className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 shadow-md"
                                     >
-                                        {loading ? 'Processing...' : `Pay ₹${totalPrice.toLocaleString()}`}
+                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice + deliveryFee).toLocaleString()}`}
                                     </button>
                                 </div>
                             ) : selectedMethod === 'cod' ? (
@@ -633,7 +663,7 @@ export default function PaymentPage() {
                                         </p>
                                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
                                             <p className="text-sm text-blue-800">
-                                                <strong>Note:</strong> Please keep exact change ready. Our delivery partner will collect ₹{totalPrice.toLocaleString()} at the time of delivery.
+                                                <strong>Note:</strong> Please keep exact change ready. Our delivery partner will collect ₹{(totalPrice + deliveryFee).toLocaleString()} at the time of delivery.
                                             </p>
                                         </div>
                                     </div>
@@ -659,7 +689,7 @@ export default function PaymentPage() {
                     <div className="lg:col-span-4 space-y-4">
                         {/* Address */}
                         <div className="bg-white border border-gray-200 shadow-sm p-4 rounded">
-                            <div className="flex justify-between items-start">
+                            <div className="flex justify-between items-start mb-3">
                                 <div className="flex items-start gap-2 text-sm text-gray-600">
                                     <div className="mt-1"><FiMapPin /></div>
                                     <div>
@@ -679,6 +709,31 @@ export default function PaymentPage() {
                                 </div>
                                 <button className="text-blue-600 text-sm font-semibold hover:underline">Change</button>
                             </div>
+                            
+                            {/* Delivery Info */}
+                            {activeAddress?.pincode && (
+                                <>
+                                    {loadingDeliveryFee ? (
+                                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                                            <FiTruck size={16} />
+                                            <span>Checking delivery options...</span>
+                                        </div>
+                                    ) : deliveryInfo ? (
+                                        <div className="flex items-center gap-2 text-sm text-green-600">
+                                            <FiTruck size={16} />
+                                            <span>
+                                                Delivery in {deliveryInfo.estimatedDays} days
+                                               
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-sm text-red-500">
+                                            <FiTruck size={16} />
+                                            <span>Delivery not available to {activeAddress.pincode}</span>
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </div>
 
                         {/* Items */}
@@ -727,12 +782,18 @@ export default function PaymentPage() {
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Delivery Charges</span>
-                                        <span className="font-medium text-green-600">FREE</span>
+                                        {loadingDeliveryFee ? (
+                                            <span className="text-sm text-gray-400">Calculating...</span>
+                                        ) : deliveryFee > 0 ? (
+                                            <span className="font-medium">₹{deliveryFee.toLocaleString()}</span>
+                                        ) : (
+                                            <span className="font-medium text-green-600">FREE</span>
+                                        )}
                                     </div>
                                     <hr className="border-dashed border-gray-200" />
                                     <div className="flex justify-between text-base font-bold text-gray-900">
-                                        <span>Subtotal</span>
-                                        <span>₹{totalPrice.toLocaleString()}</span>
+                                        <span>Total Amount</span>
+                                        <span>₹{(totalPrice + deliveryFee).toLocaleString()}</span>
                                     </div>
                                 </div>
                             )}

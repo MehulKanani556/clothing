@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchCart, removeFromCart, updateCartItem } from '../redux/slice/cart.slice';
+import { checkPincodeServiceability } from '../redux/slice/delivery.slice';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiTrash2, FiMapPin, FiTag } from 'react-icons/fi';
+import { FiTrash2, FiMapPin, FiTag, FiTruck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../components/ConfirmationModal';
 import AddAddressModal from '../components/profile/AddAddressModal';
@@ -16,6 +17,7 @@ export default function CartPage() {
     const { items, totalPrice, loading } = useSelector((state) => state.cart);
     const { isAuthenticated, user } = useSelector((state) => state.auth);
     const { appliedCoupon } = useSelector((state) => state.offers);
+    const { deliveryFee, deliveryInfo, loading: loadingDeliveryFee, error: deliveryError } = useSelector((state) => state.delivery);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,6 +31,44 @@ export default function CartPage() {
             dispatch(fetchCart());
         }
     }, [dispatch, isAuthenticated]);
+
+    // Show error toast when delivery check fails
+    useEffect(() => {
+        if (deliveryError) {
+            toast.error(deliveryError);
+        }
+    }, [deliveryError]);
+
+    // Check delivery fee when user has address
+    useEffect(() => {
+        const checkDeliveryFee = async () => {
+            if (!user?.addresses?.length) {
+                return;
+            }
+            
+            const activeAddress = user.addresses.find(a => a.isDefault) || user.addresses[0];
+            if (!activeAddress?.pincode) {
+                return;
+            }
+
+            console.log('Checking delivery fee for pincode:', activeAddress.pincode);
+            dispatch(checkPincodeServiceability(activeAddress.pincode))
+                .unwrap()
+                .then((result) => {
+                    if (result.success && result.data.serviceable) {
+                        console.log('Original shipping charge:', result.data.shippingCharge);
+                        console.log('Rounded delivery fee:', Math.ceil(result.data.shippingCharge / 5) * 5);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Delivery check failed:', error);
+                });
+        };
+
+        if (isAuthenticated && user?.addresses?.length) {
+            checkDeliveryFee();
+        }
+    }, [dispatch, isAuthenticated, user?.addresses, user?.addresses?.find(a => a.isDefault)?._id]);
 
     const confirmRemove = (itemId) => {
         setItemToRemove(itemId);
@@ -52,6 +92,25 @@ export default function CartPage() {
         const newQty = currentQty + change;
         if (newQty < 1) return;
         dispatch(updateCartItem({ itemId, quantity: newQty }));
+    };
+
+    // Function to refresh delivery fee (called when address changes)
+    const refreshDeliveryFee = (pincode) => {
+        if (!pincode) {
+            return;
+        }
+        console.log('Refreshing delivery fee for pincode:', pincode);
+        dispatch(checkPincodeServiceability(pincode))
+            .unwrap()
+            .then((result) => {
+                if (result.success && result.data.serviceable) {
+                    console.log('Original shipping charge:', result.data.shippingCharge);
+                    console.log('Rounded delivery fee:', Math.ceil(result.data.shippingCharge / 5) * 5);
+                }
+            })
+            .catch((error) => {
+                console.error('Delivery check failed:', error);
+            });
     };
 
     if (!isAuthenticated) {
@@ -179,7 +238,7 @@ export default function CartPage() {
                             const discountPercent = mrp > item.price ? Math.round(((mrp - item.price) / mrp) * 100) : 0;
 
                             return (
-                                <div key={item._id} className="flex gap-4 p-4 border border-gray-100 rounded-lg shadow-sm bg-white relative hover:shadow-md transition-shadow">
+                                <div key={item._id} onClick={()=>navigate(`/product/${item._id}`)} className="flex gap-4 p-4 border border-gray-100 rounded-lg shadow-sm bg-white relative hover:shadow-md transition-shadow">
                                     {/* Delete Button */}
                                     <button
                                         onClick={() => confirmRemove(item._id)}
@@ -255,25 +314,47 @@ export default function CartPage() {
                             (() => {
                                 const activeAddress = user.addresses.find(a => a.isDefault) || user.addresses[0];
                                 return (
-                                    <div className="bg-white p-4 border border-gray-100 rounded-lg shadow-sm flex items-center justify-between">
-                                        <div className="flex items-center gap-3 overflow-hidden">
-                                            <div className="text-gray-900 shrink-0">
-                                                <FiMapPin size={20} />
+                                    <div className="bg-white p-4 border border-gray-100 rounded-lg shadow-sm">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                <div className="text-gray-900 shrink-0">
+                                                    <FiMapPin size={20} />
+                                                </div>
+                                                <div className="flex items-center flex-wrap gap-2 text-sm text-gray-900 truncate">
+                                                    <span className="text-gray-600">Deliver to:</span>
+                                                    <span className="font-semibold">{activeAddress.firstName} {activeAddress.lastName}</span>
+                                                    <span className="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded border border-gray-200 uppercase font-medium">
+                                                        {activeAddress.addressType}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center flex-wrap gap-2 text-sm text-gray-900 truncate">
-                                                <span className="text-gray-600">Deliver to:</span>
-                                                <span className="font-semibold">{activeAddress.firstName} {activeAddress.lastName}</span>
-                                                <span className="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded border border-gray-200 uppercase font-medium">
-                                                    {activeAddress.addressType}
-                                                </span>
-                                            </div>
+                                            <button
+                                                onClick={() => setShowSelectionModal(true)}
+                                                className="text-sm font-semibold text-blue-600 hover:text-blue-700 ml-4 shrink-0 uppercase tracking-wide"
+                                            >
+                                                Change
+                                            </button>
                                         </div>
-                                        <button
-                                            onClick={() => setShowSelectionModal(true)}
-                                            className="text-sm font-semibold text-blue-600 hover:text-blue-700 ml-4 shrink-0 uppercase tracking-wide"
-                                        >
-                                            Change
-                                        </button>
+                                        
+                                        {/* Delivery Info */}
+                                        {loadingDeliveryFee ? (
+                                            <div className="flex items-center gap-2 text-sm text-gray-500 mt-3">
+                                                <FiTruck size={16} />
+                                                <span>Checking delivery options...</span>
+                                            </div>
+                                        ) : deliveryInfo ? (
+                                            <div className="flex items-center gap-2 text-sm text-green-600 mt-3">
+                                            <FiTruck size={16} />
+                                            <span>
+                                                Delivery in {deliveryInfo.estimatedDays} days                                               
+                                            </span>
+                                        </div>
+                                        ) : activeAddress.pincode && (
+                                            <div className="flex items-center gap-2 text-sm text-red-500 mt-3">
+                                                <FiTruck size={16} />
+                                                <span>Delivery not available to {activeAddress.pincode}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })()
@@ -342,7 +423,13 @@ export default function CartPage() {
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Delivery Fee</span>
-                                    <span className="font-medium text-green-600">FREE</span>
+                                    {loadingDeliveryFee ? (
+                                        <span className="text-sm text-gray-400">Calculating...</span>
+                                    ) : deliveryFee > 0 ? (
+                                        <span className="font-medium">₹{deliveryFee.toLocaleString()}</span>
+                                    ) : (
+                                        <span className="font-medium text-green-600">FREE</span>
+                                    )}
                                 </div>
                                 {appliedCoupon && (
                                     <div className="flex justify-between">
@@ -353,7 +440,7 @@ export default function CartPage() {
                                 <hr className="border-gray-100 my-2" />
                                 <div className="flex justify-between text-base font-bold text-gray-900">
                                     <span>Subtotal</span>
-                                    <span>₹{(totalPrice - (appliedCoupon ? appliedCoupon.discount : 0)).toLocaleString()}</span>
+                                    <span>₹{(totalPrice - (appliedCoupon ? appliedCoupon.discount : 0) + deliveryFee).toLocaleString()}</span>
                                 </div>
                             </div>
 
@@ -386,12 +473,30 @@ export default function CartPage() {
 
             <AddAddressModal
                 isOpen={showAddressModal}
-                onClose={() => setShowAddressModal(false)}
+                onClose={() => {
+                    setShowAddressModal(false);
+                    // Refresh delivery fee after new address is added
+                    setTimeout(() => {
+                        const activeAddress = user?.addresses?.find(a => a.isDefault) || user?.addresses?.[0];
+                        if (activeAddress?.pincode) {
+                            refreshDeliveryFee(activeAddress.pincode);
+                        }
+                    }, 100);
+                }}
             />
 
             <AddressSelectionModal
                 isOpen={showSelectionModal}
-                onClose={() => setShowSelectionModal(false)}
+                onClose={() => {
+                    setShowSelectionModal(false);
+                    // Refresh delivery fee after address change
+                    setTimeout(() => {
+                        const activeAddress = user?.addresses?.find(a => a.isDefault) || user?.addresses?.[0];
+                        if (activeAddress?.pincode) {
+                            refreshDeliveryFee(activeAddress.pincode);
+                        }
+                    }, 100);
+                }}
             />
         </div>
     );

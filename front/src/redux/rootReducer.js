@@ -18,6 +18,7 @@ import paymentReducer from "./slice/payment.slice.js";
 import reviewReducer from "./slice/review.slice.js";
 import orderReducer from "./slice/order.slice.js";
 import trackingReducer from "./slice/tracking.slice.js";
+import deliveryReducer from "./slice/delivery.slice.js";
 
 export const rootReducer = combineReducers({
     adminDashboard: adminDashboardReducer,
@@ -38,5 +39,6 @@ export const rootReducer = combineReducers({
     wishlist: wishlistReducer,
     review: reviewReducer,
     order: orderReducer,
-    tracking: trackingReducer
+    tracking: trackingReducer,
+    delivery: deliveryReducer
 });
