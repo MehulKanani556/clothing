@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormik } from 'formik';
@@ -6,14 +6,16 @@ import * as Yup from 'yup';
 import { MdCloudUpload, MdDelete, MdClose, MdAdd } from 'react-icons/md';
 import { CircularProgress } from '@mui/material';
 import { createProduct, updateProduct, fetchAdminProducts } from '../../../redux/slice/adminProductSlice';
-import { fetchCategories, fetchSubCategoriesByCategoryId } from '../../../redux/slice/category.slice';
+import { fetchCategories, fetchSubCategoriesByCategoryId, fetchAdminMainCategories } from '../../../redux/slice/category.slice';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
 import CustomSelect from '../../components/common/CustomSelect';
+import { generateSKU, getCategoryCode } from '../../../utils/skuGenerator';
 
 const ProductSchema = Yup.object().shape({
     name: Yup.string().required('Required'),
     description: Yup.string(),
     brand: Yup.string().required('Brand Required'),
+    mainCategory: Yup.string().required('Main Category Required'),
     category: Yup.string().required('Category Required'),
     subCategory: Yup.string().required('Sub-Category Required'),
     gender: Yup.string().required('Required'),
@@ -42,12 +44,13 @@ const ProductForm = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const { products } = useSelector(state => state.adminProducts);
-    const { categories, subCategories } = useSelector(state => state.category);
+    const { categories, subCategories, mainCategories } = useSelector(state => state.category);
 
     const isEdit = !!id;
 
     useEffect(() => {
         dispatch(fetchCategories());
+        dispatch(fetchAdminMainCategories());
         if (!products.length && isEdit) {
             dispatch(fetchAdminProducts());
         }
@@ -57,6 +60,7 @@ const ProductForm = () => {
         name: '',
         description: '',
         brand: '',
+        mainCategory: '',
         category: '',
         subCategory: '',
         gender: 'Men',
@@ -69,7 +73,7 @@ const ProductForm = () => {
                 colorFamily: '',
                 colorCode: '',
                 images: [],
-                options: [{ sku: '', size: '', price: 0, mrp: 0, stock: 0 }]
+                options: [{ sku: '', size: '', price: '', mrp: '', stock: '' }]
             }
         ]
     };
@@ -133,10 +137,13 @@ const ProductForm = () => {
                     dispatch(fetchSubCategoriesByCategoryId(categoryId));
                 }
 
+                const mainCategoryId = product.category?.mainCategory?._id || product.category?.mainCategory || '';
+                
                 formik.setValues({
                     name: product.name,
                     description: product.description || '',
                     brand: product.brand,
+                    mainCategory: mainCategoryId,
                     category: categoryId,
                     subCategory: subCategoryId || '',
                     gender: product.gender,
@@ -163,13 +170,91 @@ const ProductForm = () => {
     }, [isEdit, id, products, dispatch]);
 
 
+    // Filter categories by selected mainCategory
+    const filteredCategories = formik.values.mainCategory
+        ? categories.filter(cat => 
+            cat.mainCategory && 
+            (cat.mainCategory._id === formik.values.mainCategory || cat.mainCategory === formik.values.mainCategory)
+          )
+        : categories;
+
+    const handleMainCategoryChange = (mainCategoryId) => {
+        formik.setFieldValue('mainCategory', mainCategoryId);
+        formik.setFieldValue('category', '');
+        formik.setFieldValue('subCategory', '');
+        // Auto-set gender from mainCategory name
+        const selectedMainCategory = mainCategories.find(mc => mc._id === mainCategoryId);
+        if (selectedMainCategory) {
+            formik.setFieldValue('gender', selectedMainCategory.name);
+        }
+        setTimeout(() => generateAllSKUs(), 300);
+    };
+
     const handleCategoryChange = (categoryId) => {
         formik.setFieldValue('category', categoryId);
         formik.setFieldValue('subCategory', '');
         if (categoryId) {
             dispatch(fetchSubCategoriesByCategoryId(categoryId));
         }
+        setTimeout(() => generateAllSKUs(), 300);
     };
+
+    // Auto-generate SKUs for all variants and options
+    const generateAllSKUs = useCallback(() => {
+        const currentValues = formik.values;
+        const { name, brand, mainCategory, category, subCategory, gender, variants } = currentValues;
+        
+        // Check if we have all required fields
+        if (!name || !brand || !category || !gender) {
+            return;
+        }
+
+        // Get category and subcategory names
+        const categoryObj = categories.find(cat => cat._id === category);
+        const subCategoryObj = subCategories.find(sub => sub._id === subCategory);
+        const mainCategoryObj = mainCategories.find(mc => mc._id === mainCategory);
+        
+        // Derive gender from mainCategory name (as per backend logic)
+        const genderFromMainCategory = mainCategoryObj?.name || gender || 'Unisex';
+        
+        // Get category code
+        const categoryCode = getCategoryCode(
+            subCategoryObj?.name || categoryObj?.name,
+            subCategoryObj?.name
+        );
+
+        // Generate SKUs for all variants and options
+        const updatedVariants = variants.map((variant) => {
+            if (!variant.color) return variant; // Skip if color not set
+            
+            const updatedOptions = variant.options.map((option) => {
+                if (!option.size) return option; // Skip if size not set
+                
+                // Generate SKU
+                const sku = generateSKU({
+                    categoryCode,
+                    gender: genderFromMainCategory,
+                    brand,
+                    productName: name,
+                    subCategoryName: subCategoryObj?.name,
+                    color: variant.color,
+                    size: option.size
+                });
+                
+                return {
+                    ...option,
+                    sku: sku
+                };
+            });
+            
+            return {
+                ...variant,
+                options: updatedOptions
+            };
+        });
+        
+        formik.setFieldValue('variants', updatedVariants);
+    }, [formik, categories, subCategories, mainCategories]);
 
     // Helper functions for array manipulations
     const pushVariant = () => {
@@ -178,9 +263,11 @@ const ProductForm = () => {
             colorFamily: '',
             colorCode: '',
             images: [],
-            options: [{ sku: '', size: '', price: 0, mrp: 0, stock: 0 }]
+            options: [{ sku: '', size: '', price: '', mrp: '', stock: '' }]
         };
         formik.setFieldValue('variants', [...formik.values.variants, newVariant]);
+        // Auto-generate SKU after variant is added (will trigger when color and size are entered)
+        setTimeout(() => generateAllSKUs(), 100);
     };
 
     const removeVariant = (index) => {
@@ -202,8 +289,10 @@ const ProductForm = () => {
 
     const pushOption = (variantIndex) => {
         const currentOptions = formik.values.variants[variantIndex].options;
-        const newOption = { sku: '', size: '', price: 0, mrp: 0, stock: 0 };
+        const newOption = { sku: '', size: '', price: '', mrp: '', stock: '' };
         formik.setFieldValue(`variants[${variantIndex}].options`, [...currentOptions, newOption]);
+        // Auto-generate SKU after option is added (will trigger when size is entered)
+        setTimeout(() => generateAllSKUs(), 100);
     };
 
     const removeOption = (variantIndex, optionIndex) => {
@@ -211,6 +300,105 @@ const ProductForm = () => {
         const newOptions = currentOptions.filter((_, i) => i !== optionIndex);
         formik.setFieldValue(`variants[${variantIndex}].options`, newOptions);
     };
+
+    // Auto-generate SKU when main product fields change (not variant fields to avoid interfering with typing)
+    useEffect(() => {
+        const { name, brand, mainCategory, category, subCategory, gender, variants } = formik.values;
+        
+        // Only generate if we have minimum required fields
+        if (name && brand && category && gender && variants.length > 0) {
+            // Check if at least one variant has color and one option has size
+            const hasValidVariant = variants.some(v => 
+                v.color && v.options && v.options.some(o => o.size)
+            );
+            
+            if (hasValidVariant) {
+                // Longer delay to avoid interfering with user input
+                const timeoutId = setTimeout(() => {
+                    generateAllSKUs();
+                }, 500);
+                
+                return () => clearTimeout(timeoutId);
+            }
+        }
+        // Only trigger on main product fields, not variant fields (variants handled via onBlur)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formik.values.name, formik.values.brand, formik.values.mainCategory, 
+        formik.values.category, formik.values.subCategory, formik.values.gender]);
+
+    // Generate SKU for a specific variant option
+    const generateSKUForOption = useCallback((variantIndex, optionIndex) => {
+        const { name, brand, mainCategory, category, subCategory, gender, variants } = formik.values;
+        
+        if (!name || !brand || !category || !gender) return;
+        
+        const categoryObj = categories.find(cat => cat._id === category);
+        const subCategoryObj = subCategories.find(sub => sub._id === subCategory);
+        const mainCategoryObj = mainCategories.find(mc => mc._id === mainCategory);
+        
+        const genderFromMainCategory = mainCategoryObj?.name || gender || 'Unisex';
+        const categoryCode = getCategoryCode(
+            subCategoryObj?.name || categoryObj?.name,
+            subCategoryObj?.name
+        );
+        
+        const variant = variants[variantIndex];
+        if (!variant) return;
+        
+        const option = variant.options?.[optionIndex];
+        if (!option) return;
+        
+        if (variant.color && option.size) {
+            const sku = generateSKU({
+                categoryCode,
+                gender: genderFromMainCategory,
+                brand,
+                productName: name,
+                subCategoryName: subCategoryObj?.name,
+                color: variant.color,
+                size: option.size
+            });
+            
+            formik.setFieldValue(`variants[${variantIndex}].options[${optionIndex}].sku`, sku);
+        }
+    }, [formik, categories, subCategories, mainCategories]);
+
+    // Generate SKUs for all options in a variant
+    const generateSKUsForVariant = useCallback((variantIndex) => {
+        const { name, brand, mainCategory, category, subCategory, gender, variants } = formik.values;
+        
+        if (!name || !brand || !category || !gender) return;
+        
+        const categoryObj = categories.find(cat => cat._id === category);
+        const subCategoryObj = subCategories.find(sub => sub._id === subCategory);
+        const mainCategoryObj = mainCategories.find(mc => mc._id === mainCategory);
+        
+        const genderFromMainCategory = mainCategoryObj?.name || gender || 'Unisex';
+        const categoryCode = getCategoryCode(
+            subCategoryObj?.name || categoryObj?.name,
+            subCategoryObj?.name
+        );
+        
+        const variant = variants[variantIndex];
+        if (!variant || !variant.color) return;
+        
+        // Update SKUs for all options in this variant
+        variant.options.forEach((option, optIndex) => {
+            if (option.size) {
+                const sku = generateSKU({
+                    categoryCode,
+                    gender: genderFromMainCategory,
+                    brand,
+                    productName: name,
+                    subCategoryName: subCategoryObj?.name,
+                    color: variant.color,
+                    size: option.size
+                });
+                
+                formik.setFieldValue(`variants[${variantIndex}].options[${optIndex}].sku`, sku);
+            }
+        });
+    }, [formik, categories, subCategories, mainCategories]);
 
     return (
         <div className="p-6 bg-[#f9f9f9] min-h-screen">
@@ -246,7 +434,10 @@ const ProductForm = () => {
                                     <input
                                         type="text"
                                         name="name"
-                                        onChange={formik.handleChange}
+                                        onChange={(e) => {
+                                            formik.handleChange(e);
+                                            setTimeout(() => generateAllSKUs(), 300);
+                                        }}
                                         onBlur={formik.handleBlur}
                                         value={formik.values.name}
                                         placeholder="e.g. Classic Cotton T-Shirt"
@@ -266,7 +457,10 @@ const ProductForm = () => {
                                     <input
                                         type="text"
                                         name="brand"
-                                        onChange={formik.handleChange}
+                                        onChange={(e) => {
+                                            formik.handleChange(e);
+                                            setTimeout(() => generateAllSKUs(), 300);
+                                        }}
                                         onBlur={formik.handleBlur}
                                         value={formik.values.brand}
                                         placeholder="e.g. Nike"
@@ -296,13 +490,28 @@ const ProductForm = () => {
                             </div>
 
                             {/* Categories */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Main Category</label>
+                                    <CustomSelect
+                                        value={formik.values.mainCategory}
+                                        onChange={handleMainCategoryChange}
+                                        options={mainCategories.map(mc => ({ label: mc.name, value: mc._id }))}
+                                        placeholder="Select Main Category"
+                                        className="w-full"
+                                    />
+                                    {formik.touched.mainCategory && formik.errors.mainCategory && (
+                                        <p className="text-xs text-red-500 mt-1">{formik.errors.mainCategory}</p>
+                                    )}
+                                </div>
+
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-gray-700">Category</label>
                                     <CustomSelect
                                         value={formik.values.category}
                                         onChange={handleCategoryChange}
-                                        options={categories.map(cat => ({ label: cat.name, value: cat._id }))}
+                                        options={filteredCategories.map(cat => ({ label: cat.name, value: cat._id }))}
+                                        disabled={!formik.values.mainCategory}
                                         placeholder="Select Category"
                                         className="w-full"
                                     />
@@ -315,7 +524,10 @@ const ProductForm = () => {
                                     <label className="text-sm font-semibold text-gray-700">Sub Category</label>
                                     <CustomSelect
                                         value={formik.values.subCategory}
-                                        onChange={(val) => formik.setFieldValue('subCategory', val)}
+                                        onChange={(val) => {
+                                            formik.setFieldValue('subCategory', val);
+                                            setTimeout(() => generateAllSKUs(), 200);
+                                        }}
                                         options={subCategories.map(sub => ({ label: sub.name, value: sub._id }))}
                                         disabled={!formik.values.category}
                                         placeholder="Select Sub Category"
@@ -440,7 +652,13 @@ const ProductForm = () => {
                                                     type="text"
                                                     name={`variants[${index}].color`}
                                                     onChange={formik.handleChange}
-                                                    onBlur={formik.handleBlur}
+                                                    onBlur={(e) => {
+                                                        formik.handleBlur(e);
+                                                        // Generate SKUs only when user finishes typing (on blur)
+                                                        setTimeout(() => {
+                                                            generateSKUsForVariant(index);
+                                                        }, 100);
+                                                    }}
                                                     value={formik.values.variants[index].color}
                                                     placeholder="e.g. Navy Blue"
                                                     className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-1 transition-colors ${formik.touched.variants?.[index]?.color && formik.errors.variants?.[index]?.color
@@ -532,28 +750,27 @@ const ProductForm = () => {
                                             <label className="text-xs font-bold text-gray-700 uppercase tracking-wide block mb-3">Sizes & Inventory</label>
                                             <div className="space-y-2">
                                                 {variant.options.map((option, optIndex) => (
-                                                    <div key={optIndex} className="grid grid-cols-6 gap-2 items-start">
-                                                        <div>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="SKU"
-                                                                name={`variants[${index}].options[${optIndex}].sku`}
-                                                                onChange={formik.handleChange}
-                                                                value={formik.values.variants[index].options[optIndex].sku}
-                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-black focus:ring-1 focus:ring-black outline-none"
-                                                            />
-                                                        </div>
-                                                        <div>
+                                                    <div key={optIndex} className="grid grid-cols-8 gap-2 items-start">
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block">Size</label>
                                                             <input
                                                                 type="text"
                                                                 placeholder="Size"
                                                                 name={`variants[${index}].options[${optIndex}].size`}
                                                                 onChange={formik.handleChange}
+                                                                onBlur={(e) => {
+                                                                    formik.handleBlur(e);
+                                                                    // Generate SKU only when user finishes typing (on blur)
+                                                                    setTimeout(() => {
+                                                                        generateSKUForOption(index, optIndex);
+                                                                    }, 100);
+                                                                }}
                                                                 value={formik.values.variants[index].options[optIndex].size}
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-black focus:ring-1 focus:ring-black outline-none"
                                                             />
                                                         </div>
-                                                        <div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block">Price</label>
                                                             <input
                                                                 type="number"
                                                                 placeholder="Price"
@@ -563,7 +780,8 @@ const ProductForm = () => {
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-black focus:ring-1 focus:ring-black outline-none"
                                                             />
                                                         </div>
-                                                        <div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block">MRP</label>
                                                             <input
                                                                 type="number"
                                                                 placeholder="MRP"
@@ -573,7 +791,8 @@ const ProductForm = () => {
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-black focus:ring-1 focus:ring-black outline-none"
                                                             />
                                                         </div>
-                                                        <div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block">Stock</label>
                                                             <input
                                                                 type="number"
                                                                 placeholder="Stock"
@@ -583,7 +802,20 @@ const ProductForm = () => {
                                                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-black focus:ring-1 focus:ring-black outline-none"
                                                             />
                                                         </div>
-                                                        <div className="flex justify-center pt-1">
+                                                        <div className="relative col-span-3 space-y-1">
+                                                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block">SKU (Auto-generated)</label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="SKU (Auto-generated)"
+                                                                name={`variants[${index}].options[${optIndex}].sku`}
+                                                                onChange={formik.handleChange}
+                                                                value={formik.values.variants[index].options[optIndex].sku}
+                                                                title="SKU is auto-generated based on product details. You can edit it manually if needed."
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:border-black focus:ring-1 focus:ring-black outline-none bg-blue-50/30"
+                                                            />
+                                                            <span className="absolute right-2 bottom-1.5 text-[10px] text-gray-400" title="Auto-generated">AUTO</span>
+                                                        </div>
+                                                        <div className="flex justify-center pt-6">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => removeOption(index, optIndex)}

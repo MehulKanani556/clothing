@@ -72,6 +72,7 @@ const Categories = () => {
         const data = new FormData();
         data.append('name', formData.name);
         data.append('slug', formData.slug);
+        data.append('mainCategory', formData.mainCategory);
         data.append('description', formData.description);
         data.append('isActive', formData.isActive);
 
@@ -109,6 +110,14 @@ const Categories = () => {
                     <span className="text-xl w-14 h-14 flex items-center justify-center bg-gray-100 rounded">{row.image ? <img src={row.image} alt="" className="w-full h-full object-cover rounded" /> : (row.icon || '📁')}</span>
                     <span className="font-medium text-gray-900">{row.name}</span>
                 </div>
+            )
+        },
+        {
+            header: 'Main Category',
+            accessor: 'mainCategory',
+            sortable: true,
+            render: (row) => (
+                <span className="text-gray-600">{row.mainCategory?.name || 'N/A'}</span>
             )
         },
         { header: 'Slug', accessor: 'slug', sortable: true, render: (row) => <span className="text-gray-600">{row.slug}</span> },

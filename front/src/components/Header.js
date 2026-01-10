@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import AuthModal from './AuthModal';
 import { logout } from '../redux/slice/auth.slice';
 import { fetchCart } from '../redux/slice/cart.slice';
-import { fetchCategories, fetchSubCategories } from '../redux/slice/category.slice';
+import { fetchCategories, fetchSubCategories, fetchMainCategories } from '../redux/slice/category.slice';
 import { fetchProducts } from '../redux/slice/product.slice';
 import { fetchWishlist } from '../redux/slice/wishlist.slice';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -19,7 +19,7 @@ function classNames(...classes) {
 export default function Header() {
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
-  const { categories, subCategories } = useSelector((state) => state.category);
+  const { mainCategories, categories, subCategories } = useSelector((state) => state.category);
   const dropdownRef = useRef(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const location = useLocation();
@@ -40,6 +40,7 @@ export default function Header() {
       dispatch(fetchWishlist());
     }
     dispatch(fetchProducts({}));
+    dispatch(fetchMainCategories());
     dispatch(fetchCategories());
     dispatch(fetchSubCategories());
   }, [isAuthenticated, dispatch, user]);
@@ -61,29 +62,59 @@ export default function Header() {
     ]
   };
 
-  const navigation = [
-    { name: 'New Arrivals', href: '/category/new-arrivals' },
-    ...categories.map(cat => {
-      const catSubs = subCategories.filter(sub => sub.category && (sub.category._id === cat._id || sub.category === cat._id));
+  // Organize categories and subcategories by 4-level hierarchy
+  const organizeNavigation = (mainCatId) => {
+    // Get categories under this main category
+    const mainCatCategories = categories.filter(cat => 
+      cat.mainCategory && 
+      (cat.mainCategory._id === mainCatId || cat.mainCategory === mainCatId) &&
+      !cat.deletedAt &&
+      cat.isActive
+    );
 
-      // Group subcategories into chunks of 8 for columns, or just use one column
-      const columns = [];
-      if (catSubs.length > 0) {
-        // Just one generic column for now as we don't have "Topwear/Bottomwear" grouping data
-        columns.push({
-          heading: 'Collection',
-          items: catSubs.map(s => ({ name: s.name, slug: s.slug || s.name.toLowerCase().replace(/\s+/g, '-') }))
-        });
-      }
+    // Organize: Group subcategories under their parent categories
+    const columns = mainCatCategories.map(category => {
+      // Get subcategories for this category
+      const categorySubs = subCategories.filter(sub =>
+        sub.category &&
+        (sub.category._id === category._id || sub.category === category._id) &&
+        !sub.deletedAt &&
+        sub.isActive
+      ).map(sub => ({
+        name: sub.name,
+        slug: sub.slug || sub.name.toLowerCase().replace(/\s+/g, '-')
+      }));
 
       return {
-        name: cat.name,
-        href: `/category/${cat._id}`,
-        type: 'dropdown',
-        columns: columns,
-        images: categoryImages[cat.name] || []
+        heading: category.name, // Category name (Topwear, Bottomwear, etc.)
+        items: categorySubs // SubCategory items (T-Shirts, Jeans, etc.)
       };
-    }),
+    }).filter(col => col.items.length > 0); // Only include columns with items
+
+    return columns;
+  };
+
+  const navigation = [
+    ...mainCategories
+      .filter(mainCat => mainCat.isActive && !mainCat.deletedAt)
+      .sort((a, b) => {
+        // Sort by main category name: Men, Women, Kids, etc.
+        const order = { 'Men': 1, 'Women': 2, 'Kids': 3 };
+        return (order[a.name] || 99) - (order[b.name] || 99);
+      })
+      .map(mainCat => {
+        // Organize categories and subcategories for this main category
+        const columns = organizeNavigation(mainCat._id);
+
+        return {
+          name: mainCat.name, // Level 1: Men, Women, Kids (MainCategory)
+          href: `/category/${mainCat._id}`,
+          slug: mainCat.slug,
+          type: 'dropdown',
+          columns: columns, // Category (Topwear) -> SubCategory (T-Shirts, Jeans)
+          images: categoryImages[mainCat.name] || []
+        };
+      }),
     { name: 'Best Sellers', href: '/category/best-sellers' }
   ];
 
@@ -201,88 +232,76 @@ export default function Header() {
                         <Link
                           to={item.href}
                           className={classNames(
-                            location.pathname.startsWith(item.href)
-                              ? 'font-bold border-b-2 border-black'
+                            location.pathname.startsWith(item.href) || location.pathname.includes(item.slug || '')
+                              ? 'font-bold border-b-2 border-pink-500'
                               : 'font-regular',
-                            'px-1 py-2 text-sm text-black group-hover:text-gray-600 transition-colors inline-flex items-center gap-1',
+                            'px-1 py-2 text-sm text-black group-hover:text-pink-600 transition-colors inline-flex items-center gap-1',
                           )}
                         >
                           {item.name}
                           <MdKeyboardArrowDown className="transition-transform duration-200 group-hover:rotate-180" />
                         </Link>
 
-                        {/* Mega Menu / Dropdown */}
-                        <div className={`absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out z-50 ${item.images && item.images.length > 0 ? 'w-screen max-w-screen-xl -translate-x-1/4' : 'w-64'}`}>
-                          <div className="bg-white rounded-xl shadow-2xl ring-1 ring-black ring-opacity-5 overflow-hidden">
-                            <div className={`${item.images && item.images.length > 0 ? 'p-8' : 'p-6'}`}>
-                              {/* Content Logic */}
-                              {item.images && item.images.length > 0 ? (
-                                // Full Mega Menu Layout
-                                <div className={`grid gap-8 ${item.name === 'Premium' ? 'grid-cols-5' : 'grid-cols-[1.5fr_1fr_1fr]'}`}>
-                                  {/* Columns Section */}
-                                  {!['Premium'].includes(item.name) && (
-                                    <div className="col-span-1 grid grid-cols-2 gap-8">
-                                      {item.columns.map((col) => (
-                                        <div key={col.heading}>
-                                          <h3 className="font-bold text-gray-900 mb-4">{col.heading}</h3>
-                                          <ul className="space-y-3">
-                                            {col.items.map((subItem) => (
-                                              <li key={typeof subItem === 'string' ? subItem : subItem.name}>
-                                                <Link
-                                                  to={`${item.href}?sub=${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : subItem.slug}`}
-                                                  className="text-sm text-gray-500 hover:text-black transition-colors"
-                                                >
-                                                  {typeof subItem === 'string' ? subItem : subItem.name}
-                                                </Link>
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  {/* Images Section */}
-                                  <div className={`${item.name === 'Premium' ? 'col-span-5 grid grid-cols-5' : 'col-span-2 grid grid-cols-3'} gap-6`}>
-                                    {item.images.map((img) => (
-                                      <Link key={img.name} to={img.href} className="group/img block">
-                                        <div className="aspect-[3/4] overflow-hidden rounded-lg mb-3 bg-gray-100">
-                                          <img
-                                            src={img.url}
-                                            alt={img.name}
-                                            className="w-full h-full object-cover object-center group-hover/img:scale-105 transition-transform duration-500"
-                                          />
-                                        </div>
-                                        <p className="text-center text-sm font-medium text-gray-900">{img.name}</p>
-                                      </Link>
-                                    ))}
-                                  </div>
-                                </div>
-                              ) : (
-                                // Simple Dropdown Layout (No Images)
-                                <div className="flex flex-col gap-4">
-                                  {item.columns.map((col) => (
-                                    <div key={col.heading}>
-                                      <h3 className="font-bold text-gray-900 mb-3">{col.heading}</h3>
-                                      <ul className="space-y-2">
+                        {/* Mega Menu / Dropdown - Myntra Style */}
+                        {item.columns.length > 0 && (
+                          <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out z-50 w-screen max-w-screen-xl -translate-x-1/4">
+                            <div className="bg-white rounded-lg shadow-2xl ring-1 ring-black ring-opacity-5 overflow-hidden">
+                              <div className="p-8">
+                                {/* Myntra-style multi-column layout */}
+                                <div className="grid grid-cols-5 gap-8">
+                                  {item.columns.slice(0, 5).map((col, idx) => (
+                                    <div key={col.heading || idx} className="flex flex-col">
+                                      {col.heading && (
+                                        <h3 className="font-bold text-pink-600 mb-4 text-sm uppercase tracking-wide">
+                                          {col.heading}
+                                        </h3>
+                                      )}
+                                      <ul className="space-y-2.5 flex-1">
                                         {col.items.map((subItem) => (
-                                          <li key={typeof subItem === 'string' ? subItem : subItem.name}>
+                                          <li key={typeof subItem === 'string' ? subItem : subItem.name || subItem}>
                                             <Link
-                                              to={`${item.href}?sub=${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : subItem.slug}`}
-                                              className="text-sm text-gray-500 hover:text-black transition-colors block py-1"
+                                              to={`${item.href}?sub=${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : (subItem.slug || subItem.name?.toLowerCase().replace(/\s+/g, '-'))}`}
+                                              className="text-sm text-gray-600 hover:text-black transition-colors block py-0.5"
                                             >
-                                              {typeof subItem === 'string' ? subItem : subItem.name}
+                                              {typeof subItem === 'string' ? subItem : (subItem.name || subItem)}
                                             </Link>
                                           </li>
                                         ))}
                                       </ul>
                                     </div>
                                   ))}
+                                  
+                                  {/* If more than 5 columns, continue on new row */}
+                                  {item.columns.length > 5 && (
+                                    <>
+                                      {item.columns.slice(5).map((col, idx) => (
+                                        <div key={col.heading || idx + 5} className="flex flex-col">
+                                          {col.heading && (
+                                            <h3 className="font-bold text-pink-600 mb-4 text-sm uppercase tracking-wide">
+                                              {col.heading}
+                                            </h3>
+                                          )}
+                                          <ul className="space-y-2.5 flex-1">
+                                            {col.items.map((subItem) => (
+                                              <li key={typeof subItem === 'string' ? subItem : subItem.name || subItem}>
+                                                <Link
+                                                  to={`/category?sub=${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : (subItem.slug || subItem.name?.toLowerCase().replace(/\s+/g, '-'))}`}
+                                                  className="text-sm text-gray-600 hover:text-black transition-colors block py-0.5"
+                                                >
+                                                  {typeof subItem === 'string' ? subItem : (subItem.name || subItem)}
+                                                </Link>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      ))}
+                                    </>
+                                  )}
                                 </div>
-                              )}
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   }

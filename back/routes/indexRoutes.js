@@ -7,6 +7,7 @@ const { auth } = require('../middleware/auth');
 const { getAllUsers, getSingleUser, deleteUser, updateUser, addAddress, deleteAddress, setDefaultAddress } = require('../controllers/user.controller');
 
 const { getAllProducts, getProductById, getRelatedProducts, createProduct, uploadProductImage, updateProduct, deleteProduct } = require('../controllers/product.controller');
+const { getAllMainCategories, createMainCategory, updateMainCategory, deleteMainCategory, getMainCategoryById, getAllAdminMainCategories } = require('../controllers/mainCategory.controller');
 const { getAllCategories, createCategory, updateCategory, deleteCategory, getCategoryById, getAlladminCategories } = require('../controllers/category.controller');
 const { getAllSubCategories, createSubCategory, getSubCategoriesByCategoryId, updateSubCategory, deleteSubCategory, getAllAdminSubCategories } = require('../controllers/subCategory.controller');
 
@@ -50,6 +51,14 @@ router.delete('/products/:id', auth, deleteProduct);
 router.post('/products/upload-image', auth, upload.single("image"), uploadProductImage);
 router.get('/products/:id', getProductById);
 router.get('/products/:id/related', getRelatedProducts);
+
+// main categories
+router.get('/maincategories', getAllMainCategories);
+router.get('/adminmaincategories', getAllAdminMainCategories);
+router.get('/maincategories/:id', getMainCategoryById);
+router.post('/maincategories', upload.single('image'), createMainCategory);
+router.put('/maincategories/:id', upload.single('image'), updateMainCategory);
+router.delete('/maincategories/:id', deleteMainCategory);
 
 // categories
 router.get('/categories', getAllCategories);

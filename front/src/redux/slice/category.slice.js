@@ -3,6 +3,7 @@ import { BASE_URL } from '../../utils/BASE_URL';
 import axios from 'axios';
 
 const initialState = {
+    mainCategories: [],
     categories: [],
     subCategories: [],
     categoryDetails: null, // For single category view
@@ -181,6 +182,72 @@ export const deleteCategory = createAsyncThunk(
     }
 );
 
+// MainCategory Thunks
+export const fetchMainCategories = createAsyncThunk(
+    'category/fetchMainCategories',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await axios.get(`${BASE_URL}/maincategories`);
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred';
+            return rejectWithValue(error.response?.data || { message: errorMessage });
+        }
+    }
+);
+
+export const fetchAdminMainCategories = createAsyncThunk(
+    'category/fetchAdminMainCategories',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await axios.get(`${BASE_URL}/adminmaincategories`);
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred';
+            return rejectWithValue(error.response?.data || { message: errorMessage });
+        }
+    }
+);
+
+export const createMainCategory = createAsyncThunk(
+    'category/createMainCategory',
+    async (categoryData, { rejectWithValue }) => {
+        try {
+            const response = await axios.post(`${BASE_URL}/maincategories`, categoryData);
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred';
+            return rejectWithValue(error.response?.data || { message: errorMessage });
+        }
+    }
+);
+
+export const updateMainCategory = createAsyncThunk(
+    'category/updateMainCategory',
+    async ({ id, data }, { rejectWithValue }) => {
+        try {
+            const response = await axios.put(`${BASE_URL}/maincategories/${id}`, data);
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred';
+            return rejectWithValue(error.response?.data || { message: errorMessage });
+        }
+    }
+);
+
+export const deleteMainCategory = createAsyncThunk(
+    'category/deleteMainCategory',
+    async (id, { rejectWithValue }) => {
+        try {
+            await axios.delete(`${BASE_URL}/maincategories/${id}`);
+            return id;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred';
+            return rejectWithValue(error.response?.data || { message: errorMessage });
+        }
+    }
+);
+
 export const categorySlice = createSlice({
     name: 'category',
     initialState,
@@ -336,13 +403,8 @@ export const categorySlice = createSlice({
 
             // Delete SubCategory
             .addCase(deleteSubCategory.fulfilled, (state, action) => {
-                // Soft delete often returns the object, but if it returns ID or we filter by visual state:
-                // If we are in admin view showing all, we might want to update the status instead of removing.
-                // Assuming standard removal from list for now or mapped update.
-                const index = state.subCategories.findIndex(c => c._id === action.payload.id); // Assuming payload has id, or logic below
+                const index = state.subCategories.findIndex(c => c._id === action.payload.id);
                 if (index !== -1) {
-                    // Update local state to reflect soft delete (set deletedAt) if we want to keep showing it
-                    // Or remove it if we want to hide it
                     state.subCategories[index] = { ...state.subCategories[index], deletedAt: new Date().toISOString(), isActive: false };
                 }
                 state.loading = false;
@@ -351,6 +413,70 @@ export const categorySlice = createSlice({
                 state.loading = true;
             })
             .addCase(deleteSubCategory.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+
+            // MainCategories
+            .addCase(fetchMainCategories.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(fetchMainCategories.fulfilled, (state, action) => {
+                state.loading = false;
+                state.mainCategories = action.payload.data;
+            })
+            .addCase(fetchMainCategories.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+
+            .addCase(fetchAdminMainCategories.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(fetchAdminMainCategories.fulfilled, (state, action) => {
+                state.loading = false;
+                state.mainCategories = action.payload.data;
+            })
+            .addCase(fetchAdminMainCategories.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+
+            .addCase(createMainCategory.fulfilled, (state, action) => {
+                state.mainCategories.push(action.payload.data);
+                state.loading = false;
+            })
+            .addCase(createMainCategory.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(createMainCategory.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+
+            .addCase(updateMainCategory.fulfilled, (state, action) => {
+                const index = state.mainCategories.findIndex(c => c._id === action.payload.data._id);
+                if (index !== -1) {
+                    state.mainCategories[index] = action.payload.data;
+                }
+                state.loading = false;
+            })
+            .addCase(updateMainCategory.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(updateMainCategory.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+
+            .addCase(deleteMainCategory.fulfilled, (state, action) => {
+                state.mainCategories = state.mainCategories.filter(c => c._id !== action.payload);
+                state.loading = false;
+            })
+            .addCase(deleteMainCategory.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(deleteMainCategory.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload?.message;
             });

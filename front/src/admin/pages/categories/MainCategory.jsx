@@ -1,124 +1,122 @@
 import React, { useEffect, useState } from 'react';
-import { MdAdd, MdEdit, MdDelete, MdVisibility } from 'react-icons/md';
+import toast from 'react-hot-toast';
+import { MdAdd, MdEdit, MdDelete } from 'react-icons/md';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
 import DataTable from '../../components/common/DataTable';
 import CustomSelect from '../../components/common/CustomSelect';
-import SubCategoryModal from '../../components/modals/SubCategoryModal';
+import MainCategoryModal from '../../components/modals/MainCategoryModal';
 import DeleteModal from '../../components/modals/DeleteModal';
 import {
-    createSubCategory,
-    updateSubCategory,
-    deleteSubCategory,
-    fetchAdminSubCategories,
-    fetchAdminCategories,
+    createMainCategory,
+    updateMainCategory,
+    deleteMainCategory,
     fetchAdminMainCategories
 } from '../../../redux/slice/category.slice';
-import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 
-const SubCategory = () => {
+const MainCategory = () => {
     const dispatch = useDispatch();
-    const navigate = useNavigate();
-    const { subCategories, categories, mainCategories, loading } = useSelector((state) => state.category);
+    const { mainCategories, loading } = useSelector((state) => state.category);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentSubCategory, setCurrentSubCategory] = useState(null);
+    const [currentMainCategory, setCurrentMainCategory] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [subCategoryToDelete, setSubCategoryToDelete] = useState(null);
+    const [mainCategoryToDelete, setMainCategoryToDelete] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
 
     // Fetch data on mount
     useEffect(() => {
-        dispatch(fetchAdminSubCategories());
-        dispatch(fetchAdminCategories()); // Needed for dropdown in modal
-        dispatch(fetchAdminMainCategories()); // Needed for dropdown in modal
+        dispatch(fetchAdminMainCategories());
     }, [dispatch]);
 
     const handleAdd = () => {
-        setCurrentSubCategory(null);
+        setCurrentMainCategory(null);
         setIsModalOpen(true);
     };
 
-    const handleEdit = (subCategory) => {
-        setCurrentSubCategory(subCategory);
+    const handleEdit = (mainCategory) => {
+        setCurrentMainCategory(mainCategory);
         setIsModalOpen(true);
     };
 
     const handleDelete = (id) => {
-        setSubCategoryToDelete(id);
+        setMainCategoryToDelete(id);
         setIsDeleteModalOpen(true);
     };
 
     const confirmDelete = async () => {
-        if (subCategoryToDelete === 'BULK') {
-            await Promise.all(selectedIds.map(id => dispatch(deleteSubCategory(id))));
+        if (mainCategoryToDelete === 'BULK') {
+            await Promise.all(selectedIds.map(id => dispatch(deleteMainCategory(id))));
             setSelectedIds([]);
-            toast.success('Selected subcategories deleted');
-        } else if (subCategoryToDelete) {
-            const resultAction = await dispatch(deleteSubCategory(subCategoryToDelete));
-            if (deleteSubCategory.fulfilled.match(resultAction)) {
-                toast.success('Subcategory deleted successfully');
+            toast.success('Selected main categories deleted');
+        } else if (mainCategoryToDelete) {
+            const resultAction = await dispatch(deleteMainCategory(mainCategoryToDelete));
+            if (deleteMainCategory.fulfilled.match(resultAction)) {
+                toast.success('Main category deleted successfully');
             } else {
-                toast.error('Failed to delete subcategory');
+                toast.error('Failed to delete main category');
             }
         }
-        dispatch(fetchAdminSubCategories()); // Refresh list
+        dispatch(fetchAdminMainCategories()); // Refresh list
         setIsDeleteModalOpen(false);
-        setSubCategoryToDelete(null);
+        setMainCategoryToDelete(null);
     };
 
     const handleBulkDelete = () => {
         if (selectedIds.length === 0) return;
-        setSubCategoryToDelete('BULK');
+        setMainCategoryToDelete('BULK');
         setIsDeleteModalOpen(true);
     };
 
-    const handleSave = async (values) => {
-        if (currentSubCategory) {
+    const handleSave = async (formData) => {
+        const data = new FormData();
+        data.append('name', formData.name);
+        data.append('slug', formData.slug);
+        data.append('description', formData.description);
+        data.append('isActive', formData.isActive);
+
+        if (formData.image) {
+            data.append('image', formData.image);
+        }
+
+        if (currentMainCategory) {
             // Edit Mode
-            const resultAction = await dispatch(updateSubCategory({ id: currentSubCategory._id, data: values }));
-            if (updateSubCategory.fulfilled.match(resultAction)) {
-                toast.success('Subcategory updated successfully');
+            const resultAction = await dispatch(updateMainCategory({ id: currentMainCategory._id, data: data }));
+            if (updateMainCategory.fulfilled.match(resultAction)) {
+                toast.success('Main category updated successfully');
             } else {
-                toast.error('Failed to update subcategory');
+                toast.error('Failed to update main category');
             }
         } else {
             // Add Mode
-            const resultAction = await dispatch(createSubCategory(values));
-            if (createSubCategory.fulfilled.match(resultAction)) {
-                toast.success('Subcategory created successfully');
+            const resultAction = await dispatch(createMainCategory(data));
+            if (createMainCategory.fulfilled.match(resultAction)) {
+                toast.success('Main category created successfully');
             } else {
-                toast.error('Failed to create subcategory');
+                toast.error('Failed to create main category');
             }
         }
-        dispatch(fetchAdminSubCategories());
+        dispatch(fetchAdminMainCategories());
         setIsModalOpen(false);
     };
 
     const columns = [
         {
-            header: 'SubCategory',
+            header: 'Main Category Name',
             accessor: 'name',
             sortable: true,
             render: (row) => (
                 <div className="flex items-center gap-3">
+                    <span className="text-xl w-14 h-14 flex items-center justify-center bg-gray-100 rounded">
+                        {row.image ? <img src={row.image} alt="" className="w-full h-full object-cover rounded" /> : '📁'}
+                    </span>
                     <span className="font-medium text-gray-900">{row.name}</span>
                 </div>
             )
         },
-        {
-            header: 'Category',
-            accessor: 'category',
-            sortable: true,
-            render: (row) => <span className="text-gray-600">{row.category?.name || 'N/A'}</span>
-        },
-        {
-            header: 'Description',
-            accessor: 'description',
-            sortable: true,
-            render: (row) => <span className="text-gray-500 max-w-xs truncate block">{row.description || '-'}</span>
-        },
+        { header: 'Slug', accessor: 'slug', sortable: true, render: (row) => <span className="text-gray-600">{row.slug}</span> },
+        { header: 'Categories', accessor: 'categoryCount', sortable: true, render: (row) => row.categoryCount || 0 },
+        { header: 'Products', accessor: 'productCount', sortable: true, render: (row) => row.productCount || 0 },
         {
             header: 'Last Modify',
             accessor: 'updatedAt',
@@ -158,13 +156,12 @@ const SubCategory = () => {
     const [currentPage, setCurrentPage] = useState(1);
 
     // Filter Logic
-    const filteredSubCategories = (subCategories || []).filter(sub => {
-        const matchesSearch = (sub.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredMainCategories = (mainCategories || []).filter(mainCat => {
+        const matchesSearch = (mainCat.name || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-        // Complex status logic including deletedAt
         let statusString = 'Inactive';
-        if (sub.deletedAt) statusString = 'Deleted';
-        else if (sub.isActive) statusString = 'Active';
+        if (mainCat.deletedAt) statusString = 'Deleted';
+        else if (mainCat.isActive) statusString = 'Active';
 
         const matchesStatus = statusFilter === 'All' || statusString === statusFilter;
 
@@ -172,17 +169,17 @@ const SubCategory = () => {
     });
 
     // Pagination Logic
-    const totalPages = Math.ceil(filteredSubCategories.length / itemsPerPage);
+    const totalPages = Math.ceil(filteredMainCategories.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const currentData = filteredSubCategories.slice(startIndex, startIndex + itemsPerPage);
+    const currentData = filteredMainCategories.slice(startIndex, startIndex + itemsPerPage);
 
     return (
         <div className="p-6 bg-[#f9f9f9]">
             <Breadcrumbs
-                title="SubCategories"
+                title="Main Categories"
                 items={[
                     { label: 'Dashboard', to: '/admin/dashboard' },
-                    { label: 'SubCategories' },
+                    { label: 'Main Categories' },
                 ]}
             />
 
@@ -192,7 +189,7 @@ const SubCategory = () => {
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
                 searchProps={{
-                    placeholder: 'Search subcategory...',
+                    placeholder: 'Search main category...',
                     value: searchTerm,
                     onChange: (val) => { setSearchTerm(val); setCurrentPage(1); }
                 }}
@@ -236,39 +233,37 @@ const SubCategory = () => {
                             className="flex items-center gap-1 bg-black text-white px-4 py-2 rounded-md shadow-sm hover:bg-gray-800 transition-colors text-sm font-medium"
                         >
                             <MdAdd size={18} />
-                            Add SubCategory
+                            Add Main Category
                         </button>
                     </>
                 }
                 pagination={{
                     current: currentPage,
                     totalPages: totalPages,
-                    total: filteredSubCategories.length,
-                    start: filteredSubCategories.length === 0 ? 0 : startIndex + 1,
-                    end: Math.min(startIndex + itemsPerPage, filteredSubCategories.length)
+                    total: filteredMainCategories.length,
+                    start: filteredMainCategories.length === 0 ? 0 : startIndex + 1,
+                    end: Math.min(startIndex + itemsPerPage, filteredMainCategories.length)
                 }}
                 onPageChange={(page) => setCurrentPage(page)}
             />
 
-            <SubCategoryModal
+            <MainCategoryModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSave={handleSave}
-                initialData={currentSubCategory}
-                categories={categories}
-                subCategories={subCategories}
-                mainCategories={mainCategories}
+                initialData={currentMainCategory}
             />
 
             <DeleteModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={confirmDelete}
-                title={subCategoryToDelete === 'BULK' ? 'Delete Selected SubCategories' : undefined}
-                message={subCategoryToDelete === 'BULK' ? `Are you sure you want to delete ${selectedIds.length} subcategories?` : undefined}
+                title={mainCategoryToDelete === 'BULK' ? 'Delete Selected Main Categories' : undefined}
+                message={mainCategoryToDelete === 'BULK' ? `Are you sure you want to delete ${selectedIds.length} main categories?` : undefined}
             />
         </div>
     );
 };
 
-export default SubCategory;
+export default MainCategory;
+

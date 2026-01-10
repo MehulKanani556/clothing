@@ -33,10 +33,18 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             name: 'Dashboards',
             path: '/admin/dashboard',
             icon: <MdDashboard size={20} />,
-            // badge: { text: '02', color: 'bg-green-500' }
         },
-        { type: 'item', key: 'categories', name: 'Categories', path: '/admin/categories', icon: <MdInventory size={20} /> },
-        { type: 'item', key: 'subcategories', name: 'Subcategories', path: '/admin/subcategories', icon: <MdInventory size={20} /> },
+        {
+            type: 'submenu',
+            key: 'categories',
+            name: 'Categories',
+            icon: <MdInventory size={20} />,
+            children: [
+                { name: 'Main Categories', path: '/admin/main-categories' },
+                { name: 'Categories', path: '/admin/categories' },
+                { name: 'Subcategories', path: '/admin/subcategories' },
+            ]
+        },
         {
             type: 'submenu',
             key: 'products',
@@ -51,9 +59,8 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             type: 'item',
             key: 'orders',
             name: 'Orders',
-            path: '/admin/orders' ,
+            path: '/admin/orders',
             icon: <MdShoppingCart size={20} />,
-           
         },
         {
             type: 'item',
@@ -61,7 +68,6 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             name: 'Reviews',
             path: '/admin/reviews',
             icon: <MdEmail size={20} />,
-            // badge: { text: 'New', color: 'bg-red-500' }
         },
     ];
 

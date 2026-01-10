@@ -39,6 +39,7 @@ import Reviews from './admin/pages/reviews/Reviews';
 import ProductForm from './admin/pages/products/ProductForm';
 import AdminProfile from './admin/pages/profile/AdminProfile';
 import SubCategory from './admin/pages/categories/Subcategory';
+import MainCategory from './admin/pages/categories/MainCategory';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -73,14 +74,15 @@ function App() {
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
-              <Route path="products" element={<Products />} />
-              <Route path="add-product" element={<ProductForm />} />
-              <Route path="product/edit/:id" element={<ProductForm />} />
-              <Route path="reviews" element={<Reviews />} />
-              <Route path="products/:id" element={<ProductsDetails />} />
+              <Route path="main-categories" element={<MainCategory />} />
               <Route path="categories" element={<Categories />} />
               <Route path="subcategories" element={<SubCategory />} />
               <Route path="categories/:id" element={<CategoriesProduct />} />
+              <Route path="products" element={<Products />} />
+              <Route path="add-product" element={<ProductForm />} />
+              <Route path="product/edit/:id" element={<ProductForm />} />
+              <Route path="products/:id" element={<ProductsDetails />} />
+              <Route path="reviews" element={<Reviews />} />
               <Route path="orders" element={<Orders />} />
               <Route path="orders/:id" element={<OrderDetails />} />
               <Route path="offer-zone" element={<OfferZone />} />
@@ -90,7 +92,6 @@ function App() {
               <Route path="payments" element={<Payments />} />
               <Route path="size-charts" element={<SizeCharts />} />
               <Route path="blogs" element={<Blogs />} />
-              <Route path="pricing-rules" element={<PricingRules />} />
               <Route path="pricing-rules" element={<PricingRules />} />
               <Route path="support" element={<Support />} />
               <Route path="profile" element={<AdminProfile />} />

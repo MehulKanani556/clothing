@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
-const categorySchema = new mongoose.Schema({
-    mainCategory: {
+const leafSchema = new mongoose.Schema({
+    subCategory: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'MainCategory',
+        ref: 'SubCategory',
         required: true,
         index: true
     },
@@ -21,9 +21,6 @@ const categorySchema = new mongoose.Schema({
     description: {
         type: String
     },
-    image: {
-        type: String
-    },
     isActive: {
         type: Boolean,
         default: true
@@ -34,4 +31,5 @@ const categorySchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Category', categorySchema);
+module.exports = mongoose.model('Leaf', leafSchema);
+
