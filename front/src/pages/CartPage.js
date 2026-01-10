@@ -238,7 +238,7 @@ export default function CartPage() {
                             const discountPercent = mrp > item.price ? Math.round(((mrp - item.price) / mrp) * 100) : 0;
 
                             return (
-                                <div key={item._id} onClick={()=>navigate(`/product/${item._id}`)} className="flex gap-4 p-4 border border-gray-100 rounded-lg shadow-sm bg-white relative hover:shadow-md transition-shadow">
+                                <div key={item._id}  className="flex gap-4 p-4 border border-gray-100 rounded-lg shadow-sm bg-white relative hover:shadow-md transition-shadow">
                                     {/* Delete Button */}
                                     <button
                                         onClick={() => confirmRemove(item._id)}
