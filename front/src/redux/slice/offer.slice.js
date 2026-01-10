@@ -50,6 +50,32 @@ export const createOffer = createAsyncThunk(
     }
 );
 
+// Update Offer (Admin)
+export const updateOffer = createAsyncThunk(
+    'offer/updateOffer',
+    async ({ id, data }, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.put(`${BASE_URL}/offers/${id}`, data);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || { message: error.message });
+        }
+    }
+);
+
+// Delete Offer (Admin)
+export const deleteOffer = createAsyncThunk(
+    'offer/deleteOffer',
+    async (id, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.delete(`${BASE_URL}/offers/${id}`);
+            return { id, ...response.data };
+        } catch (error) {
+            return rejectWithValue(error.response?.data || { message: error.message });
+        }
+    }
+);
+
 export const offerSlice = createSlice({
     name: 'offer',
     initialState,
@@ -87,6 +113,35 @@ export const offerSlice = createSlice({
                 state.offers.push(action.payload.data);
             })
             .addCase(createOffer.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+
+            // Update Offer
+            .addCase(updateOffer.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(updateOffer.fulfilled, (state, action) => {
+                state.loading = false;
+                const index = state.offers.findIndex(offer => offer._id === action.payload.data._id);
+                if (index !== -1) {
+                    state.offers[index] = action.payload.data;
+                }
+            })
+            .addCase(updateOffer.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+
+            // Delete Offer
+            .addCase(deleteOffer.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(deleteOffer.fulfilled, (state, action) => {
+                state.loading = false;
+                state.offers = state.offers.filter(offer => offer._id !== action.payload.id);
+            })
+            .addCase(deleteOffer.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload?.message;
             })

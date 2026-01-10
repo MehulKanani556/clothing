@@ -39,6 +39,7 @@ import Reviews from './admin/pages/reviews/Reviews';
 import ProductForm from './admin/pages/products/ProductForm';
 import AdminProfile from './admin/pages/profile/AdminProfile';
 import SubCategory from './admin/pages/categories/Subcategory';
+import OfferForm from './admin/pages/offerZone/OfferForm';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -83,7 +84,9 @@ function App() {
               <Route path="categories/:id" element={<CategoriesProduct />} />
               <Route path="orders" element={<Orders />} />
               <Route path="orders/:id" element={<OrderDetails />} />
-              <Route path="offer-zone" element={<OfferZone />} />
+              <Route path="offers" element={<OfferZone />} />
+              <Route path="add-offer" element={<OfferForm />} />
+              <Route path="offer/edit/:id" element={<OfferForm />} />
               <Route path="returns" element={<Returns />} />
               <Route path="users" element={<Users />} />
               <Route path="reports" element={<GstReports />} />

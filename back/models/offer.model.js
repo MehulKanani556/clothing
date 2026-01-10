@@ -29,7 +29,8 @@ const offerSchema = new mongoose.Schema({
     endDate: { type: Date, required: true },
     isActive: { type: Boolean, default: true },
     usageLimit: { type: Number }, // Total times coupon can be used
-    usageCount: { type: Number, default: 0 }
+    usageCount: { type: Number, default: 0 },
+    deletedAt: { type: Date, default: null }
 
 }, { timestamps: true });
 

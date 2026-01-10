@@ -51,9 +51,9 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             type: 'item',
             key: 'orders',
             name: 'Orders',
-            path: '/admin/orders' ,
+            path: '/admin/orders',
             icon: <MdShoppingCart size={20} />,
-           
+
         },
         {
             type: 'item',
@@ -62,6 +62,16 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             path: '/admin/reviews',
             icon: <MdEmail size={20} />,
             // badge: { text: 'New', color: 'bg-red-500' }
+        },
+        {
+            type: 'submenu',
+            key: 'offers',
+            name: 'Offer-Zone',
+            icon: <MdShoppingCart size={20} />,
+            children: [
+                { name: 'Offers', path: '/admin/offers' },
+                { name: 'Add Offer', path: '/admin/add-offer' },
+            ]
         },
     ];
 
@@ -95,7 +105,7 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
                 </div>
 
                 {/* Menu Items */}
-                <nav className="flex-1 overflow-y-auto py-4 custom-scrollbar overflow-x-hidden">
+                <nav className={`flex-1 py-4 custom-scrollbar ${isCollapsed ? 'overflow-visible' : 'overflow-y-auto overflow-x-hidden'}`}>
                     <ul className="space-y-1">
                         {menuData.map((item, index) => {
                             if (item.type === 'header') {
@@ -113,11 +123,12 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
 
                                 return (
                                     <li key={item.key} className="relative group">
+                                        {/* Base Button (Visible when not hovering in collapsed mode, or always in expanded) */}
                                         <button
                                             onClick={() => toggleMenu(item.key)}
                                             className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-6'} py-2.5 transition-colors duration-200 
-                                            ${active || isExpanded ? 'text-black font-semibold' : 'hover:text-black hover:bg-gray-50'}`}
-                                            title={isCollapsed ? item.name : ''}
+                                            ${active || isExpanded ? 'text-black font-semibold bg-gray-50' : 'hover:text-black hover:bg-gray-50'}
+                                            ${isCollapsed ? 'group-hover:opacity-0' : ''}`} // Hide base on hover when collapsed to let overlay take over
                                         >
                                             <div className="flex items-center gap-3">
                                                 <span className={`${active ? 'text-black' : 'text-gray-500'}`}>{item.icon}</span>
@@ -130,31 +141,69 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
                                             )}
                                         </button>
 
-                                        {/* Submenu Children */}
-                                        <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-screen mb-2' : 'max-h-0'}`}>
-                                            <ul className={`${isCollapsed ? 'hidden' : 'pl-14'} space-y-1`}>
-                                                {item.children.map((child) => (
-                                                    <li key={child.path}>
-                                                        <NavLink
-                                                            to={child.path}
-                                                            className={({ isActive }) =>
-                                                                `block py-1.5 transition-colors duration-200 ${isActive ? 'text-black font-semibold border-r-4 border-black' : 'hover:text-black'
-                                                                }`
-                                                            }
-                                                        >
-                                                            {child.name}
-                                                        </NavLink>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
+                                        {/* Collapsed Hover Overlay (The "Mega Menu" Card) */}
+                                        {isCollapsed && (
+                                            <div className="absolute left-0 top-0 opacity-0 invisible group-hover:opacity-100 shadow-[4px_0_24px_rgba(0,0,0,0.08)] group-hover:visible transition-all duration-200 z-50">
+                                                {/* 1. The Header Part (extends directly from sidebar) */}
+                                                <div className="w-52 bg-white flex items-center h-[44px] relative z-20">
+                                                    <div className="w-[70px] flex items-center justify-center shrink-0 text-black">
+                                                        {item.icon}
+                                                    </div>
+                                                    <span className="font-semibold text-gray-900 text-sm whitespace-nowrap">
+                                                        {item.name}
+                                                    </span>
+                                                </div>
+
+                                                {/* 2. The Children Part (Drops down and indented) */}
+                                                <div className="absolute top-[44px] left-[70px] w-[138px] bg-white py-2 z-10 border-t border-gray-200">
+                                                    <ul className="space-y-1">
+                                                        {item.children.map((child) => (
+                                                            <li key={child.path}>
+                                                                <NavLink
+                                                                    to={child.path}
+                                                                    className={({ isActive }) =>
+                                                                        `flex items-center justify-between px-4 py-2 text-sm transition-colors duration-200 ${isActive
+                                                                            ? 'text-black font-semibold bg-gray-50'
+                                                                            : 'text-gray-500 hover:text-black hover:bg-gray-50'
+                                                                        }`
+                                                                    }
+                                                                >
+                                                                    {child.name}
+                                                                </NavLink>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Expanded Submenu (Standard Accordion) */}
+                                        {!isCollapsed && (
+                                            <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-screen mb-2' : 'max-h-0'}`}>
+                                                <ul className="pl-14 space-y-1">
+                                                    {item.children.map((child) => (
+                                                        <li key={child.path}>
+                                                            <NavLink
+                                                                to={child.path}
+                                                                className={({ isActive }) =>
+                                                                    `block py-1.5 transition-colors duration-200 ${isActive ? 'text-black font-semibold border-r-4 border-black' : 'hover:text-black'}`
+                                                                }
+                                                            >
+                                                                {child.name}
+                                                            </NavLink>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </li>
                                 );
                             }
 
-                            // Regular Item
+                            // Regular Item (Link)
                             return (
-                                <li key={item.key}>
+                                <li key={item.key} className="relative group">
+                                    {/* Base Link */}
                                     <NavLink
                                         to={item.path}
                                         className={({ isActive }) =>
@@ -162,7 +211,8 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
                                         ${isActive
                                                 ? `text-black font-semibold bg-gray-50 ${!isCollapsed ? 'border-r-4 border-black' : ''}`
                                                 : 'hover:text-black hover:bg-gray-50'
-                                            }`
+                                            }
+                                        ${isCollapsed ? 'group-hover:opacity-0' : ''}`
                                         }
                                         title={isCollapsed ? item.name : ''}
                                     >
@@ -177,6 +227,28 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
                                             </span>
                                         )}
                                     </NavLink>
+
+                                    {isCollapsed && (
+                                        <NavLink
+                                            to={item.path}
+                                            className={({ isActive }) =>
+                                                `absolute left-0 top-0 w-52 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 flex items-center h-full overflow-hidden
+                                                ${isActive ? 'bg-gray-50' : ''}`
+                                            }
+                                        >
+                                            <div className={`w-[70px] flex items-center justify-center shrink-0 ${isActive(item.path) ? 'text-black' : 'text-gray-500'}`}>
+                                                {item.icon}
+                                            </div>
+                                            <span className={`font-semibold text-sm whitespace-nowrap ${isActive(item.path) ? 'text-black' : 'text-gray-900'}`}>
+                                                {item.name}
+                                            </span>
+                                            {item.badge && (
+                                                <span className={`${item.badge.color} text-white text-[10px] font-bold px-1.5 py-0.5 rounded ml-auto mr-4`}>
+                                                    {item.badge.text}
+                                                </span>
+                                            )}
+                                        </NavLink>
+                                    )}
                                 </li>
                             );
                         })}

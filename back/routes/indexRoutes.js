@@ -16,9 +16,8 @@ const { addToWishlist, getWishlist, removeFromWishlist } = require('../controlle
 // New Controllers
 const { createOrder, getUserOrders, getAdminOrders, updateOrderStatus, getOrderById } = require('../controllers/order.controller');
 const { requestReturn, processReturn, getAllReturns } = require('../controllers/return.controller');
-const { createOffer, validateCoupon, getOffers, uploadBanner } = require('../controllers/offer.controller');
 const { getGstReport, getNetPayout } = require('../controllers/report.controller');
-
+const { createOffer, validateCoupon, getOffers, uploadBanner, updateOffer, deleteOffer } = require('../controllers/offer.controller');
 const { createBlogPost, getAllBlogs, getBlogBySlug, deleteBlog } = require('../controllers/blog.controller');
 const { addReview, getProductReviews, getAllReviews, updateReviewStatus, deleteReview } = require('../controllers/review.controller');
 const { orderValidation, returnValidation, offerValidation } = require('../middleware/validators');
@@ -88,6 +87,8 @@ router.put('/returns/:id', auth, processReturn);
 router.post('/offers', auth, offerValidation, createOffer);
 router.post('/offers/validate', validateCoupon);
 router.get('/offers', getOffers);
+router.put('/offers/:id', auth, updateOffer);
+router.delete('/offers/:id', auth, deleteOffer);
 router.post('/offers/upload-banner', auth, upload.single("banner"), uploadBanner);
 
 // --- CMS / BLOG SERVICE ---
@@ -110,12 +111,6 @@ router.put('/support/:id', auth, updateTicketStatus);
 const { getSettings, updateSetting } = require('../controllers/settings.controller');
 router.get('/settings', auth, getSettings);
 router.post('/settings', auth, updateSetting);
-
-// Offers
-router.get('/offers', getOffers);
-router.post('/offers', auth, createOffer);
-router.post('/offers/validate', auth, validateCoupon);
-router.post('/offers/banner', auth, upload.single('image'), uploadBanner);
 
 // Payment
 const { createCashfreeOrder, verifyPayment, processPayment, processCODPayment, getPaymentMethods, handleWebhook } = require('../controllers/payment.controller');
