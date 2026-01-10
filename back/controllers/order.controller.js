@@ -12,7 +12,7 @@ exports.createOrder = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-        const { items, shippingAddress, paymentMethod, paymentInfo } = req.body;
+        const { items, shippingAddress, paymentMethod, paymentInfo, shippingFee = 0, appliedCoupon } = req.body;
         const userId = req.user._id;
 
         let grandTotal = 0;
@@ -20,7 +20,7 @@ exports.createOrder = async (req, res) => {
         let taxTotal = 0;
         let cgstTotal = 0;
         let sgstTotal = 0;
-        let shippingFee = 0; // Logic for free shipping can be added here
+        let couponDiscount = 0;
 
         const finalItems = [];
 
@@ -90,11 +90,16 @@ exports.createOrder = async (req, res) => {
             });
         }
 
-        grandTotal = subTotal + taxTotal + shippingFee;
+        // Apply coupon discount if provided
+        if (appliedCoupon && appliedCoupon.discount) {
+            couponDiscount = appliedCoupon.discount;
+        }
+
+        grandTotal = subTotal + taxTotal + shippingFee - couponDiscount;
 
         const orderId = `ORD-${Date.now()}`;
 
-        const order = await Order.create([{
+        const orderData = {
             orderId,
             user: userId,
             items: finalItems,
@@ -102,12 +107,41 @@ exports.createOrder = async (req, res) => {
             taxTotal: Math.round(taxTotal * 100) / 100,
             cgstTotal: Math.round(cgstTotal * 100) / 100,
             sgstTotal: Math.round(sgstTotal * 100) / 100,
+            shippingFee: Math.round(shippingFee * 100) / 100,
+            discountTotal: Math.round(couponDiscount * 100) / 100,
             grandTotal: Math.round(grandTotal * 100) / 100,
             shippingAddress,
             paymentMethod,
             paymentStatus: 'Pending',
             status: 'Pending'
-        }], { session });
+        };
+
+        // Add coupon information if provided
+        if (appliedCoupon) {
+            orderData.appliedCoupon = {
+                code: appliedCoupon.code,
+                discount: appliedCoupon.discount
+            };
+            
+            // Mark coupon as used by this user
+            const Offer = require('../models/offer.model');
+            await Offer.findOneAndUpdate(
+                { code: appliedCoupon.code.toUpperCase() },
+                { 
+                    $inc: { usageCount: 1 },
+                    $push: { 
+                        usedByUsers: {
+                            userId: userId,
+                            usedAt: new Date(),
+                            orderId: orderId
+                        }
+                    }
+                },
+                { session }
+            );
+        }
+
+        const order = await Order.create([orderData], { session });
 
         await session.commitTransaction();
         session.endSession();

@@ -27,6 +27,10 @@ const orderSchema = new mongoose.Schema({
     sgstTotal: { type: Number, default: 0 },
     shippingFee: { type: Number, default: 0 },
     discountTotal: { type: Number, default: 0 },
+    appliedCoupon: {
+        code: { type: String },
+        discount: { type: Number, default: 0 }
+    },
     grandTotal: { type: Number, required: true }, // Payable
 
     // Payment

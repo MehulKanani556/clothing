@@ -308,7 +308,7 @@ export default function CartPage() {
                     </div>
 
                     {/* Right Column - Summary */}
-                    <div className="lg:col-span-4 space-y-4">
+                    <div className="lg:col-span-4 flex flex-col gap-4">
                         {/* Address Section */}
                         {user?.addresses?.length > 0 ? (
                             (() => {

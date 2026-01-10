@@ -7,17 +7,18 @@ import toast from 'react-hot-toast';
 export default function CouponModal({ isOpen, onClose, cartValue }) {
     const dispatch = useDispatch();
     const { offers, loading, validationLoading, validationError, appliedCoupon } = useSelector((state) => state.offers);
+    const { isAuthenticated } = useSelector((state) => state.auth);
 
     const [manualCode, setManualCode] = useState('');
     const [selectedCode, setSelectedCode] = useState('');
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && isAuthenticated) {
             dispatch(fetchOffers());
             dispatch(clearOfferErrors());
             // Reset local state if needed
         }
-    }, [isOpen, dispatch]);
+    }, [isOpen, dispatch, isAuthenticated]);
 
     useEffect(() => {
         if (validationError) {
@@ -33,6 +34,10 @@ export default function CouponModal({ isOpen, onClose, cartValue }) {
     }, [appliedCoupon]);
 
     const handleApply = (code) => {
+        if (!isAuthenticated) {
+            toast.error("Please login to apply coupons");
+            return;
+        }
         if (!code) {
             toast.error("Please enter or select a coupon code");
             return;
@@ -51,7 +56,7 @@ export default function CouponModal({ isOpen, onClose, cartValue }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed mt-0 inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md relative z-10 flex flex-col max-h-[80vh]">
 
@@ -89,10 +94,14 @@ export default function CouponModal({ isOpen, onClose, cartValue }) {
                     <div className="space-y-4">
                         <h4 className="text-sm font-semibold text-gray-900">Special offers</h4>
 
-                        {loading ? (
+                        {!isAuthenticated ? (
+                            <div className="text-center py-4 text-gray-500 text-sm">
+                                Please login to view available offers
+                            </div>
+                        ) : loading ? (
                             <div className="text-center py-4 text-gray-500 text-sm">Loading offers...</div>
                         ) : offers.length === 0 ? (
-                            <div className="text-center py-4 text-gray-500 text-sm">No offers available</div>
+                            <div className="text-center py-4 text-gray-500 text-sm">No offers available for you</div>
                         ) : (
                             offers.map((offer) => (
                                 <label
@@ -110,11 +119,26 @@ export default function CouponModal({ isOpen, onClose, cartValue }) {
                                         />
                                     </div>
                                     <div className="ml-3 flex-1">
-                                        <span className="block text-sm font-bold text-gray-900">{offer.code}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="block text-sm font-bold text-gray-900">{offer.code}</span>
+                                            {offer.isFirstOrderOnly && (
+                                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium">
+                                                    First Order
+                                                </span>
+                                            )}
+                                        </div>
                                         <span className="block text-sm text-gray-600 mt-0.5">{offer.description || offer.title}</span>
-                                        <span className="block text-sm font-semibold text-green-600 mt-1">
-                                            Save ₹{offer.type === 'FLAT' ? offer.value : `up to ${offer.maxDiscount || (offer.value + '%')}`}
-                                        </span>
+                                        <div className="flex items-center justify-between mt-1">
+                                            <span className="block text-sm font-semibold text-green-600">
+                                                Save {offer.type === 'FLAT' ? `₹${offer.value}` : `${offer.value}%`}
+                                                {offer.type === 'PERCENTAGE' && offer.maxDiscount && ` (up to ₹${offer.maxDiscount})`}
+                                            </span>
+                                            {offer.minOrderValue > 0 && (
+                                                <span className="text-xs text-gray-500">
+                                                    Min ₹{offer.minOrderValue}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </label>
                             ))

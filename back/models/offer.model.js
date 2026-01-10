@@ -30,6 +30,16 @@ const offerSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     usageLimit: { type: Number }, // Total times coupon can be used
     usageCount: { type: Number, default: 0 },
+    
+    // User-specific conditions
+    isFirstOrderOnly: { type: Boolean, default: false }, // Only for first-time customers
+    userUsageLimit: { type: Number, default: 1 }, // How many times each user can use this coupon
+    usedByUsers: [{ 
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        usedAt: { type: Date, default: Date.now },
+        orderId: { type: String }
+    }], // Track which users have used this coupon
+    
     deletedAt: { type: Date, default: null }
 
 }, { timestamps: true });

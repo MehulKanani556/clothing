@@ -17,6 +17,7 @@ export default function PaymentPage() {
     const orderIdParam = searchParams.get('order_id');
     const { items, totalPrice } = useSelector(state => state.cart);
     const { user } = useSelector(state => state.auth);
+    const { appliedCoupon } = useSelector(state => state.offers);
     const { deliveryFee, deliveryInfo, loading: loadingDeliveryFee } = useSelector((state) => state.delivery);
 
     // Derived state for address
@@ -239,7 +240,11 @@ export default function PaymentPage() {
                 shippingAddress: activeAddress,
                 paymentMethod: selectedMethod === 'cod' ? 'COD' : 'Online',
                 paymentInfo: { method: selectedMethod === 'cod' ? 'COD' : 'Cashfree' },
-                shippingFee: deliveryFee
+                shippingFee: deliveryFee,
+                appliedCoupon: appliedCoupon ? {
+                    code: appliedCoupon.code,
+                    discount: appliedCoupon.discount
+                } : null
             };
 
             const dbOrderResult = await dispatch(createDbOrder(dbOrderData)).unwrap();
@@ -259,7 +264,8 @@ export default function PaymentPage() {
             }
 
             // Step 2: Create Cashfree Session for Online Payments
-            const totalAmount = totalPrice + deliveryFee;
+            const couponDiscount = appliedCoupon ? appliedCoupon.discount : 0;
+            const totalAmount = totalPrice - couponDiscount + deliveryFee;
             const sessionData = {
                 orderAmount: totalAmount,
                 customerId: user?._id || 'guest',
@@ -484,14 +490,13 @@ export default function PaymentPage() {
                                             Save your card for future transactions
                                         </label>
                                     </div>
-
                                     <button
                                         onClick={handlePayment}
                                         disabled={loading}
-                                        className="w-full bg-gray-400 hover:bg-gray-500 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 mt-4"
+                                        className="w-full bg-[#141414] hover:bg-gray-500 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 mt-4"
                                         style={{ backgroundColor: '#AFAFAF' }}
                                     >
-                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice + deliveryFee).toLocaleString()}`}
+                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice - (appliedCoupon ? appliedCoupon.discount : 0) + deliveryFee).toLocaleString()}`}
                                     </button>
                                 </div>
                             ) : selectedMethod === 'upi' ? (
@@ -547,7 +552,7 @@ export default function PaymentPage() {
                                         disabled={loading}
                                         className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 shadow-md"
                                     >
-                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice + deliveryFee).toLocaleString()}`}
+                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice - (appliedCoupon ? appliedCoupon.discount : 0) + deliveryFee).toLocaleString()}`}
                                     </button>
                                 </div>
                             ) : selectedMethod === 'wallet' ? (
@@ -592,7 +597,7 @@ export default function PaymentPage() {
                                         disabled={loading || !walletDetails.provider}
                                         className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 shadow-md"
                                     >
-                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice + deliveryFee).toLocaleString()}`}
+                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice - (appliedCoupon ? appliedCoupon.discount : 0) + deliveryFee).toLocaleString()}`}
                                     </button>
                                 </div>
                             ) : selectedMethod === 'netbanking' ? (
@@ -650,7 +655,7 @@ export default function PaymentPage() {
                                         disabled={loading || !netBankingDetails.bankCode}
                                         className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded font-bold text-sm uppercase transition-all disabled:opacity-50 shadow-md"
                                     >
-                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice + deliveryFee).toLocaleString()}`}
+                                        {loading ? 'Processing...' : `Pay ₹${(totalPrice - (appliedCoupon ? appliedCoupon.discount : 0) + deliveryFee).toLocaleString()}`}
                                     </button>
                                 </div>
                             ) : selectedMethod === 'cod' ? (
@@ -663,7 +668,7 @@ export default function PaymentPage() {
                                         </p>
                                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
                                             <p className="text-sm text-blue-800">
-                                                <strong>Note:</strong> Please keep exact change ready. Our delivery partner will collect ₹{(totalPrice + deliveryFee).toLocaleString()} at the time of delivery.
+                                                <strong>Note:</strong> Please keep exact change ready. Our delivery partner will collect ₹{(totalPrice - (appliedCoupon ? appliedCoupon.discount : 0) + deliveryFee).toLocaleString()} at the time of delivery.
                                             </p>
                                         </div>
                                     </div>
@@ -780,6 +785,12 @@ export default function PaymentPage() {
                                         <span className="text-gray-600">Subtotal</span>
                                         <span className="font-medium">₹{totalPrice.toLocaleString()}</span>
                                     </div>
+                                    {appliedCoupon && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Coupon Discount ({appliedCoupon.code})</span>
+                                            <span className="font-medium text-green-600">-₹{appliedCoupon.discount.toLocaleString()}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Delivery Charges</span>
                                         {loadingDeliveryFee ? (
@@ -793,7 +804,7 @@ export default function PaymentPage() {
                                     <hr className="border-dashed border-gray-200" />
                                     <div className="flex justify-between text-base font-bold text-gray-900">
                                         <span>Total Amount</span>
-                                        <span>₹{(totalPrice + deliveryFee).toLocaleString()}</span>
+                                        <span>₹{(totalPrice - (appliedCoupon ? appliedCoupon.discount : 0) + deliveryFee).toLocaleString()}</span>
                                     </div>
                                 </div>
                             )}

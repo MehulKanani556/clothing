@@ -17,7 +17,7 @@ const { addToWishlist, getWishlist, removeFromWishlist } = require('../controlle
 const { createOrder, getUserOrders, getAdminOrders, updateOrderStatus, getOrderById } = require('../controllers/order.controller');
 const { requestReturn, processReturn, getAllReturns } = require('../controllers/return.controller');
 const { getGstReport, getNetPayout } = require('../controllers/report.controller');
-const { createOffer, validateCoupon, getOffers, uploadBanner, updateOffer, deleteOffer } = require('../controllers/offer.controller');
+const { createOffer, validateCoupon, getOffers, getAllOffersAdmin, uploadBanner, updateOffer, deleteOffer } = require('../controllers/offer.controller');
 const { createBlogPost, getAllBlogs, getBlogBySlug, deleteBlog } = require('../controllers/blog.controller');
 const { addReview, getProductReviews, getAllReviews, updateReviewStatus, deleteReview } = require('../controllers/review.controller');
 const { orderValidation, returnValidation, offerValidation } = require('../middleware/validators');
@@ -85,8 +85,9 @@ router.put('/returns/:id', auth, processReturn);
 
 // --- OFFER SERVICE ---
 router.post('/offers', auth, offerValidation, createOffer);
-router.post('/offers/validate', validateCoupon);
-router.get('/offers', getOffers);
+router.post('/offers/validate', auth, validateCoupon); // Require auth for validation
+router.get('/offers', auth, getOffers); // Require auth to get user-specific offers
+router.get('/offers/admin', auth, getAllOffersAdmin); // Admin endpoint for all offers
 router.put('/offers/:id', auth, updateOffer);
 router.delete('/offers/:id', auth, deleteOffer);
 router.post('/offers/upload-banner', auth, upload.single("banner"), uploadBanner);

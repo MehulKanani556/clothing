@@ -19,6 +19,8 @@ exports.createOffer = async (req, res) => {
 exports.validateCoupon = async (req, res) => {
     try {
         const { code, cartValue } = req.body;
+        const userId = req.user?._id; // Get user ID from auth middleware
+        
         const offer = await Offer.findOne({ code: code.toUpperCase(), isActive: true });
 
         if (!offer) return res.status(404).json({ message: 'Invalid Coupon' });
@@ -30,7 +32,34 @@ exports.validateCoupon = async (req, res) => {
             await offer.save();
             return res.status(400).json({ message: 'Coupon Expired', offer });
         }
-        if (cartValue < offer.minOrderValue) return res.status(400).json({ message: `Min order value is ${offer.minOrderValue}` });
+        if (cartValue < offer.minOrderValue) return res.status(400).json({ message: `Min order value is ₹${offer.minOrderValue}` });
+
+        // Check total usage limit
+        if (offer.usageLimit && offer.usageCount >= offer.usageLimit) {
+            return res.status(400).json({ message: 'Coupon usage limit exceeded' });
+        }
+
+        // User-specific validations (only if user is logged in)
+        if (userId) {
+            // Check if user has already used this coupon
+            const userUsage = offer.usedByUsers.filter(usage => usage.userId.toString() === userId.toString());
+            if (userUsage.length >= offer.userUsageLimit) {
+                return res.status(400).json({ message: 'You have already used this coupon' });
+            }
+
+            // Check if this is a first-order-only coupon
+            if (offer.isFirstOrderOnly) {
+                const Order = require('../models/order.model');
+                const userOrderCount = await Order.countDocuments({ 
+                    user: userId, 
+                    status: { $in: ['Confirmed', 'Processing', 'Shipped', 'Delivered'] }
+                });
+                
+                if (userOrderCount > 0) {
+                    return res.status(400).json({ message: 'This coupon is only valid for first-time customers' });
+                }
+            }
+        }
 
         // Calculate Discount
         let discount = 0;
@@ -86,6 +115,62 @@ exports.deleteOffer = async (req, res) => {
 };
 
 exports.getOffers = async (req, res) => {
+    try {
+        const userId = req.user?._id; // Get user ID if authenticated
+        
+        // Auto-expire logic: Set isActive=false for offers where endDate < now
+        await Offer.updateMany(
+            { isActive: true, endDate: { $lt: new Date() } },
+            { $set: { isActive: false } }
+        );
+
+        // Get all active offers
+        let offers = await Offer.find({ 
+            deletedAt: null, 
+            isActive: true,
+            startDate: { $lte: new Date() },
+            endDate: { $gte: new Date() }
+        }).sort({ createdAt: -1 });
+
+        // Filter offers based on user eligibility (only if user is authenticated)
+        if (userId) {
+            const Order = require('../models/order.model');
+            
+            // Get user's order count for first-order validation
+            const userOrderCount = await Order.countDocuments({ 
+                user: userId, 
+                status: { $in: ['Confirmed', 'Processing', 'Shipped', 'Delivered'] }
+            });
+
+            offers = offers.filter(offer => {
+                // Check if user has already used this coupon
+                const userUsage = offer.usedByUsers.filter(usage => usage.userId.toString() === userId.toString());
+                if (userUsage.length >= offer.userUsageLimit) {
+                    return false; // User has exceeded usage limit for this coupon
+                }
+
+                // Check first-order-only condition
+                if (offer.isFirstOrderOnly && userOrderCount > 0) {
+                    return false; // Not eligible for first-order-only coupons
+                }
+
+                // Check total usage limit
+                if (offer.usageLimit && offer.usageCount >= offer.usageLimit) {
+                    return false; // Coupon usage limit exceeded
+                }
+
+                return true; // Offer is eligible for this user
+            });
+        }
+
+        res.json({ success: true, data: offers });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Admin endpoint to get all offers (without user filtering)
+exports.getAllOffersAdmin = async (req, res) => {
     try {
         // Auto-expire logic: Set isActive=false for offers where endDate < now
         await Offer.updateMany(
