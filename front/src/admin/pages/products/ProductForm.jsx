@@ -19,6 +19,14 @@ const ProductSchema = Yup.object().shape({
     gender: Yup.string().required('Required'),
     gstPercentage: Yup.number().min(0).max(28).required('Required'),
     sizeChart: Yup.mixed(),
+    packageInfo: Yup.object().shape({
+        weight: Yup.number().min(0, 'Weight must be positive').nullable(),
+        dimensions: Yup.object().shape({
+            length: Yup.number().min(0, 'Length must be positive').nullable(),
+            width: Yup.number().min(0, 'Width must be positive').nullable(),
+            height: Yup.number().min(0, 'Height must be positive').nullable()
+        })
+    }),
     variants: Yup.array().of(
         Yup.object().shape({
             color: Yup.string().required('Color Required'),
@@ -63,6 +71,14 @@ const ProductForm = () => {
         gstPercentage: 12,
         isExchangeOnly: false,
         sizeChart: null,
+        packageInfo: {
+            weight: '',
+            dimensions: {
+                length: '',
+                width: '',
+                height: ''
+            }
+        },
         variants: [
             {
                 color: '',
@@ -143,6 +159,14 @@ const ProductForm = () => {
                     gstPercentage: product.gstPercentage,
                     isExchangeOnly: product.isExchangeOnly,
                     sizeChart: product.sizeChart,
+                    packageInfo: {
+                        weight: product.packageInfo?.weight || '',
+                        dimensions: {
+                            length: product.packageInfo?.dimensions?.length || '',
+                            width: product.packageInfo?.dimensions?.width || '',
+                            height: product.packageInfo?.dimensions?.height || ''
+                        }
+                    },
                     variants: product.variants.map(v => ({
                         color: v.color,
                         colorFamily: v.colorFamily,
@@ -405,6 +429,100 @@ const ProductForm = () => {
                                                 }}
                                             />
                                         </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Package Information Section */}
+                        <div className="space-y-6 pt-4 border-t border-gray-100">
+                            <h4 className="text-sm font-bold text-gray-900 border-l-4 border-black pl-3 uppercase tracking-wider">
+                                Package Information
+                            </h4>
+
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                {/* Weight */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Weight (kg)</label>
+                                    <input
+                                        type="number"
+                                        name="packageInfo.weight"
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.packageInfo.weight}
+                                        placeholder="e.g. 0.25"
+                                        min="0"
+                                        step="0.01"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors"
+                                    />
+                                    <p className="text-xs text-gray-500">Package weight in kilograms</p>
+                                </div>
+
+                                {/* Length */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Length (cm)</label>
+                                    <input
+                                        type="number"
+                                        name="packageInfo.dimensions.length"
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.packageInfo.dimensions.length}
+                                        placeholder="e.g. 30"
+                                        min="0"
+                                        step="0.1"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors"
+                                    />
+                                    <p className="text-xs text-gray-500">Package length in cm</p>
+                                </div>
+
+                                {/* Width */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Width (cm)</label>
+                                    <input
+                                        type="number"
+                                        name="packageInfo.dimensions.width"
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.packageInfo.dimensions.width}
+                                        placeholder="e.g. 25"
+                                        min="0"
+                                        step="0.1"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors"
+                                    />
+                                    <p className="text-xs text-gray-500">Package width in cm</p>
+                                </div>
+
+                                {/* Height */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Height (cm)</label>
+                                    <input
+                                        type="number"
+                                        name="packageInfo.dimensions.height"
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.packageInfo.dimensions.height}
+                                        placeholder="e.g. 5"
+                                        min="0"
+                                        step="0.1"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors"
+                                    />
+                                    <p className="text-xs text-gray-500">Package height in cm</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <span className="text-white text-xs font-bold">i</span>
+                                    </div>
+                                    <div className="text-sm text-blue-800">
+                                        <p className="font-semibold mb-1">Package Information Guidelines:</p>
+                                        <ul className="space-y-1 text-xs">
+                                            <li>• Weight should include packaging materials (poly bags, boxes, etc.) in kilograms</li>
+                                            <li>• Dimensions should be of the final packaged product in centimeters</li>
+                                            <li>• These values are used for shipping cost calculation</li>
+                                            <li>• Accurate measurements help reduce shipping disputes</li>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>

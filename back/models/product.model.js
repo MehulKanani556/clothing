@@ -179,6 +179,28 @@ const productSchema = new mongoose.Schema({
         returnPolicy: { type: String, default: "7 Day Replacement" }
     },
 
+    // --- Shipping & Package Information ---
+    packageInfo: {
+        weight: { 
+            type: Number, // Weight in kilograms
+            min: 0
+        },
+        dimensions: {
+            length: { 
+                type: Number, // Length in cm
+                min: 0
+            },
+            width: { 
+                type: Number, // Width in cm
+                min: 0
+            },
+            height: { 
+                type: Number, // Height in cm
+                min: 0
+            }
+        }
+    },
+
     isActive: {
         type: Boolean,
         default: true,

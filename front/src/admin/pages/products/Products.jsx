@@ -132,6 +132,24 @@ const Products = () => {
             }
         },
         {
+            header: 'Package Info',
+            accessor: 'packageInfo',
+            render: (row) => {
+                const pkg = row.packageInfo;
+                if (!pkg || (!pkg.weight && !pkg.dimensions?.length)) {
+                    return <span className="text-gray-400 text-xs">Not set</span>;
+                }
+                return (
+                    <div className="text-xs text-gray-600">
+                        {pkg.weight && <div>{pkg.weight}kg</div>}
+                        {pkg.dimensions?.length && (
+                            <div>{pkg.dimensions.length}×{pkg.dimensions.width}×{pkg.dimensions.height}cm</div>
+                        )}
+                    </div>
+                );
+            }
+        },
+        {
             header: 'Status',
             accessor: 'isActive',
             sortable: true,
