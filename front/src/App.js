@@ -40,6 +40,7 @@ import ProductForm from './admin/pages/products/ProductForm';
 import AdminProfile from './admin/pages/profile/AdminProfile';
 import SubCategory from './admin/pages/categories/Subcategory';
 import OfferForm from './admin/pages/offerZone/OfferForm';
+import Banners from './admin/pages/banners/Banners';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -74,6 +75,7 @@ function App() {
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="banners" element={<Banners />} />
               <Route path="products" element={<Products />} />
               <Route path="add-product" element={<ProductForm />} />
               <Route path="product/edit/:id" element={<ProductForm />} />

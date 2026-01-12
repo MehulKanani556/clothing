@@ -19,6 +19,7 @@ import reviewReducer from "./slice/review.slice.js";
 import orderReducer from "./slice/order.slice.js";
 import trackingReducer from "./slice/tracking.slice.js";
 import deliveryReducer from "./slice/delivery.slice.js";
+import bannerReducer from "./slice/banner.slice.js";
 
 export const rootReducer = combineReducers({
     adminDashboard: adminDashboardReducer,
@@ -40,5 +41,6 @@ export const rootReducer = combineReducers({
     review: reviewReducer,
     order: orderReducer,
     tracking: trackingReducer,
-    delivery: deliveryReducer
+    delivery: deliveryReducer,
+    banner: bannerReducer
 });

@@ -38,6 +38,13 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             icon: <MdOutlineDashboard size={20} />,
             // badge: { text: '02', color: 'bg-green-500' }
         },
+        {
+            type: 'item',
+            key: 'banners',
+            name: 'Banners',
+            path: '/admin/banners',
+            icon: <MdOutlineLocalOffer size={20} />,
+        },
         { type: 'item', key: 'categories', name: 'Categories', path: '/admin/categories', icon: <MdOutlineCategory size={20} /> },
         { type: 'item', key: 'subcategories', name: 'Subcategories', path: '/admin/subcategories', icon: <MdOutlineClass size={20} /> },
         {
