@@ -18,7 +18,7 @@ exports.createBanner = async (req, res) => {
 // Get All Banners (Public - only active)
 exports.getBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({ isActive: true, deletedAt: null }).sort({ createdAt: -1 });
+        const banners = await Banner.find({ isActive: true, deletedAt: null }).sort({ order: 1, createdAt: -1 });
         res.json({ success: true, data: banners });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -28,7 +28,7 @@ exports.getBanners = async (req, res) => {
 // Get All Banners (Admin - all)
 exports.getAdminBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({ deletedAt: null }).sort({ createdAt: -1 });
+        const banners = await Banner.find({ deletedAt: null }).sort({ order: 1, createdAt: -1 });
         res.json({ success: true, data: banners });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -76,5 +76,26 @@ exports.toggleBannerStatus = async (req, res) => {
         res.json({ success: true, data: banner });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+// Update Banner Order
+exports.updateBannerOrder = async (req, res) => {
+    try {
+        const { orderedIds } = req.body; // Array of banner IDs in the new order
+
+        if (!orderedIds || !Array.isArray(orderedIds)) {
+            return res.status(400).json({ success: false, message: 'Invalid data' });
+        }
+
+        const updates = orderedIds.map((id, index) => {
+            return Banner.findByIdAndUpdate(id, { order: index });
+        });
+
+        await Promise.all(updates);
+
+        res.json({ success: true, message: 'Banner order updated successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 };

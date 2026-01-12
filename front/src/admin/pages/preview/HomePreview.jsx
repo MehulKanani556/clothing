@@ -1,226 +1,458 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchBanners } from '../../../redux/slice/banner.slice';
+import {
+    fetchHomeSettings,
+    saveHomeSettings,
+    setLayout,
+    addBannerSlot,
+    removeBannerSlot,
+    toggleBannerMode,
+    updateBannerSelection
+} from '../../../redux/slice/adminHome.slice';
 import OfferBanner from '../../../components/OfferBanner';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { MdDragIndicator, MdSave, MdViewStream, MdViewColumn, MdAdd, MdDeleteOutline, MdCropLandscape, MdVerticalSplit } from 'react-icons/md';
+import { TbRectangle, TbColumns, TbColumns3 } from 'react-icons/tb';
+import CustomSelect from '../../components/common/CustomSelect';
+
+const SECTION_LABELS = {
+    hero_section: 'Hero Slider Section',
+    category_section: 'Category Section',
+    most_popular: 'Most Popular Products',
+    banner_slot_1: 'Banner Position 1',
+    new_arrivals: 'New Arrivals',
+    best_sellers: 'Best Sellers',
+    banner_slot_2: 'Banner Position 2',
+    shop_style: 'Shop For Style',
+    top_checks: 'Top Checks'
+};
 
 export default function HomePreview() {
     const dispatch = useDispatch();
-    const { banners, loading } = useSelector((state) => state.banner);
-    const [viewMode, setViewMode] = useState('desktop'); // desktop, tablet, mobile
+    const { banners, loading: bannersLoading } = useSelector((state) => state.banner);
+    const {
+        layout,
+        bannerConfig,
+        bannerSelections,
+        loading: loadingLayout,
+        saving
+    } = useSelector((state) => state.adminHome);
 
+    // Initial Data Fetch
     useEffect(() => {
         dispatch(fetchBanners());
+        dispatch(fetchHomeSettings());
     }, [dispatch]);
+
+    // Derived state: Assign banners to slots based on selections
+    const bannerAssignments = useMemo(() => {
+        const assignments = {};
+        const availableBanners = banners || [];
+
+        layout.forEach(sectionKey => {
+            if (sectionKey.startsWith('banner_slot')) {
+                const mode = bannerConfig[sectionKey] || 'single';
+                const selectedIds = bannerSelections[sectionKey] || [];
+
+                // Map selected IDs to actual banner objects
+                const assignedItems = [];
+                const requiredCount = mode === 'triple' ? 3 : (mode === 'split' ? 2 : 1);
+
+                for (let i = 0; i < requiredCount; i++) {
+                    const id = selectedIds[i];
+                    const found = availableBanners.find(b => b._id === id || b.id === id);
+                    assignedItems.push(found || null);
+                }
+
+                assignments[sectionKey] = {
+                    mode: mode,
+                    items: assignedItems
+                };
+            }
+        });
+        return assignments;
+    }, [layout, bannerConfig, bannerSelections, banners]);
+
+    const handleOnDragEnd = (result) => {
+        if (!result.destination) return;
+
+        const items = Array.from(layout);
+        const [reorderedItem] = items.splice(result.source.index, 1);
+        items.splice(result.destination.index, 0, reorderedItem);
+
+        dispatch(setLayout(items));
+    };
+
+    const handleToggleBannerMode = (slotKey) => {
+        dispatch(toggleBannerMode(slotKey));
+    };
+
+    const handleUpdateBannerSelection = (slotKey, index, bannerId) => {
+        dispatch(updateBannerSelection({ slotKey, index, bannerId }));
+    };
+
+    const handleAddBannerSlot = () => {
+        dispatch(addBannerSlot());
+    };
+
+    const handleRemoveSection = (keyToRemove) => {
+        if (window.confirm('Are you sure you want to remove this banner section?')) {
+            dispatch(removeBannerSlot(keyToRemove));
+        }
+    };
+
+    const handleSaveLayout = () => {
+        dispatch(saveHomeSettings({ layout, bannerConfig, bannerSelections }));
+    };
+
+    // --- RENDER HELPERS ---
+
+    const renderBannerItem = (banner, index, isSplit = false) => {
+        if (!banner) {
+            return (
+                <div className={`flex items-center justify-center bg-gray-50 text-gray-400 italic text-sm p-4 text-center border-2 border-dashed border-gray-200 rounded-lg ${isSplit ? 'h-40' : 'h-64'}`}>
+                    <div>
+                        <span className="block font-medium">Select a Banner</span>
+                        <span className="text-xs opacity-75">Use configuration panel &larr;</span>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className={`relative overflow-hidden group rounded-lg ${isSplit ? 'h-full' : ''}`}>
+                <OfferBanner
+                    title={banner.title}
+                    subtitle={banner.subtitle}
+                    image={banner.image}
+                    buttonText={banner.buttonText}
+                    link={banner.link}
+                    reverse={!isSplit && banner.textPosition === 'right'}
+                    textColor={banner.textColor}
+                    highlightColor={banner.highlightColor}
+                    buttonColor={banner.buttonColor}
+                    bgColor={banner.backgroundColor}
+                    textPosition={isSplit ? 'center' : banner.textPosition}
+                />
+            </div>
+        );
+    }
+
+    const renderBannerSlot = (slotKey) => {
+        // Use pre-calculated assignments
+        const assignment = bannerAssignments[slotKey];
+        if (!assignment) return null;
+
+        const mode = assignment.mode;
+        const isSplit = mode === 'split';
+        const isTriple = mode === 'triple';
+        // Pretty label for dynamic slots
+        const label = SECTION_LABELS[slotKey] || `Banner Section ${slotKey.split('_').pop().slice(-4)}`;
+
+        return (
+            <div className="relative border-2 border-dashed border-blue-400 m-2 rounded-lg p-1 group transition-all">
+                <div className="absolute top-0 left-0 bg-blue-500 text-white text-[10px] px-2 py-0.5 z-10 font-bold uppercase tracking-wider shadow-sm rounded-br">
+                    {label} {isTriple ? '(Triple View)' : (isSplit ? '(Split View)' : '')}
+                </div>
+
+                {bannersLoading ? (
+                    <div className="h-64 flex items-center justify-center bg-gray-50 text-gray-400">Loading Banners...</div>
+                ) : (
+                    mode === 'triple' ? (
+                        <div className="grid grid-cols-3 gap-2 mt-4">
+                            {renderBannerItem(assignment.items[0], 0, true)}
+                            {renderBannerItem(assignment.items[1], 1, true)}
+                            {renderBannerItem(assignment.items[2], 2, true)}
+                        </div>
+                    ) : isSplit ? (
+                        <div className="grid grid-cols-2 gap-2 mt-4">
+                            {renderBannerItem(assignment.items[0], 0, true)}
+                            {renderBannerItem(assignment.items[1], 1, true)}
+                        </div>
+                    ) : (
+                        <div className="mt-4">
+                            {renderBannerItem(assignment.items[0], 0, false)}
+                        </div>
+                    )
+                )}
+            </div>
+        );
+    };
+
+    const renderSectionPreview = (key) => {
+        if (key.startsWith('banner_slot')) {
+            return renderBannerSlot(key);
+        }
+
+        switch (key) {
+            case 'hero_section':
+                return (
+                    <div className="w-full h-[300px] md:h-[500px] bg-gray-100 flex items-center justify-center border-b border-gray-200 relative">
+                        <span className="text-gray-400 font-medium text-lg border-2 border-dashed border-gray-300 p-4 rounded">Hero Slider Section</span>
+                    </div>
+                );
+            case 'category_section':
+                return (
+                    <section className="py-12 bg-white">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="h-32 bg-gray-50 border-2 border-dashed border-gray-200 rounded flex items-center justify-center">
+                                <span className="text-gray-400 font-medium">Category Section</span>
+                            </div>
+                        </div>
+                    </section>
+                );
+            case 'most_popular':
+                return (
+                    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-lg md:text-2xl font-bold tracking-tight text-gray-900 uppercase">Most Popular</h2>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-50">
+                            {[1, 2, 3, 4].map((i) => <div key={i} className="h-64 bg-gray-100 rounded"></div>)}
+                        </div>
+                    </section>
+                );
+            case 'new_arrivals':
+                return (
+                    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-lg md:text-2xl font-bold tracking-tight text-gray-900 uppercase">New Arrivals</h2>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-50">
+                            {[1, 2, 3, 4].map((i) => <div key={i} className="h-64 bg-gray-100 rounded"></div>)}
+                        </div>
+                    </section>
+                );
+            case 'best_sellers':
+                return (
+                    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-lg md:text-2xl font-bold tracking-tight text-gray-900 uppercase">Best Sellers</h2>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-50">
+                            {[1, 2, 3, 4].map((i) => <div key={i} className="h-64 bg-gray-100 rounded"></div>)}
+                        </div>
+                    </section>
+                );
+            case 'shop_style':
+                return (
+                    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-lg md:text-2xl font-bold tracking-tight text-gray-900 uppercase">Shop For Style</h2>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-50">
+                            {[1, 2, 3, 4].map((i) => <div key={i} className="h-64 bg-gray-100 rounded"></div>)}
+                        </div>
+                    </section>
+                );
+            case 'top_checks':
+                return (
+                    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mb-12">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">Top Checks</h2>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-50">
+                            {[1, 2, 3, 4].map((i) => <div key={i} className="h-64 bg-gray-100 rounded"></div>)}
+                        </div>
+                    </section>
+                );
+            default:
+                return null;
+        }
+    };
 
     return (
         <div className="p-6">
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <h2 className="text-2xl font-bold text-gray-800">Home Page Preview</h2>
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-800">Home Page Layout</h2>
+                    <p className="text-gray-500 text-sm">Drag to reorder. Configure banners for each slot.</p>
+                </div>
 
-                {/* View Mode Toggle */}
-                <div className="flex bg-gray-100 p-1 rounded-lg">
+                <div className="flex gap-3">
                     <button
-                        onClick={() => setViewMode('desktop')}
-                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${viewMode === 'desktop'
-                            ? 'bg-white shadow-sm text-black'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
+                        onClick={handleAddBannerSlot}
+                        className="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium"
                     >
-                        Desktop
+                        <MdAdd size={20} />
+                        Add Banner Section
                     </button>
                     <button
-                        onClick={() => setViewMode('tablet')}
-                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${viewMode === 'tablet'
-                            ? 'bg-white shadow-sm text-black'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
+                        onClick={handleSaveLayout}
+                        disabled={saving || loadingLayout}
+                        className="flex items-center gap-2 bg-black text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition-all disabled:opacity-50"
                     >
-                        Tablet
-                    </button>
-                    <button
-                        onClick={() => setViewMode('mobile')}
-                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${viewMode === 'mobile'
-                            ? 'bg-white shadow-sm text-black'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                    >
-                        Mobile
+                        <MdSave size={20} />
+                        {saving ? 'Saving...' : 'Save Layout'}
                     </button>
                 </div>
             </div>
 
-            <div className="bg-gray-100 p-8 rounded-xl border border-gray-200 overflow-hidden flex justify-center min-h-[600px]">
-                {/* Preview Container simulating device width */}
-                <div
-                    className={`bg-white shadow-2xl transition-all duration-300 origin-top overflow-y-auto h-[800px] custom-scrollbar
-                        ${viewMode === 'desktop' ? 'w-full max-w-[1400px]' : ''}
-                        ${viewMode === 'tablet' ? 'w-[768px]' : ''}
-                        ${viewMode === 'mobile' ? 'w-[375px]' : ''}
-                    `}
-                >
-                    {/* Header Placeholder */}
-                    <header className="sticky top-0 bg-white z-50 border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-                        <div className="w-8 h-8 bg-black rounded flex items-center justify-center text-white font-bold">L</div>
-                        <div className="flex gap-4 text-xs font-semibold uppercase text-gray-500">
-                            <span className="hidden sm:block">Men</span>
-                            <span className="hidden sm:block">Women</span>
-                            <span className="hidden sm:block">Kids</span>
+            <div className="flex flex-col xl:flex-row gap-8">
+                {/* 1. Draggable Configuration Panel */}
+                <div className="w-full xl:w-80 shrink-0 order-2 xl:order-1">
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm sticky top-6 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
+                        <h3 className="font-bold text-gray-700 mb-4 uppercase text-xs tracking-wider border-b pb-2">Page Sections</h3>
+
+                        {loadingLayout ? (
+                            <div className="text-center py-4 text-gray-400 text-sm">Loading ordering...</div>
+                        ) : (
+                            <DragDropContext onDragEnd={handleOnDragEnd}>
+                                <Droppable droppableId="sections">
+                                    {(provided) => (
+                                        <ul className="space-y-4" {...provided.droppableProps} ref={provided.innerRef}>
+                                            {layout.map((key, index) => (
+                                                <Draggable key={key} draggableId={key} index={index}>
+                                                    {(provided, snapshot) => (
+                                                        <li
+                                                            ref={provided.innerRef}
+                                                            {...provided.draggableProps}
+                                                            {...provided.dragHandleProps}
+                                                            className={`p-3 rounded-lg border flex flex-col gap-2 bg-white transition-all group/item
+                                                                ${snapshot.isDragging ? 'shadow-lg ring-2 ring-blue-500 z-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}
+                                                            `}
+                                                        >
+                                                            <div className="flex items-center gap-3 cursor-move">
+                                                                <div className="text-gray-400">
+                                                                    <MdDragIndicator size={18} />
+                                                                </div>
+                                                                <div className={`p-1.5 rounded ${key.startsWith('banner_slot') ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                                    <MdViewStream size={14} />
+                                                                </div>
+                                                                <span className="text-sm font-medium text-gray-700 flex-1 truncate">
+                                                                    {SECTION_LABELS[key] || `Banner Section ${key.split('_').pop().slice(-4)}`}
+                                                                </span>
+
+                                                                {/* Remove Action */}
+                                                                {key.startsWith('banner_slot') && (
+                                                                    <button
+                                                                        onClick={() => handleRemoveSection(key)}
+                                                                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                                                        title="Remove this banner section"
+                                                                    >
+                                                                        <MdDeleteOutline size={16} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Banner Controls */}
+                                                            {key.startsWith('banner_slot') && (
+                                                                <div className="pl-9 pt-2 border-t border-gray-100 mt-1 space-y-2">
+                                                                    {/* Toggle Mode */}
+                                                                    <button
+                                                                        onClick={() => handleToggleBannerMode(key)}
+                                                                        className={`w-full text-xs flex items-center justify-center gap-1.5 px-2 py-1.5 rounded border transition-colors mb-2 ${bannerConfig[key] === 'triple'
+                                                                                ? 'bg-purple-50 text-purple-600 border-purple-200'
+                                                                                : bannerConfig[key] === 'split'
+                                                                                    ? 'bg-blue-50 text-blue-600 border-blue-200'
+                                                                                    : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                                                                            }`}
+                                                                    >
+                                                                        {bannerConfig[key] === 'triple' ? (
+                                                                            <TbColumns3 size={14} />
+                                                                        ) : bannerConfig[key] === 'split' ? (
+                                                                            <TbColumns size={14} />
+                                                                        ) : (
+                                                                            <TbRectangle size={14} />
+                                                                        )}
+                                                                        {bannerConfig[key] === 'triple' ? 'Triple View Active' : (bannerConfig[key] === 'split' ? 'Split View Active' : 'Single View')}
+                                                                    </button>
+
+                                                                    {/* Selectors */}
+                                                                    <div className="space-y-1.5">
+                                                                        <div className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">
+                                                                            Select Banners:
+                                                                        </div>
+
+                                                                        {/* Slot 1 Selector */}
+                                                                        <CustomSelect
+                                                                            value={(bannerSelections[key] && bannerSelections[key][0]) || ''}
+                                                                            onChange={(val) => handleUpdateBannerSelection(key, 0, val)}
+                                                                            options={banners ? banners.map(b => ({ label: b.title, value: b._id })) : []}
+                                                                            placeholder={bannerConfig[key] === 'split' || bannerConfig[key] === 'triple' ? 'First Banner' : 'Select Banner'}
+                                                                            className="w-full text-xs"
+                                                                        />
+
+                                                                        {/* Slot 2 Selector (Split or Triple) */}
+                                                                        {(bannerConfig[key] === 'split' || bannerConfig[key] === 'triple') && (
+                                                                            <CustomSelect
+                                                                                value={(bannerSelections[key] && bannerSelections[key][1]) || ''}
+                                                                                onChange={(val) => handleUpdateBannerSelection(key, 1, val)}
+                                                                                options={banners ? banners.map(b => ({ label: b.title, value: b._id })) : []}
+                                                                                placeholder="Second Banner"
+                                                                                className="w-full text-xs"
+                                                                            />
+                                                                        )}
+
+                                                                        {/* Slot 3 Selector (Triple Only) */}
+                                                                        {bannerConfig[key] === 'triple' && (
+                                                                            <CustomSelect
+                                                                                value={(bannerSelections[key] && bannerSelections[key][2]) || ''}
+                                                                                onChange={(val) => handleUpdateBannerSelection(key, 2, val)}
+                                                                                options={banners ? banners.map(b => ({ label: b.title, value: b._id })) : []}
+                                                                                placeholder="Third Banner"
+                                                                                className="w-full text-xs"
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </li>
+                                                    )}
+                                                </Draggable>
+                                            ))}
+                                            {provided.placeholder}
+                                        </ul>
+                                    )}
+                                </Droppable>
+                            </DragDropContext>
+                        )}
+
+                        <div className="mt-6 p-4 bg-blue-50 text-blue-800 text-xs rounded-lg border border-blue-100">
+                            <strong>How to use:</strong>
+                            <p className="mt-1">
+                                1. Add banner slots using the button above.<br />
+                                2. Click toggle button to cycle <strong>Single &rarr; Split &rarr; Triple</strong> views.<br />
+                                3. <strong>Select specific banners</strong> for each slot using the dropdowns.
+                            </p>
                         </div>
-                        <div className="flex gap-2">
-                            <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
-                            <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
-                        </div>
-                    </header>
-
-                    {/* Main Content Area mimicking Home.js structure */}
-                    <div className="bg-white">
-                        {/* 1. Hero Section Placeholder */}
-                        <div className="w-full h-[600px] bg-gray-100 flex items-center justify-center border-b border-gray-200 relative">
-                            <span className="text-gray-400 font-medium text-lg border-2 border-dashed border-gray-300 p-4 rounded">Hero Slider Section</span>
-                        </div>
-
-                        {/* 2. Category Grid/Slider Placeholder */}
-                        <section className="py-12 bg-white">
-                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                <div className="h-40 bg-gray-50 border-2 border-dashed border-gray-200 rounded flex items-center justify-center">
-                                    <span className="text-gray-400 font-medium">Category Section</span>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* 3. Most Popular Placeholder */}
-                        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                            <div className="flex justify-between items-center mb-8">
-                                <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">Most Popular</h2>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 opacity-50">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="h-80 bg-gray-100 rounded"></div>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* 4. Banner 1 (Real Component) */}
-                        <div className="relative border-2 border-dashed border-blue-400 m-2 rounded-lg overflow-hidden">
-                            <div className="absolute top-0 left-0 bg-blue-500 text-white text-[10px] px-2 py-0.5 z-10 font-bold uppercase tracking-wider">
-                                Banner 1 Position
-                            </div>
-                            {loading ? (
-                                <div className="h-64 flex items-center justify-center bg-gray-50 text-gray-400">Loading Banner 1...</div>
-                            ) : (
-                                banners && banners.length > 0 ? (
-                                    <OfferBanner
-                                        title={banners[0].title}
-                                        subtitle={banners[0].subtitle}
-                                        image={banners[0].image}
-                                        buttonText={banners[0].buttonText}
-                                        link={banners[0].link}
-                                        reverse={banners[0].textPosition === 'right'}
-                                        textColor={banners[0].textColor}
-                                        highlightColor={banners[0].highlightColor}
-                                        buttonColor={banners[0].buttonColor}
-                                        bgColor={banners[0].backgroundColor}
-                                        textPosition={banners[0].textPosition}
-                                    />
-                                ) : (
-                                    <OfferBanner
-                                        title="Get [Exclusive] Offers on Denims!"
-                                        subtitle="Up to 40% off on all Denim products."
-                                        image="https://images.unsplash.com/photo-1582418702059-97ebafb35d09?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
-                                        bgColor="bg-gray-100"
-                                    />
-                                )
-                            )}
-                        </div>
-
-                        {/* 5. New Arrivals Placeholder */}
-                        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                            <div className="flex justify-between items-center mb-8">
-                                <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">New Arrivals</h2>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 opacity-50">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="h-80 bg-gray-100 rounded"></div>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* 6. Best Sellers Placeholder */}
-                        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                            <div className="flex justify-between items-center mb-8">
-                                <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">Best Sellers</h2>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-10 gap-x-8 opacity-50">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="h-80 bg-gray-100 rounded"></div>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* 7. Banner 2 (Real Component) */}
-                        <div className="relative border-2 border-dashed border-blue-400 m-2 rounded-lg overflow-hidden">
-                            <div className="absolute top-0 left-0 bg-blue-500 text-white text-[10px] px-2 py-0.5 z-10 font-bold uppercase tracking-wider">
-                                Banner 2 Position
-                            </div>
-                            {loading ? (
-                                <div className="h-64 flex items-center justify-center bg-gray-50 text-gray-400">Loading Banner 2...</div>
-                            ) : (
-                                banners && banners.length > 1 ? (
-                                    <OfferBanner
-                                        title={banners[1].title}
-                                        subtitle={banners[1].subtitle}
-                                        image={banners[1].image}
-                                        buttonText={banners[1].buttonText}
-                                        link={banners[1].link}
-                                        reverse={banners[1].textPosition === 'right' || true}
-                                        textColor={banners[1].textColor}
-                                        highlightColor={banners[1].highlightColor}
-                                        buttonColor={banners[1].buttonColor}
-                                        bgColor={banners[1].backgroundColor}
-                                        textPosition={banners[1].textPosition}
-                                    />
-                                ) : (
-                                    <OfferBanner
-                                        title="Get Exclusive Offers on [New Arrivals]!"
-                                        subtitle="Check out the latest collections."
-                                        image="https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
-                                        reverse={true}
-                                        bgColor="bg-gray-100"
-                                    />
-                                )
-                            )}
-                        </div>
-
-                        {/* 8. Shop For Style Placeholder */}
-                        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                            <div className="flex justify-between items-center mb-8">
-                                <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">Shop For Style</h2>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 opacity-50">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="h-80 bg-gray-100 rounded"></div>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* 9. Top Checks Placeholder */}
-                        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mb-12">
-                            <div className="flex justify-between items-center mb-8">
-                                <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">Top Checks</h2>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 opacity-50">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="h-80 bg-gray-100 rounded"></div>
-                                ))}
-                            </div>
-                        </section>
-
                     </div>
+                </div>
 
-                    {/* Footer Placeholder */}
-                    <footer className="bg-gray-900 text-white py-12 mt-8 text-center text-sm opacity-80">
-                        Footer Content
-                    </footer>
+                {/* 2. Live Preview */}
+                <div className="flex-1 min-w-0 order-1 xl:order-2">
+                    <div className="flex justify-center">
+                        <div className="w-full bg-white shadow-2xl rounded-xl overflow-hidden border border-gray-200 origin-top">
+                            {/* Fixed Header Placeholder */}
+                            <header className="sticky top-0 bg-white z-50 border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+                                <div className="w-8 h-8 bg-black rounded flex items-center justify-center text-white font-bold">L</div>
+                                <div className="flex gap-4 text-xs font-semibold uppercase text-gray-500">
+                                    <span className="hidden sm:block">Men</span>
+                                    <span className="hidden sm:block">Women</span>
+                                    <span className="hidden sm:block">Kids</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
+                                    <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
+                                </div>
+                            </header>
+
+                            {/* Dynamic Content Area */}
+                            <div className="bg-white min-h-[600px]">
+                                {layout.map((key) => (
+                                    <React.Fragment key={key}>
+                                        {renderSectionPreview(key)}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+
+                            {/* Fixed Footer Placeholder */}
+                            <footer className="bg-gray-900 text-white py-12 mt-8 text-center text-sm opacity-80">
+                                Footer Content
+                            </footer>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

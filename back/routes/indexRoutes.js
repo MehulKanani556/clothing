@@ -21,7 +21,18 @@ const { createOffer, validateCoupon, getOffers, getAllOffersAdmin, uploadBanner,
 const { createBlogPost, getAllBlogs, getBlogBySlug, deleteBlog } = require('../controllers/blog.controller');
 const { addReview, getProductReviews, getAllReviews, updateReviewStatus, deleteReview } = require('../controllers/review.controller');
 const { orderValidation, returnValidation, offerValidation } = require('../middleware/validators');
-const { createBanner, getBanners, getAdminBanners, updateBanner, deleteBanner, toggleBannerStatus } = require('../controllers/banner.controller');
+const { createBanner, getBanners, getAdminBanners, updateBanner, deleteBanner, toggleBannerStatus, updateBannerOrder } = require('../controllers/banner.controller');
+
+// ... (skipping unchanged lines)
+
+// --- BANNER SERVICE ---
+router.get('/banners', getBanners); // Public
+router.get('/banners/admin', auth, getAdminBanners);
+router.post('/banners', auth, upload.single('image'), createBanner);
+router.put('/banners/order', auth, updateBannerOrder);
+router.put('/banners/:id', auth, upload.single('image'), updateBanner);
+router.delete('/banners/:id', auth, deleteBanner);
+router.patch('/banners/:id/status', auth, toggleBannerStatus);
 
 // auth
 router.post('/register', upload.single("photo"), createUser);

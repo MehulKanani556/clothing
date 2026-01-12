@@ -43,6 +43,10 @@ const bannerSchema = new mongoose.Schema({
         type: String,
         default: '#000000' // Black
     },
+    order: {
+        type: Number,
+        default: 0
+    },
     isActive: {
         type: Boolean,
         default: true
