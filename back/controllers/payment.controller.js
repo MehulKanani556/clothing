@@ -206,17 +206,17 @@ exports.verifyPayment = async (req, res) => {
                         weight: 0.5
                     };
 
-                    // const shiprocketResponse = await shiprocketAPI.createOrder(shiprocketOrderData);
+                    const shiprocketResponse = await shiprocketAPI.createOrder(shiprocketOrderData);
 
-                    // if (shiprocketResponse.status_code === 1) {
-                    //     await Order.findByIdAndUpdate(updatedOrder._id, {
-                    //         shiprocketOrderId: shiprocketResponse.order_id,
-                    //         shipmentId: shiprocketResponse.shipment_id,
-                    //         shiprocketResponse: shiprocketResponse,
-                    //         lastStatusUpdate: new Date()
-                    //     });
-                    //     console.log(`Shiprocket order created for ${updatedOrder.orderId}`);
-                    // }
+                    if (shiprocketResponse.status_code === 1) {
+                        await Order.findByIdAndUpdate(updatedOrder._id, {
+                            shiprocketOrderId: shiprocketResponse.order_id,
+                            shipmentId: shiprocketResponse.shipment_id,
+                            shiprocketResponse: shiprocketResponse,
+                            lastStatusUpdate: new Date()
+                        });
+                        console.log(`Shiprocket order created for ${updatedOrder.orderId}`);
+                    }
                 }
             } catch (shiprocketError) {
                 console.error('Failed to create Shiprocket order:', shiprocketError.message);

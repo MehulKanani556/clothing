@@ -76,6 +76,19 @@ const orderSchema = new mongoose.Schema({
     lastStatusUpdate: { type: Date },
     courierCompanyId: { type: String },
     
+    // Enhanced Tracking Information
+    trackingHistory: [{
+        status: { type: String },
+        location: { type: String },
+        timestamp: { type: Date },
+        description: { type: String },
+        courierStatus: { type: String }
+    }],
+    currentLocation: { type: String },
+    expectedDeliveryDate: { type: Date },
+    deliveryAttempts: { type: Number, default: 0 },
+    lastTrackingSync: { type: Date },
+    
     // Dates
     placedAt: { type: Date, default: Date.now },
     confirmedAt: { type: Date },

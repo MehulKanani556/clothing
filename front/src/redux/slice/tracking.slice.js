@@ -6,7 +6,7 @@ export const fetchTrackingInfo = createAsyncThunk(
     'tracking/fetchInfo',
     async (orderId, { rejectWithValue }) => {
         try {
-            const response = await axiosInstance.get(`/shiprocket/orders/${orderId}/tracking`);
+            const response = await axiosInstance.get(`/shiprocket/orders/${orderId}/tracking/detailed`);
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data || error.message);
@@ -71,7 +71,7 @@ export const syncTrackingData = createAsyncThunk(
     'tracking/syncData',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axiosInstance.post('/shiprocket/sync');
+            const response = await axiosInstance.post('/shiprocket/sync-all');
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data || error.message);

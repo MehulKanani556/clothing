@@ -65,16 +65,21 @@ class ShiprocketAPI {
         }
     }
 
-    // Get tracking information
-    async getTracking(shipmentId) {
+    // Get detailed tracking information with history
+    async getDetailedTracking(shipmentId) {
         try {
             const headers = await this.getHeaders();
             const response = await axios.get(`${this.baseURL}/courier/track/shipment/${shipmentId}`, { headers });
             return response.data;
         } catch (error) {
-            console.error('Shiprocket tracking failed:', error.response?.data || error.message);
+            console.error('Shiprocket detailed tracking failed:', error.response?.data || error.message);
             throw error;
         }
+    }
+
+    // Get tracking information (legacy function)
+    async getTracking(shipmentId) {
+        return this.getDetailedTracking(shipmentId);
     }
 
     // Get tracking by AWB number

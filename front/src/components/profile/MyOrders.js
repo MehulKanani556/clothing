@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { FiClock, FiCheck, FiX, FiChevronRight } from 'react-icons/fi';
+import { FiClock, FiCheck, FiX, FiChevronRight, FiTruck } from 'react-icons/fi';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUserOrders } from '../../redux/slice/order.slice';
 
 import OrderDetails from './OrderDetails';
+import TrackingWidget from '../TrackingWidget';
 
 export default function MyOrders() {
     const [filter, setFilter] = useState('All orders');
@@ -23,6 +24,14 @@ export default function MyOrders() {
                     bg: 'bg-orange-50',
                     text: 'text-orange-900',
                     title: 'Order Pending'
+                };
+            case 'Processing':
+            case 'Shipped':
+                return {
+                    icon: <FiTruck className="w-5 h-5 text-blue-600" />,
+                    bg: 'bg-blue-50',
+                    text: 'text-blue-900',
+                    title: status === 'Processing' ? 'Order Processing' : 'Order Shipped'
                 };
             case 'Delivered':
                 return {
@@ -164,6 +173,13 @@ export default function MyOrders() {
                                     <span className="font-medium text-gray-600">Total Amount</span>
                                     <span className="font-bold text-gray-900">₹{order.grandTotal}</span>
                                 </div>
+
+                                {/* Real-time Tracking Widget for active orders */}
+                                {(order.status === 'Processing' || order.status === 'Shipped') && (
+                                    <div className="p-6 pt-0">
+                                        <TrackingWidget order={order} showFullDetails={false} />
+                                    </div>
+                                )}
                             </div>
                         );
                     })

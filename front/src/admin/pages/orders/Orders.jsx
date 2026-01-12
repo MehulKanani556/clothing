@@ -5,12 +5,17 @@ import {
     MdVisibility, MdEdit, MdDelete,
     MdCheckCircle, MdCancel, MdLocalShipping, MdOutlineShoppingBag,
     MdAttachMoney, MdPendingActions, MdErrorOutline, MdAdd, MdFilterList,
-    MdSearch, MdKeyboardArrowDown, MdMoreVert, MdHourglassEmpty, MdRefresh
+    MdSearch, MdKeyboardArrowDown, MdMoreVert, MdHourglassEmpty, MdRefresh,
+    MdSync, MdLocationOn
 } from 'react-icons/md';
+import { FiTruck, FiMapPin } from 'react-icons/fi';
 import { RiVisaLine, RiMastercardLine, RiPaypalLine, RiWallet3Line } from 'react-icons/ri';
 import DataTable from '../../components/common/DataTable';
 import { useNavigate } from 'react-router-dom';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
+import axiosInstance from '../../../utils/axiosInstance';
+import { BASE_URL } from '../../../utils/BASE_URL';
+import toast from 'react-hot-toast';
 
 const StatsCard = ({ title, count, icon: Icon, colorClass, trend }) => (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-start justify-between transition-transform hover:-translate-y-1 duration-300">
@@ -35,6 +40,7 @@ const Orders = () => {
     const [deliveryFilter, setDeliveryFilter] = useState('');
     const [dateRange, setDateRange] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [syncingTracking, setSyncingTracking] = useState(false);
     const itemsPerPage = 10;
 
     useEffect(() => {
@@ -44,6 +50,23 @@ const Orders = () => {
 
     const handleStatusUpdate = (id, status) => {
         dispatch(updateOrderStatus({ id, status }));
+    };
+
+    const handleSyncAllTracking = async () => {
+        setSyncingTracking(true);
+        try {
+            const response = await axiosInstance.post(`${BASE_URL}/shiprocket/sync-all-tracking`);
+            if (response.data.success) {
+                toast.success(`Synced ${response.data.data.synced} orders successfully`);
+                // Refresh orders data
+                dispatch(fetchAdminOrders());
+            }
+        } catch (error) {
+            console.error('Failed to sync tracking:', error);
+            toast.error('Failed to sync tracking data');
+        } finally {
+            setSyncingTracking(false);
+        }
     };
 
     // Calculate Stats
@@ -192,6 +215,41 @@ const Orders = () => {
             )
         },
         {
+            header: 'Tracking Info',
+            accessor: 'trackingInfo',
+            render: (row) => {
+                if (row.status === 'Processing' || row.status === 'Shipped') {
+                    return (
+                        <div className="flex flex-col gap-1">
+                            {row.trackingNumber ? (
+                                <div className="flex items-center gap-1 text-xs">
+                                    <FiTruck className="w-3 h-3 text-blue-600" />
+                                    <span className="font-mono text-gray-600">{row.trackingNumber}</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-1 text-xs">
+                                    <FiTruck className="w-3 h-3 text-gray-400" />
+                                    <span className="text-gray-400">Pending</span>
+                                </div>
+                            )}
+                            {row.currentLocation && (
+                                <div className="flex items-center gap-1 text-xs">
+                                    <FiMapPin className="w-3 h-3 text-green-600" />
+                                    <span className="text-gray-600 truncate max-w-24" title={row.currentLocation}>
+                                        {row.currentLocation}
+                                    </span>
+                                </div>
+                            )}
+                            {row.carrier && (
+                                <div className="text-xs text-gray-500">{row.carrier}</div>
+                            )}
+                        </div>
+                    );
+                }
+                return <span className="text-xs text-gray-400">-</span>;
+            }
+        },
+        {
             header: 'Actions',
             render: (row) => (
                 <div className="flex items-center gap-2">
@@ -233,6 +291,18 @@ const Orders = () => {
 
             {/* Content Area */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                {/* Header with Sync Button */}
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <h2 className="text-lg font-bold text-gray-800">All Orders</h2>
+                    <button
+                        onClick={handleSyncAllTracking}
+                        disabled={syncingTracking}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-all disabled:opacity-50"
+                    >
+                        <MdSync className={`w-4 h-4 ${syncingTracking ? 'animate-spin' : ''}`} />
+                        <span>{syncingTracking ? 'Syncing...' : 'Sync Tracking'}</span>
+                    </button>
+                </div>
 
 
 

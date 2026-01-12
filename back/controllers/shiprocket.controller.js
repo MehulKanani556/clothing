@@ -118,14 +118,14 @@ exports.createShiprocketOrder = async (req, res) => {
 
         // Try to get product details for each item to calculate dimensions
         const Product = require('../models/product.model');
-        
+
         for (const item of order.items) {
             try {
                 const product = await Product.findById(item.product);
                 if (product && product.packageInfo) {
                     const pkg = product.packageInfo;
                     const quantity = item.quantity || 1;
-                    
+
                     // Add weight
                     if (pkg.weight) {
                         totalWeight += (pkg.weight * quantity);
@@ -134,11 +134,11 @@ exports.createShiprocketOrder = async (req, res) => {
                     // Calculate dimensions
                     if (pkg.dimensions) {
                         const { length = 0, width = 0, height = 0 } = pkg.dimensions;
-                        
+
                         // For length and width, take the maximum
                         maxLength = Math.max(maxLength, length);
                         maxWidth = Math.max(maxWidth, width);
-                        
+
                         // For height, stack items
                         totalHeight += (height * quantity);
                     }
@@ -248,8 +248,8 @@ exports.createShiprocketOrder = async (req, res) => {
     }
 };
 
-// Get tracking information
-exports.getTrackingInfo = async (req, res) => {
+// Get detailed tracking information with history
+exports.getDetailedTrackingInfo = async (req, res) => {
     try {
         const { orderId } = req.params;
         const order = await Order.findById(orderId);
@@ -269,20 +269,77 @@ exports.getTrackingInfo = async (req, res) => {
         }
 
         let trackingData;
+        let trackingHistory = [];
 
-        if (order.shipmentId) {
-            trackingData = await shiprocketAPI.getTracking(order.shipmentId);
-        } else if (order.awbNumber) {
-            trackingData = await shiprocketAPI.getTrackingByAWB(order.awbNumber);
+        try {
+            if (order.shipmentId) {
+                trackingData = await shiprocketAPI.getDetailedTracking(order.shipmentId);
+            } else if (order.awbNumber) {
+                trackingData = await shiprocketAPI.getTrackingByAWB(order.awbNumber);
+            }
+
+            // Process tracking data and extract history
+            if (trackingData && trackingData.tracking_data) {
+                const scans = trackingData.tracking_data.shipment_track || [];
+
+                trackingHistory = scans.map(scan => ({
+                    status: scan.current_status,
+                    location: scan.location || 'Unknown',
+                    timestamp: new Date(scan.date),
+                    description: scan.activity || scan.current_status,
+                    courierStatus: scan.status_code
+                })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                // Update order with latest tracking info
+                const latestScan = trackingHistory[0];
+                const updateData = {
+                    trackingHistory: trackingHistory,
+                    currentLocation: latestScan?.location,
+                    shiprocketStatus: latestScan?.status,
+                    lastTrackingSync: new Date(),
+                    lastStatusUpdate: new Date()
+                };
+
+                // Update delivery status based on latest scan
+                if (latestScan?.status?.toLowerCase().includes('delivered')) {
+                    updateData.status = 'Delivered';
+                    updateData.deliveredAt = latestScan.timestamp;
+                    updateData.returnWindowExpiresAt = new Date(latestScan.timestamp.getTime() + 7 * 24 * 60 * 60 * 1000);
+                } else if (latestScan?.status?.toLowerCase().includes('shipped') ||
+                    latestScan?.status?.toLowerCase().includes('transit')) {
+                    updateData.status = 'Shipped';
+                    if (!order.shippedAt) {
+                        updateData.shippedAt = latestScan.timestamp;
+                    }
+                }
+
+                await Order.findByIdAndUpdate(orderId, updateData);
+            }
+
+        } catch (trackingError) {
+            console.error('Error fetching tracking data:', trackingError);
+            // Return cached tracking data if API fails
+            trackingHistory = order.trackingHistory || [];
         }
 
         res.status(200).json({
             success: true,
-            data: trackingData
+            data: {
+                orderId: order.orderId,
+                status: order.status,
+                trackingNumber: order.trackingNumber || order.awbNumber,
+                carrier: order.carrier,
+                currentLocation: order.currentLocation,
+                expectedDeliveryDate: order.expectedDeliveryDate,
+                estimatedDeliveryDate: order.estimatedDeliveryDate,
+                trackingHistory: trackingHistory,
+                lastUpdated: order.lastTrackingSync || order.lastStatusUpdate
+            }
         });
+        console.log("trackingData", trackingData[order.shipmentId].tracking_data.shipment_track);
 
     } catch (error) {
-        console.error('Get tracking info error:', error);
+        console.error('Get detailed tracking info error:', error);
         res.status(500).json({
             success: false,
             message: error.message || 'Failed to get tracking information'
@@ -474,37 +531,60 @@ exports.handleWebhook = async (req, res) => {
     }
 };
 
-// Sync tracking data for all active shipments
-exports.syncTrackingData = async (req, res) => {
+// Sync tracking data for all active shipments with detailed history
+exports.syncAllTrackingData = async (req, res) => {
     try {
         const activeOrders = await Order.find({
             status: { $in: ['Processing', 'Shipped'] },
-            shipmentId: { $exists: true, $ne: null }
+            $or: [
+                { shipmentId: { $exists: true, $ne: null } },
+                { awbNumber: { $exists: true, $ne: null } }
+            ]
         });
 
         let syncedCount = 0;
         let errorCount = 0;
+        const syncResults = [];
 
         for (const order of activeOrders) {
             try {
-                const trackingData = await shiprocketAPI.getTracking(order.shipmentId);
+                let trackingData;
+
+                if (order.shipmentId) {
+                    trackingData = await shiprocketAPI.getDetailedTracking(order.shipmentId);
+                } else if (order.awbNumber) {
+                    trackingData = await shiprocketAPI.getTrackingByAWB(order.awbNumber);
+                }
 
                 if (trackingData && trackingData.tracking_data) {
-                    const latestScan = trackingData.tracking_data.track_status;
+                    const scans = trackingData.tracking_data.shipment_track || [];
+
+                    const trackingHistory = scans.map(scan => ({
+                        status: scan.current_status,
+                        location: scan.location || 'Unknown',
+                        timestamp: new Date(scan.date),
+                        description: scan.activity || scan.current_status,
+                        courierStatus: scan.status_code
+                    })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                    const latestScan = trackingHistory[0];
                     let orderStatus = order.status;
                     let deliveredAt = order.deliveredAt;
 
                     // Update status based on latest scan
-                    if (latestScan?.toLowerCase().includes('delivered')) {
+                    if (latestScan?.status?.toLowerCase().includes('delivered')) {
                         orderStatus = 'Delivered';
-                        deliveredAt = new Date();
-                    } else if (latestScan?.toLowerCase().includes('shipped') ||
-                        latestScan?.toLowerCase().includes('transit')) {
+                        deliveredAt = latestScan.timestamp;
+                    } else if (latestScan?.status?.toLowerCase().includes('shipped') ||
+                        latestScan?.status?.toLowerCase().includes('transit')) {
                         orderStatus = 'Shipped';
                     }
 
                     const updateData = {
-                        shiprocketStatus: latestScan,
+                        trackingHistory: trackingHistory,
+                        currentLocation: latestScan?.location,
+                        shiprocketStatus: latestScan?.status,
+                        lastTrackingSync: new Date(),
                         lastStatusUpdate: new Date(),
                         status: orderStatus
                     };
@@ -515,12 +595,28 @@ exports.syncTrackingData = async (req, res) => {
                     }
 
                     await Order.findByIdAndUpdate(order._id, updateData);
+
+                    syncResults.push({
+                        orderId: order.orderId,
+                        status: 'success',
+                        latestStatus: latestScan?.status,
+                        location: latestScan?.location
+                    });
+
                     syncedCount++;
                 }
             } catch (error) {
                 console.error(`Failed to sync order ${order.orderId}:`, error.message);
+                syncResults.push({
+                    orderId: order.orderId,
+                    status: 'error',
+                    error: error.message
+                });
                 errorCount++;
             }
+
+            // Add delay to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         res.status(200).json({
@@ -529,12 +625,13 @@ exports.syncTrackingData = async (req, res) => {
             data: {
                 synced: syncedCount,
                 errors: errorCount,
-                total: activeOrders.length
+                total: activeOrders.length,
+                results: syncResults
             }
         });
 
     } catch (error) {
-        console.error('Sync tracking data error:', error);
+        console.error('Sync all tracking data error:', error);
         res.status(500).json({
             success: false,
             message: error.message || 'Failed to sync tracking data'
@@ -675,16 +772,16 @@ exports.checkPickupLocations = async (req, res) => {
 exports.testPickupLocations = async (req, res) => {
     try {
         const shiprocketAPI = require('../utils/shiprocketAPI');
-        
+
         // Test 1: Check authentication
         console.log('Testing Shiprocket authentication...');
         const token = await shiprocketAPI.authenticate();
         console.log('✓ Authentication successful');
-        
+
         // Test 2: Get pickup locations
         console.log('\nFetching pickup locations...');
         const pickupLocations = await shiprocketAPI.getPickupLocations();
-        
+
         if (!pickupLocations.data || pickupLocations.data.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -699,9 +796,9 @@ exports.testPickupLocations = async (req, res) => {
                 ]
             });
         }
-        
+
         console.log('✓ Pickup locations found:', pickupLocations.data.length);
-        
+
         // Test 3: Show all pickup location names
         const locationNames = pickupLocations.data.map(loc => ({
             name: loc.pickup_location,
@@ -712,16 +809,16 @@ exports.testPickupLocations = async (req, res) => {
             pincode: loc.pin_code,
             isDefault: loc.is_first_mile_pickup || false
         }));
-        
+
         res.status(200).json({
             success: true,
             message: 'Shiprocket connection successful',
             pickupLocations: locationNames,
-            recommendation: locationNames.length > 0 
-                ? `Use pickup_location: "${locationNames[0].name}"` 
+            recommendation: locationNames.length > 0
+                ? `Use pickup_location: "${locationNames[0].name}"`
                 : 'Add a pickup location in Shiprocket dashboard first'
         });
-        
+
     } catch (error) {
         console.error('Shiprocket test failed:', error);
         res.status(500).json({
@@ -742,7 +839,7 @@ exports.checkPincodeServiceability = async (req, res) => {
     try {
         const { pincode } = req.params;
         const { cartItems = [] } = req.body;
-        
+
         // Validate pincode format
         if (!pincode || !/^\d{6}$/.test(pincode)) {
             return res.status(400).json({
@@ -759,15 +856,24 @@ exports.checkPincodeServiceability = async (req, res) => {
         let totalHeight = 0;
 
         console.log('Calculating shipping for cart items:', cartItems.length);
+        console.log('Cart items structure:', JSON.stringify(cartItems, null, 2));
 
         if (cartItems.length > 0) {
-            cartItems.forEach(item => {
+            cartItems.forEach((item, index) => {
+                console.log(`Processing item ${index}:`, {
+                    hasProduct: !!item.product,
+                    productId: item.product?._id,
+                    hasPackageInfo: !!item.product?.packageInfo,
+                    packageInfo: item.product?.packageInfo,
+                    quantity: item.quantity
+                });
+
                 const product = item.product;
                 const quantity = item.quantity || 1;
 
                 if (product && product.packageInfo) {
                     const pkg = product.packageInfo;
-                    
+
                     // Add weight (convert to kg if needed, assuming it's already in kg)
                     if (pkg.weight) {
                         totalWeight += (pkg.weight * quantity);
@@ -776,14 +882,14 @@ exports.checkPincodeServiceability = async (req, res) => {
                     // Calculate dimensions
                     if (pkg.dimensions) {
                         const { length = 0, width = 0, height = 0 } = pkg.dimensions;
-                        
+
                         // For length and width, take the maximum (assuming items are packed side by side)
                         maxLength = Math.max(maxLength, length);
                         maxWidth = Math.max(maxWidth, width);
-                        
+
                         // For height, stack items (add heights for multiple quantities)
                         totalHeight += (height * quantity);
-                        
+
                         // Calculate volume for reference
                         totalVolume += (length * width * height * quantity);
                     }

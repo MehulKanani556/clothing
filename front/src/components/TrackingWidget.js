@@ -1,196 +1,259 @@
 import React, { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchTrackingInfo } from '../redux/slice/tracking.slice';
-import { FiTruck, FiPackage, FiMapPin, FiClock, FiExternalLink, FiRefreshCw } from 'react-icons/fi';
-import { MdLocalShipping, MdCheckCircle, MdLocationOn } from 'react-icons/md';
+import { FiTruck, FiMapPin, FiClock, FiCheck, FiRefreshCw, FiPackage, FiHome } from 'react-icons/fi';
+import axiosInstance from '../utils/axiosInstance';
+import { BASE_URL } from '../utils/BASE_URL';
 
-const TrackingWidget = ({ order, showFullDetails = false }) => {
-    const dispatch = useDispatch();
-    const { trackingData, loading, error } = useSelector(state => state.tracking);
-    const [refreshing, setRefreshing] = useState(false);
+export default function TrackingWidget({ order, showFullDetails = false }) {
+    const [trackingData, setTrackingData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [lastUpdated, setLastUpdated] = useState(null);
 
+    // Auto-refresh tracking data every 30 seconds for active shipments
     useEffect(() => {
-        if (order?.trackingNumber || order?.shipmentId) {
-            dispatch(fetchTrackingInfo(order._id));
-        }
-    }, [dispatch, order]);
+        if (order && (order.status === 'Processing' || order.status === 'Shipped')) {
+            fetchTrackingData();
+            
+            const interval = setInterval(() => {
+                fetchTrackingData(true); // Silent refresh
+            }, 30000); // 30 seconds
 
-    const handleRefresh = async () => {
-        setRefreshing(true);
-        await dispatch(fetchTrackingInfo(order._id));
-        setRefreshing(false);
+            return () => clearInterval(interval);
+        }
+    }, [order]);
+
+    const fetchTrackingData = async (silent = false) => {
+        if (!order || !order._id) return;
+
+        if (!silent) setLoading(true);
+        setError(null);
+
+        try {
+            const response = await axiosInstance.get(`${BASE_URL}/shiprocket/orders/${order._id}/tracking/detailed`);
+            
+            if (response.data.success) {
+                setTrackingData(response.data.data);
+                setLastUpdated(new Date());
+            }
+        } catch (err) {
+            console.error('Failed to fetch tracking data:', err);
+            
+            // If the order doesn't have tracking info yet, show a friendly message
+            if (err.response?.status === 400 && err.response?.data?.message?.includes('No tracking information')) {
+                setError('Tracking information will be available once your order is shipped');
+            } else if (err.response?.status === 401) {
+                setError('Authentication required to view tracking details');
+            } else {
+                setError('Unable to fetch tracking information');
+            }
+        } finally {
+            if (!silent) setLoading(false);
+        }
     };
 
     const getStatusIcon = (status) => {
         const statusLower = status?.toLowerCase() || '';
-        if (statusLower.includes('delivered')) return <MdCheckCircle className="text-green-500" size={20} />;
-        if (statusLower.includes('shipped') || statusLower.includes('transit')) return <FiTruck className="text-blue-500" size={20} />;
-        if (statusLower.includes('picked')) return <FiPackage className="text-orange-500" size={20} />;
-        return <FiClock className="text-gray-500" size={20} />;
+        
+        if (statusLower.includes('delivered')) {
+            return <FiHome className="w-4 h-4 text-green-600" />;
+        } else if (statusLower.includes('out for delivery')) {
+            return <FiTruck className="w-4 h-4 text-blue-600" />;
+        } else if (statusLower.includes('transit') || statusLower.includes('shipped')) {
+            return <FiTruck className="w-4 h-4 text-indigo-600" />;
+        } else if (statusLower.includes('picked') || statusLower.includes('dispatched')) {
+            return <FiPackage className="w-4 h-4 text-orange-600" />;
+        } else {
+            return <FiClock className="w-4 h-4 text-gray-600" />;
+        }
     };
 
-    const getStatusColor = (status) => {
-        const statusLower = status?.toLowerCase() || '';
-        if (statusLower.includes('delivered')) return 'text-green-600 bg-green-50';
-        if (statusLower.includes('shipped') || statusLower.includes('transit')) return 'text-blue-600 bg-blue-50';
-        if (statusLower.includes('picked')) return 'text-orange-600 bg-orange-50';
-        return 'text-gray-600 bg-gray-50';
+    const formatDateTime = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
     };
 
     const formatDate = (dateString) => {
         if (!dateString) return '';
-        return new Date(dateString).toLocaleDateString('en-US', {
-            day: 'numeric',
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
             month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            day: 'numeric',
+            year: 'numeric'
         });
     };
 
-    if (!order?.trackingNumber && !order?.shipmentId) {
-        return (
-            <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <FiPackage className="mx-auto text-gray-400 mb-2" size={24} />
-                <p className="text-gray-600 text-sm">Tracking information not available yet</p>
-                <p className="text-gray-500 text-xs mt-1">We'll update you once your order is shipped</p>
-            </div>
-        );
+    if (!order || (order.status !== 'Processing' && order.status !== 'Shipped' && order.status !== 'Delivered')) {
+        return null;
     }
 
-    if (loading && !trackingData) {
-        return (
-            <div className="bg-white rounded-lg border p-4">
-                <div className="animate-pulse">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-6 h-6 bg-gray-200 rounded"></div>
-                        <div className="h-4 bg-gray-200 rounded w-32"></div>
-                    </div>
-                    <div className="space-y-2">
-                        <div className="h-3 bg-gray-200 rounded w-full"></div>
-                        <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="bg-red-50 rounded-lg p-4 text-center">
-                <p className="text-red-600 text-sm mb-2">Failed to load tracking information</p>
-                <button
-                    onClick={handleRefresh}
-                    className="text-red-600 hover:text-red-700 text-xs underline"
-                >
-                    Try again
-                </button>
-            </div>
-        );
-    }
-
-    const currentStatus = trackingData?.tracking_data?.track_status || order.shiprocketStatus || order.status;
-    const scans = trackingData?.tracking_data?.shipment_track || [];
+    // Show basic tracking info from order data if no detailed tracking is available
+    const showBasicTracking = !trackingData && !loading && (order.status === 'Processing' || order.status === 'Shipped');
 
     return (
-        <div className="bg-white rounded-lg border">
-            {/* Header */}
-            <div className="p-4 border-b">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <FiTruck className="text-indigo-600" size={20} />
-                        <div>
-                            <h3 className="font-medium text-gray-900">Shipment Tracking</h3>
-                            {order.trackingNumber && (
-                                <p className="text-sm text-gray-500">AWB: {order.trackingNumber}</p>
-                            )}
-                        </div>
-                    </div>
+        <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-6">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                    <FiTruck className="w-5 h-5" />
+                    Track Your Order
+                </h3>
+                <div className="flex items-center gap-2">
+                    {lastUpdated && (
+                        <span className="text-xs text-gray-500">
+                            Updated {formatDateTime(lastUpdated)}
+                        </span>
+                    )}
                     <button
-                        onClick={handleRefresh}
-                        disabled={refreshing}
-                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        onClick={() => fetchTrackingData()}
+                        disabled={loading}
+                        className="p-1 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
+                        title="Refresh tracking"
                     >
-                        <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={16} />
+                        <FiRefreshCw className={`w-4 h-4 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
             </div>
 
-            {/* Current Status */}
-            <div className="p-4">
-                <div className="flex items-center gap-3 mb-4">
-                    {getStatusIcon(currentStatus)}
-                    <div className="flex-1">
-                        <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentStatus)}`}>
-                            {currentStatus}
-                        </div>
-                        {order.carrier && (
-                            <p className="text-sm text-gray-600 mt-1">via {order.carrier}</p>
-                        )}
-                    </div>
+            {loading && !trackingData ? (
+                <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                 </div>
-
-                {/* Estimated Delivery */}
-                {order.estimatedDeliveryDate && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                        <FiClock size={16} />
-                        <span>Expected delivery: {formatDate(order.estimatedDeliveryDate)}</span>
-                    </div>
-                )}
-
-                {/* Tracking Link */}
-                {order.trackingUrl && (
-                    <a
-                        href={order.trackingUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-                    >
-                        <FiExternalLink size={16} />
-                        Track on carrier website
-                    </a>
-                )}
-            </div>
-
-            {/* Tracking Timeline */}
-            {showFullDetails && scans.length > 0 && (
-                <div className="border-t">
-                    <div className="p-4">
-                        <h4 className="font-medium text-gray-900 mb-3">Tracking History</h4>
-                        <div className="space-y-3">
-                            {scans.slice(0, 5).map((scan, index) => (
-                                <div key={index} className="flex gap-3">
-                                    <div className="flex-shrink-0 mt-1">
-                                        {getStatusIcon(scan.current_status)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-900">
-                                            {scan.current_status}
+            ) : error ? (
+                <div className="text-center py-8">
+                    <p className="text-amber-600 text-sm">{error}</p>
+                    {showBasicTracking && (
+                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center gap-3">
+                                <FiTruck className="w-5 h-5 text-blue-600" />
+                                <div className="flex-1 text-left">
+                                    <h4 className="font-semibold text-gray-900">{order.status}</h4>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        Your order is being processed. Detailed tracking will be available once shipped.
+                                    </p>
+                                    {order.shippedAt && (
+                                        <p className="text-sm text-green-600 mt-1">
+                                            Shipped on: {formatDate(order.shippedAt)}
                                         </p>
-                                        {scan.location && (
-                                            <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                                                <MdLocationOn size={12} />
-                                                <span>{scan.location}</span>
-                                            </div>
-                                        )}
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            {formatDate(scan.date)}
-                                        </p>
-                                    </div>
+                                    )}
                                 </div>
-                            ))}
+                            </div>
                         </div>
-                        
-                        {scans.length > 5 && (
-                            <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium mt-3">
-                                View all updates ({scans.length})
-                            </button>
-                        )}
+                    )}
+                </div>
+            ) : trackingData ? (
+                <div className="space-y-4">
+                    {/* Current Status */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center gap-3">
+                            {getStatusIcon(trackingData.status)}
+                            <div className="flex-1">
+                                <h4 className="font-semibold text-gray-900">{trackingData.status || 'In Transit'}</h4>
+                                {trackingData.currentLocation && (
+                                    <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                                        <FiMapPin className="w-3 h-3" />
+                                        {trackingData.currentLocation}
+                                    </p>
+                                )}
+                                {trackingData.expectedDeliveryDate && (
+                                    <p className="text-sm text-green-600 mt-1">
+                                        Expected delivery: {formatDate(trackingData.expectedDeliveryDate)}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
                     </div>
+
+                    {/* Tracking Number */}
+                    {trackingData.trackingNumber && (
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600">Tracking Number:</span>
+                            <span className="font-mono font-semibold text-gray-900">{trackingData.trackingNumber}</span>
+                        </div>
+                    )}
+
+                    {/* Carrier Info */}
+                    {trackingData.carrier && (
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600">Carrier:</span>
+                            <span className="font-semibold text-gray-900">{trackingData.carrier}</span>
+                        </div>
+                    )}
+
+                    {/* Tracking History */}
+                    {showFullDetails && trackingData.trackingHistory && trackingData.trackingHistory.length > 0 && (
+                        <div className="mt-6">
+                            <h4 className="font-semibold text-gray-900 mb-3">Tracking History</h4>
+                            <div className="space-y-3">
+                                {trackingData.trackingHistory.map((event, index) => (
+                                    <div key={index} className="flex gap-3">
+                                        <div className="flex-shrink-0 mt-1">
+                                            {index === 0 ? (
+                                                <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                                            ) : (
+                                                <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                        {event.description || event.status}
+                                                    </p>
+                                                    {event.location && (
+                                                        <p className="text-xs text-gray-600 flex items-center gap-1 mt-1">
+                                                            <FiMapPin className="w-3 h-3" />
+                                                            {event.location}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                                                    {formatDateTime(event.timestamp)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Quick Status Summary for non-detailed view */}
+                    {!showFullDetails && trackingData.trackingHistory && trackingData.trackingHistory.length > 0 && (
+                        <div className="text-center">
+                            <button
+                                onClick={() => window.open(`/track/${order._id}`, '_blank')}
+                                className="text-blue-600 text-sm hover:underline"
+                            >
+                                View detailed tracking →
+                            </button>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="text-center py-8 text-gray-500">
+                    <FiTruck className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p className="text-sm">Tracking information will be available once your order is shipped</p>
+                    {order.status === 'Processing' && (
+                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center gap-3">
+                                <FiPackage className="w-5 h-5 text-blue-600" />
+                                <div className="flex-1 text-left">
+                                    <h4 className="font-semibold text-gray-900">Order Processing</h4>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        Your order is being prepared for shipment. You'll receive tracking details soon.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
     );
-};
-
-export default TrackingWidget;
+}
