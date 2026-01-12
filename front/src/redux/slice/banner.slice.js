@@ -43,10 +43,10 @@ export const createBanner = createAsyncThunk(
             const response = await axiosInstance.post(`${BASE_URL}/banners`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            toast.success('Banner created successfully');
+            // toast.success('Banner created successfully');
             return response.data;
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to create banner');
+            // toast.error(error.response?.data?.message || 'Failed to create banner');
             return rejectWithValue(error.response?.data || { message: error.message });
         }
     }
@@ -60,10 +60,10 @@ export const updateBanner = createAsyncThunk(
             const response = await axiosInstance.put(`${BASE_URL}/banners/${id}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            toast.success('Banner updated successfully');
+            // toast.success('Banner updated successfully');
             return response.data;
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to update banner');
+            // toast.error(error.response?.data?.message || 'Failed to update banner');
             return rejectWithValue(error.response?.data || { message: error.message });
         }
     }
@@ -75,10 +75,10 @@ export const deleteBanner = createAsyncThunk(
     async (id, { rejectWithValue }) => {
         try {
             await axiosInstance.delete(`${BASE_URL}/banners/${id}`);
-            toast.success('Banner deleted successfully');
+            // toast.success('Banner deleted successfully');
             return id;
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to delete banner');
+            // toast.error(error.response?.data?.message || 'Failed to delete banner');
             return rejectWithValue(error.response?.data || { message: error.message });
         }
     }
@@ -90,10 +90,10 @@ export const toggleBannerStatus = createAsyncThunk(
     async (id, { rejectWithValue }) => {
         try {
             const response = await axiosInstance.patch(`${BASE_URL}/banners/${id}/status`);
-            toast.success('Banner status updated');
+            // toast.success('Banner status updated');
             return response.data;
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to update status');
+            // toast.error(error.response?.data?.message || 'Failed to update status');
             return rejectWithValue(error.response?.data || { message: error.message });
         }
     }

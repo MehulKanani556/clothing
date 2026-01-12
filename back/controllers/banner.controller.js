@@ -18,7 +18,7 @@ exports.createBanner = async (req, res) => {
 // Get All Banners (Public - only active)
 exports.getBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({ isActive: true }).sort({ order: 1, createdAt: -1 });
+        const banners = await Banner.find({ isActive: true, deletedAt: null }).sort({ createdAt: -1 });
         res.json({ success: true, data: banners });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -28,7 +28,7 @@ exports.getBanners = async (req, res) => {
 // Get All Banners (Admin - all)
 exports.getAdminBanners = async (req, res) => {
     try {
-        const banners = await Banner.find().sort({ order: 1, createdAt: -1 });
+        const banners = await Banner.find({ deletedAt: null }).sort({ createdAt: -1 });
         res.json({ success: true, data: banners });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -55,7 +55,7 @@ exports.updateBanner = async (req, res) => {
 // Delete Banner
 exports.deleteBanner = async (req, res) => {
     try {
-        const banner = await Banner.findByIdAndDelete(req.params.id);
+        const banner = await Banner.findByIdAndUpdate(req.params.id, { deletedAt: new Date() }, { new: true });
         if (!banner) return res.status(404).json({ success: false, message: 'Banner not found' });
 
         res.json({ success: true, message: 'Banner deleted successfully' });

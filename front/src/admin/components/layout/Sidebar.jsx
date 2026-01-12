@@ -9,6 +9,7 @@ import {
     MdOutlineReceiptLong,
     MdOutlineRateReview,
     MdOutlineLocalOffer,
+    MdOutlinePreview,
 } from 'react-icons/md';
 
 const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
@@ -36,7 +37,6 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             name: 'Dashboards',
             path: '/admin/dashboard',
             icon: <MdOutlineDashboard size={20} />,
-            // badge: { text: '02', color: 'bg-green-500' }
         },
         {
             type: 'item',
@@ -44,6 +44,13 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             name: 'Banners',
             path: '/admin/banners',
             icon: <MdOutlineLocalOffer size={20} />,
+        },
+        {
+            type: 'item',
+            key: 'home-preview',
+            name: 'Home Preview',
+            path: '/admin/home-preview',
+            icon: <MdOutlinePreview size={20} />,
         },
         { type: 'item', key: 'categories', name: 'Categories', path: '/admin/categories', icon: <MdOutlineCategory size={20} /> },
         { type: 'item', key: 'subcategories', name: 'Subcategories', path: '/admin/subcategories', icon: <MdOutlineClass size={20} /> },
@@ -71,7 +78,6 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             name: 'Reviews',
             path: '/admin/reviews',
             icon: <MdOutlineRateReview size={20} />,
-            // badge: { text: 'New', color: 'bg-red-500' }
         },
         {
             type: 'submenu',
