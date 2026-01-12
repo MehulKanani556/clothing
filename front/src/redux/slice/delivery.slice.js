@@ -22,12 +22,14 @@ const roundUpToNearest5 = (value) => {
     return Math.ceil(value / 5) * 5;
 };
 
-// Check Pincode Serviceability
+// Check Pincode Serviceability with cart items
 export const checkPincodeServiceability = createAsyncThunk(
     'delivery/checkPincodeServiceability',
-    async (pincode, { rejectWithValue }) => {
+    async ({ pincode, cartItems = [] }, { rejectWithValue }) => {
         try {
-            const response = await axiosInstance.get(`${BASE_URL}/shiprocket/check-pincode/${pincode}`);
+            const response = await axiosInstance.post(`${BASE_URL}/shiprocket/check-pincode/${pincode}`, {
+                cartItems
+            });
             return response.data;
         } catch (error) {
             return handleErrors(error, rejectWithValue);

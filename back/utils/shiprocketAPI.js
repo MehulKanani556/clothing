@@ -151,10 +151,9 @@ class ShiprocketAPI {
         }
     }
 
-    // Check pincode serviceability
-    async checkPincodeServiceability(deliveryPincode, weight = 0.5, codAmount = 0) {
+    // Check pincode serviceability with dimensions
+    async checkPincodeServiceabilityWithDimensions(pickupPincode, deliveryPincode, weight = 0.5, length = 10, width = 10, height = 10, codAmount = 0) {
         try {
-            const pickupPincode = process.env.PICKUP_PINCODE || '110001';
             const headers = await this.getHeaders();
             
             const response = await axios.get(`${this.baseURL}/courier/serviceability/`, {
@@ -163,6 +162,9 @@ class ShiprocketAPI {
                     pickup_postcode: pickupPincode,
                     delivery_postcode: deliveryPincode,
                     weight: weight,
+                    length: length,
+                    breadth: width,
+                    height: height,
                     cod: codAmount > 0 ? 1 : 0
                 }
             });
@@ -185,7 +187,13 @@ class ShiprocketAPI {
                         courierName: fastestCourier.courier_name,
                         codAvailable: fastestCourier.cod === 1,
                         shippingCharge: parseFloat(fastestCourier.rate) || 0,
-                        availableCouriers: availableCouriers.length
+                        availableCouriers: availableCouriers.length,
+                        packageDimensions: {
+                            weight: weight,
+                            length: length,
+                            width: width,
+                            height: height
+                        }
                     };
                 } else {
                     return {
@@ -200,12 +208,18 @@ class ShiprocketAPI {
                 };
             }
         } catch (error) {
-            console.error('Shiprocket pincode check failed:', error.response?.data || error.message);
+            console.error('Shiprocket pincode check with dimensions failed:', error.response?.data || error.message);
             return {
                 serviceable: false,
                 message: 'Service temporarily unavailable'
             };
         }
+    }
+
+    // Check pincode serviceability (legacy function for backward compatibility)
+    async checkPincodeServiceability(deliveryPincode, weight = 0.5, codAmount = 0) {
+        const pickupPincode = process.env.PICKUP_PINCODE || '110001';
+        return this.checkPincodeServiceabilityWithDimensions(pickupPincode, deliveryPincode, weight, 10, 10, 10, codAmount);
     }
 
     // Get pickup locations

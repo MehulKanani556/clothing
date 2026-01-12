@@ -45,6 +45,6 @@ router.get('/test-pickup1', async (req, res) => {
 // Public routes
 router.post('/webhook', handleWebhook); // Webhook doesn't need auth
 router.get('/track/:orderId', getTrackingInfo); // Public tracking for customers
-router.get('/check-pincode/:pincode', checkPincodeServiceability); // Public pincode check
+router.post('/check-pincode/:pincode', checkPincodeServiceability); // Public pincode check with cart items
 
 module.exports = router;

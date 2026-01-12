@@ -96,7 +96,12 @@ export default function PaymentPage() {
             }
 
             console.log('Checking delivery fee for pincode:', activeAddress.pincode);
-            dispatch(checkPincodeServiceability(activeAddress.pincode))
+            console.log('Cart items for shipping calculation:', items);
+            
+            dispatch(checkPincodeServiceability({ 
+                pincode: activeAddress.pincode, 
+                cartItems: items 
+            }))
                 .unwrap()
                 .then((result) => {
                     if (result.success && result.data.serviceable) {
@@ -109,10 +114,10 @@ export default function PaymentPage() {
                 });
         };
 
-        if (activeAddress?.pincode) {
+        if (activeAddress?.pincode && items.length > 0) {
             checkDeliveryFee();
         }
-    }, [dispatch, activeAddress?.pincode]);
+    }, [dispatch, activeAddress?.pincode, items]);
 
     const formatCardNumber = (value) => {
         const cleaned = value.replace(/\s/g, '').replace(/\D/g, '');

@@ -108,6 +108,70 @@ exports.createShiprocketOrder = async (req, res) => {
             console.log('Could not fetch pickup locations, using "Primary":', pickupError.message);
         }
 
+        // Calculate dynamic weight and dimensions from order items
+        let totalWeight = 0;
+        let maxLength = 0;
+        let maxWidth = 0;
+        let totalHeight = 0;
+
+        console.log('Calculating shipping dimensions for order items:', order.items.length);
+
+        // Try to get product details for each item to calculate dimensions
+        const Product = require('../models/product.model');
+        
+        for (const item of order.items) {
+            try {
+                const product = await Product.findById(item.product);
+                if (product && product.packageInfo) {
+                    const pkg = product.packageInfo;
+                    const quantity = item.quantity || 1;
+                    
+                    // Add weight
+                    if (pkg.weight) {
+                        totalWeight += (pkg.weight * quantity);
+                    }
+
+                    // Calculate dimensions
+                    if (pkg.dimensions) {
+                        const { length = 0, width = 0, height = 0 } = pkg.dimensions;
+                        
+                        // For length and width, take the maximum
+                        maxLength = Math.max(maxLength, length);
+                        maxWidth = Math.max(maxWidth, width);
+                        
+                        // For height, stack items
+                        totalHeight += (height * quantity);
+                    }
+                }
+            } catch (error) {
+                console.log(`Could not fetch product details for item ${item.product}:`, error.message);
+            }
+        }
+
+        // Apply fallback values if no package info is available
+        if (totalWeight === 0) {
+            totalWeight = 0.5; // Default 500g
+            console.log('Using default weight: 0.5kg');
+        }
+
+        if (maxLength === 0 || maxWidth === 0 || totalHeight === 0) {
+            maxLength = maxLength || 25;
+            maxWidth = maxWidth || 20;
+            totalHeight = totalHeight || 5;
+            console.log('Using default dimensions: 25x20x5 cm');
+        }
+
+        // Ensure minimum dimensions for shipping
+        maxLength = Math.max(maxLength, 10);
+        maxWidth = Math.max(maxWidth, 10);
+        totalHeight = Math.max(totalHeight, 2);
+
+        console.log('Calculated shipping parameters for order:', {
+            weight: totalWeight + 'kg',
+            dimensions: `${maxLength}x${maxWidth}x${totalHeight}cm`,
+            itemCount: order.items.length
+        });
+
         // Prepare Shiprocket order data
         const shiprocketOrderData = {
             order_id: order.orderId,
@@ -145,10 +209,10 @@ exports.createShiprocketOrder = async (req, res) => {
             transaction_charges: 0,
             total_discount: order.discountTotal || 0,
             sub_total: order.subTotal,
-            length: 10,
-            breadth: 10,
-            height: 10,
-            weight: 0.5
+            length: Math.round(maxLength),
+            breadth: Math.round(maxWidth),
+            height: Math.round(totalHeight),
+            weight: totalWeight
         };
         // Create order in Shiprocket
         console.log('Creating Shiprocket order with data:', JSON.stringify(shiprocketOrderData, null, 2));
@@ -673,10 +737,11 @@ exports.testPickupLocations = async (req, res) => {
     }
 };
 
-// Check pincode serviceability
+// Check pincode serviceability with dynamic weight and dimensions
 exports.checkPincodeServiceability = async (req, res) => {
     try {
         const { pincode } = req.params;
+        const { cartItems = [] } = req.body;
         
         // Validate pincode format
         if (!pincode || !/^\d{6}$/.test(pincode)) {
@@ -686,11 +751,96 @@ exports.checkPincodeServiceability = async (req, res) => {
             });
         }
 
-        const serviceabilityData = await shiprocketAPI.checkPincodeServiceability(pincode);
+        // Calculate dynamic weight and dimensions from cart items
+        let totalWeight = 0;
+        let totalVolume = 0;
+        let maxLength = 0;
+        let maxWidth = 0;
+        let totalHeight = 0;
+
+        console.log('Calculating shipping for cart items:', cartItems.length);
+
+        if (cartItems.length > 0) {
+            cartItems.forEach(item => {
+                const product = item.product;
+                const quantity = item.quantity || 1;
+
+                if (product && product.packageInfo) {
+                    const pkg = product.packageInfo;
+                    
+                    // Add weight (convert to kg if needed, assuming it's already in kg)
+                    if (pkg.weight) {
+                        totalWeight += (pkg.weight * quantity);
+                    }
+
+                    // Calculate dimensions
+                    if (pkg.dimensions) {
+                        const { length = 0, width = 0, height = 0 } = pkg.dimensions;
+                        
+                        // For length and width, take the maximum (assuming items are packed side by side)
+                        maxLength = Math.max(maxLength, length);
+                        maxWidth = Math.max(maxWidth, width);
+                        
+                        // For height, stack items (add heights for multiple quantities)
+                        totalHeight += (height * quantity);
+                        
+                        // Calculate volume for reference
+                        totalVolume += (length * width * height * quantity);
+                    }
+                }
+            });
+        }
+
+        // Apply fallback values if no package info is available
+        if (totalWeight === 0) {
+            totalWeight = 0.5; // Default 500g
+            console.log('Using default weight: 0.5kg');
+        }
+
+        if (maxLength === 0 || maxWidth === 0 || totalHeight === 0) {
+            maxLength = maxLength || 25;
+            maxWidth = maxWidth || 20;
+            totalHeight = totalHeight || 5;
+            console.log('Using default dimensions: 25x20x5 cm');
+        }
+
+        // Ensure minimum dimensions for shipping
+        maxLength = Math.max(maxLength, 10);
+        maxWidth = Math.max(maxWidth, 10);
+        totalHeight = Math.max(totalHeight, 2);
+
+        console.log('Calculated shipping parameters:', {
+            weight: totalWeight + 'kg',
+            dimensions: `${maxLength}x${maxWidth}x${totalHeight}cm`,
+            volume: totalVolume + 'cm³',
+            itemCount: cartItems.length
+        });
+
+        // Get pickup pincode from environment or use default
+        const pickupPincode = process.env.PICKUP_PINCODE || '110001';
+
+        // Check serviceability with calculated parameters
+        const serviceabilityData = await shiprocketAPI.checkPincodeServiceabilityWithDimensions(
+            pickupPincode,
+            pincode,
+            totalWeight,
+            maxLength,
+            maxWidth,
+            totalHeight
+        );
 
         res.status(200).json({
             success: true,
-            data: serviceabilityData
+            data: {
+                ...serviceabilityData,
+                calculatedParams: {
+                    weight: totalWeight,
+                    length: maxLength,
+                    width: maxWidth,
+                    height: totalHeight,
+                    volume: totalVolume
+                }
+            }
         });
 
     } catch (error) {

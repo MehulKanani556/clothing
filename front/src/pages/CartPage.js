@@ -52,7 +52,12 @@ export default function CartPage() {
             }
 
             console.log('Checking delivery fee for pincode:', activeAddress.pincode);
-            dispatch(checkPincodeServiceability(activeAddress.pincode))
+            console.log('Cart items for shipping calculation:', items);
+            
+            dispatch(checkPincodeServiceability({ 
+                pincode: activeAddress.pincode, 
+                cartItems: items 
+            }))
                 .unwrap()
                 .then((result) => {
                     if (result.success && result.data.serviceable) {
@@ -65,10 +70,10 @@ export default function CartPage() {
                 });
         };
 
-        if (isAuthenticated && user?.addresses?.length) {
+        if (isAuthenticated && user?.addresses?.length && items.length > 0) {
             checkDeliveryFee();
         }
-    }, [dispatch, isAuthenticated, user?.addresses, user?.addresses?.find(a => a.isDefault)?._id]);
+    }, [dispatch, isAuthenticated, user?.addresses, user?.addresses?.find(a => a.isDefault)?._id, items]);
 
     const confirmRemove = (itemId) => {
         setItemToRemove(itemId);
@@ -100,7 +105,12 @@ export default function CartPage() {
             return;
         }
         console.log('Refreshing delivery fee for pincode:', pincode);
-        dispatch(checkPincodeServiceability(pincode))
+        console.log('Cart items for shipping calculation:', items);
+        
+        dispatch(checkPincodeServiceability({ 
+            pincode, 
+            cartItems: items 
+        }))
             .unwrap()
             .then((result) => {
                 if (result.success && result.data.serviceable) {
