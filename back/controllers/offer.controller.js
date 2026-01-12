@@ -20,7 +20,7 @@ exports.validateCoupon = async (req, res) => {
     try {
         const { code, cartValue } = req.body;
         const userId = req.user?._id; // Get user ID from auth middleware
-        
+
         const offer = await Offer.findOne({ code: code.toUpperCase(), isActive: true });
 
         if (!offer) return res.status(404).json({ message: 'Invalid Coupon' });
@@ -50,13 +50,43 @@ exports.validateCoupon = async (req, res) => {
             // Check if this is a first-order-only coupon
             if (offer.isFirstOrderOnly) {
                 const Order = require('../models/order.model');
-                const userOrderCount = await Order.countDocuments({ 
-                    user: userId, 
+                const userOrderCount = await Order.countDocuments({
+                    user: userId,
                     status: { $in: ['Confirmed', 'Processing', 'Shipped', 'Delivered'] }
                 });
-                
+
                 if (userOrderCount > 0) {
                     return res.status(400).json({ message: 'This coupon is only valid for first-time customers' });
+                }
+            }
+
+            // Check Applicable Categories & Products (Requires Cart)
+            if ((offer.applicableCategories && offer.applicableCategories.length > 0) ||
+                (offer.applicableProducts && offer.applicableProducts.length > 0)) {
+
+                const Cart = require('../models/cart.model');
+                // Ensure we select 'category' field from product
+                const userCart = await Cart.findOne({ user: userId }).populate('items.product', 'category');
+
+                if (!userCart) return res.status(400).json({ message: 'Cart not found' });
+
+                if (offer.applicableCategories && offer.applicableCategories.length > 0) {
+                    const hasCategory = userCart.items.some(item => {
+                        if (!item.product) return false;
+                        // item.product.category is ObjectId or String ID
+                        const catId = item.product.category ? item.product.category.toString() : null;
+                        return catId && offer.applicableCategories.includes(catId);
+                    });
+                    if (!hasCategory) return res.status(400).json({ message: 'Coupon not applicable for items in cart' });
+                }
+
+                if (offer.applicableProducts && offer.applicableProducts.length > 0) {
+                    const hasProduct = userCart.items.some(item => {
+                        if (!item.product) return false;
+                        const prodId = item.product._id ? item.product._id.toString() : item.product.toString();
+                        return offer.applicableProducts.includes(prodId);
+                    });
+                    if (!hasProduct) return res.status(400).json({ message: 'Coupon not applicable for items in cart' });
                 }
             }
         }
@@ -117,7 +147,7 @@ exports.deleteOffer = async (req, res) => {
 exports.getOffers = async (req, res) => {
     try {
         const userId = req.user?._id; // Get user ID if authenticated
-        
+
         // Auto-expire logic: Set isActive=false for offers where endDate < now
         await Offer.updateMany(
             { isActive: true, endDate: { $lt: new Date() } },
@@ -125,8 +155,8 @@ exports.getOffers = async (req, res) => {
         );
 
         // Get all active offers
-        let offers = await Offer.find({ 
-            deletedAt: null, 
+        let offers = await Offer.find({
+            deletedAt: null,
             isActive: true,
             startDate: { $lte: new Date() },
             endDate: { $gte: new Date() }
@@ -135,10 +165,10 @@ exports.getOffers = async (req, res) => {
         // Filter offers based on user eligibility (only if user is authenticated)
         if (userId) {
             const Order = require('../models/order.model');
-            
+
             // Get user's order count for first-order validation
-            const userOrderCount = await Order.countDocuments({ 
-                user: userId, 
+            const userOrderCount = await Order.countDocuments({
+                user: userId,
                 status: { $in: ['Confirmed', 'Processing', 'Shipped', 'Delivered'] }
             });
 

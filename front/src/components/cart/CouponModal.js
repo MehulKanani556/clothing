@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchOffers, validateCoupon, clearOfferErrors } from '../../redux/slice/offer.slice';
 import toast from 'react-hot-toast';
 
-export default function CouponModal({ isOpen, onClose, cartValue }) {
+export default function CouponModal({ isOpen, onClose, cartValue, cartItems }) {
     const dispatch = useDispatch();
     const { offers, loading, validationLoading, validationError, appliedCoupon } = useSelector((state) => state.offers);
     const { isAuthenticated } = useSelector((state) => state.auth);
@@ -53,6 +53,35 @@ export default function CouponModal({ isOpen, onClose, cartValue }) {
             });
     };
 
+    const isCouponApplicable = (offer) => {
+        // 1. Min Order Value
+        if (offer.minOrderValue > cartValue) return false;
+
+        // 2. Applicable Categories
+        if (offer.applicableCategories && offer.applicableCategories.length > 0) {
+            const hasCategory = cartItems.some(item => {
+                if (!item.product) return false;
+                const catId = item.product.category?._id || item.product.category;
+                return offer.applicableCategories.includes(catId);
+            });
+            if (!hasCategory) return false;
+        }
+
+        // 3. Applicable Products
+        if (offer.applicableProducts && offer.applicableProducts.length > 0) {
+            const hasProduct = cartItems.some(item => {
+                if (!item.product) return false;
+                const prodId = item.product._id || item.product;
+                return offer.applicableProducts.includes(prodId);
+            });
+            if (!hasProduct) return false;
+        }
+
+        return true;
+    };
+
+    const applicableOffers = offers.filter(isCouponApplicable);
+
     if (!isOpen) return null;
 
     return (
@@ -100,10 +129,10 @@ export default function CouponModal({ isOpen, onClose, cartValue }) {
                             </div>
                         ) : loading ? (
                             <div className="text-center py-4 text-gray-500 text-sm">Loading offers...</div>
-                        ) : offers.length === 0 ? (
-                            <div className="text-center py-4 text-gray-500 text-sm">No offers available for you</div>
+                        ) : applicableOffers.length === 0 ? (
+                            <div className="text-center py-4 text-gray-500 text-sm">No offers available for your current cart</div>
                         ) : (
-                            offers.map((offer) => (
+                            applicableOffers.map((offer) => (
                                 <label
                                     key={offer._id}
                                     className={`relative flex items-start cursor-pointer group`}
@@ -114,7 +143,7 @@ export default function CouponModal({ isOpen, onClose, cartValue }) {
                                             name="coupon-selection"
                                             value={offer.code}
                                             checked={selectedCode === offer.code}
-                                            onChange={() => handleApply(offer.code)} // Auto apply on select? User request image implies radio selection
+                                            onChange={() => handleApply(offer.code)}
                                             className="h-4 w-4 text-black border-gray-300 focus:ring-black"
                                         />
                                     </div>

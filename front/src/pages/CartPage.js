@@ -45,7 +45,7 @@ export default function CartPage() {
             if (!user?.addresses?.length) {
                 return;
             }
-            
+
             const activeAddress = user.addresses.find(a => a.isDefault) || user.addresses[0];
             if (!activeAddress?.pincode) {
                 return;
@@ -241,7 +241,7 @@ export default function CartPage() {
                                 <div key={item._id}  className="flex gap-4 p-4 border border-gray-100 rounded-lg shadow-sm bg-white relative hover:shadow-md transition-shadow">
                                     {/* Delete Button */}
                                     <button
-                                        onClick={() => confirmRemove(item._id)}
+                                        onClick={(e) => { e.stopPropagation(); confirmRemove(item._id) }}
                                         className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1"
                                     >
                                         <FiTrash2 size={16} />
@@ -277,13 +277,13 @@ export default function CartPage() {
                                             {/* Quantity */}
                                             <div className="flex items-center border border-gray-200 rounded">
                                                 <button
-                                                    onClick={() => handleQuantityChange(item._id, item.quantity, -1)}
+                                                    onClick={(e) => { e.stopPropagation(); handleQuantityChange(item._id, item.quantity, -1) }}
                                                     className="px-2 py-1 hover:bg-gray-50 text-gray-600 disabled:opacity-50"
                                                     disabled={item.quantity <= 1}
                                                 >-</button>
                                                 <span className="px-2 py-1 text-sm font-semibold min-w-[1.5rem] text-center">{item.quantity}</span>
                                                 <button
-                                                    onClick={() => handleQuantityChange(item._id, item.quantity, 1)}
+                                                    onClick={(e) => { e.stopPropagation(); handleQuantityChange(item._id, item.quantity, 1) }}
                                                     className="px-2 py-1 hover:bg-gray-50 text-gray-600"
                                                 >+</button>
                                             </div>
@@ -335,7 +335,7 @@ export default function CartPage() {
                                                 Change
                                             </button>
                                         </div>
-                                        
+
                                         {/* Delivery Info */}
                                         {loadingDeliveryFee ? (
                                             <div className="flex items-center gap-2 text-sm text-gray-500 mt-3">
@@ -344,11 +344,11 @@ export default function CartPage() {
                                             </div>
                                         ) : deliveryInfo ? (
                                             <div className="flex items-center gap-2 text-sm text-green-600 mt-3">
-                                            <FiTruck size={16} />
-                                            <span>
-                                                Delivery in {deliveryInfo.estimatedDays} days                                               
-                                            </span>
-                                        </div>
+                                                <FiTruck size={16} />
+                                                <span>
+                                                    Delivery in {deliveryInfo.estimatedDays} days
+                                                </span>
+                                            </div>
                                         ) : activeAddress.pincode && (
                                             <div className="flex items-center gap-2 text-sm text-red-500 mt-3">
                                                 <FiTruck size={16} />
@@ -456,9 +456,9 @@ export default function CartPage() {
                             isOpen={showCouponModal}
                             onClose={() => setShowCouponModal(false)}
                             cartValue={totalPrice}
+                            cartItems={items}
                         />
                     </div>
-
                 </div>
             </div>
 
