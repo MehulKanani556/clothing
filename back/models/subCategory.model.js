@@ -21,6 +21,9 @@ const subCategorySchema = new mongoose.Schema({
     description: {
         type: String
     },
+    image: {
+        type: String
+    },
     isActive: {
         type: Boolean,
         default: true

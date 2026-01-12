@@ -15,7 +15,8 @@ export default function ProductCard({ product }) {
         oldPrice = product?.variants?.[0]?.options?.[0]?.mrp,
         image = product?.variants?.[0]?.images?.[0],
         rating,
-        tag = null
+        tag = null,
+        slug = product?.slug
     } = product || {};
 
     const ratingValue = typeof rating === 'object' && rating !== null ? rating.average : (rating || 4.5);
@@ -24,7 +25,7 @@ export default function ProductCard({ product }) {
     const handleQuickView = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        navigate(`/product/${_id}`, { state: { product } });
+        navigate(`/product/${slug}`, { state: { product } });
     };
 
     const dispatch = useDispatch();
@@ -89,9 +90,9 @@ export default function ProductCard({ product }) {
         }
 
         // Check if this specific variant is already in cart
-        const existingItem = cartItems && cartItems.find(item => 
-            (item.product._id === _id || item.product === _id) && 
-            item.size === selectedSize && 
+        const existingItem = cartItems && cartItems.find(item =>
+            (item.product?._id === _id || item.product === _id) &&
+            item.size === selectedSize &&
             item.color === selectedColor
         );
 
@@ -122,7 +123,7 @@ export default function ProductCard({ product }) {
         <div className="group flex flex-col items-start w-full">
             {/* Image Container */}
             <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-100 mb-3 rounded-sm">
-                <Link to={`/product/${_id || 1}`} state={{ product }}>
+                <Link to={`/product/${slug || _id}`} state={{ product }}>
                     <img
                         src={image}
                         alt={name}
@@ -196,7 +197,7 @@ export default function ProductCard({ product }) {
                     <span className="text-xs text-gray-500 ml-1">({ratingValue})</span>
                 </div>
                 <h3 className="text-sm font-medium text-gray-900 truncate mb-1">
-                    <Link to={`/product/${_id}`} state={{ product }} className="hover:text-black transition-colors">
+                    <Link to={`/product/${slug || _id}`} state={{ product }} className="hover:text-black transition-colors">
                         {name}
                     </Link>
                 </h3>

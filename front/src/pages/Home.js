@@ -34,7 +34,7 @@ export default function Home() {
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">Most Popular</h2>
-                    <Link to="/category/all-products" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
+                    <Link to="/all-products" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
                         View All &rarr;
                     </Link>
                 </div>
@@ -57,7 +57,7 @@ export default function Home() {
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">New Arrivals</h2>
-                    <Link to="/category/new-arrivals" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
+                    <Link to="/all-products?sort=newest" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
                         View All &rarr;
                     </Link>
                 </div>

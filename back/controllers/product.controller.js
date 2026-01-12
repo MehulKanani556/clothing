@@ -28,6 +28,76 @@ exports.uploadProductImage = async (req, res) => {
     }
 };
 
+// Get all products for ADMIN (no limit, all statuses)
+exports.getAdminProducts = async (req, res) => {
+    try {
+        const products = await Product.find({})
+            .sort({ createdAt: -1 })
+            .populate('category', 'name slug')
+            .populate('subCategory', 'name slug');
+
+        // Reuse stats logic if possible, or simplified version
+        // Product IDs for stats
+        const productIds = products.map(p => p._id);
+
+        // 1. Order Stats
+        const orderStats = await Order.aggregate([
+            { $match: { "items.product": { $in: productIds } } },
+            { $unwind: "$items" },
+            { $match: { "items.product": { $in: productIds } } },
+            { $group: { _id: { product: "$items.product", order: "$_id" } } },
+            { $group: { _id: "$_id.product", count: { $sum: 1 } } }
+        ]);
+
+        const statsMap = {};
+        orderStats.forEach(stat => {
+            statsMap[stat._id.toString()] = stat.count;
+        });
+
+        // 2. Review Stats
+        const allReviews = await Review.find({
+            product: { $in: productIds }
+        }); // Count all reviews for admin, not just published? Or keep published. Let's keep logic simple.
+
+        const reviewsMap = {};
+        allReviews.forEach(r => {
+            const pId = r.product.toString();
+            if (!reviewsMap[pId]) {
+                reviewsMap[pId] = { reviews: [], totalRating: 0, count: 0 };
+            }
+            reviewsMap[pId].reviews.push(r);
+            reviewsMap[pId].totalRating += r.rating;
+            reviewsMap[pId].count += 1;
+        });
+
+        const productsWithStats = products.map(p => {
+            const pObj = p.toObject();
+            pObj.orderCount = statsMap[p._id.toString()] || 0;
+
+            const rStat = reviewsMap[p._id.toString()];
+            if (rStat) {
+                pObj.reviews = rStat.reviews;
+                pObj.reviewCount = rStat.count;
+                pObj.averageRating = Number((rStat.totalRating / rStat.count).toFixed(1));
+            } else {
+                pObj.reviews = [];
+                pObj.reviewCount = 0;
+                pObj.averageRating = 0;
+            }
+            return pObj;
+        });
+
+        res.status(200).json({
+            success: true,
+            count: productsWithStats.length,
+            data: productsWithStats
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // Get all products (with filters, search, pagination)
 exports.getAllProducts = async (req, res) => {
     try {
@@ -346,25 +416,25 @@ exports.createProduct = async (req, res) => {
         if (!productData.slug && productData.name) {
             const categoryDoc = productData.category ? await Category.findById(productData.category) : null;
             const subCategoryDoc = productData.subCategory ? await SubCategory.findById(productData.subCategory) : null;
-            
+
             // Derive gender from category name (Men, Women, Kids, etc.)
             const genderFromCategory = categoryDoc?.name || productData.gender || 'Unisex';
-            
+
             // Get default color from first variant
             const defaultColor = productData.variants?.[0]?.color || null;
-            
+
             productData.slug = generateProductSlug(
                 productData.name,
                 productData.brand,
                 genderFromCategory,
                 defaultColor
             );
-            
+
             // Append random string to ensure uniqueness
             const randomStr = Math.floor(1000 + Math.random() * 9000);
             productData.slug = productData.slug + '-' + randomStr;
         }
-        
+
         // Set gender from category name if not provided
         if (productData.category && !productData.gender) {
             const categoryDoc = await Category.findById(productData.category);
@@ -378,10 +448,10 @@ exports.createProduct = async (req, res) => {
             const categoryDoc = await Category.findById(productData.category)
                 .populate('mainCategory', 'name');
             const subCategoryDoc = productData.subCategory ? await SubCategory.findById(productData.subCategory) : null;
-            
+
             // Derive gender from mainCategory name (Men, Women, Kids)
             const genderFromMainCategory = categoryDoc?.mainCategory?.name || productData.gender || 'Unisex';
-            
+
             // Use subCategory name for category code
             const categoryCode = getCategoryCode(
                 subCategoryDoc?.name || categoryDoc?.name,
@@ -442,26 +512,26 @@ exports.updateProduct = async (req, res) => {
                 .populate('mainCategory', 'name slug') : null;
             const subCategoryId = newData.subCategory || product.subCategory;
             const subCategoryDoc = subCategoryId ? await SubCategory.findById(subCategoryId) : null;
-            
+
             // Derive gender from mainCategory name
             const genderFromMainCategory = categoryDoc?.mainCategory?.name || newData.gender || product.gender || 'Unisex';
-            
+
             const defaultColor = newData.variants?.[0]?.color || product.variants?.[0]?.color || null;
-            
+
             newData.slug = generateProductSlug(
                 newData.name || product.name,
                 newData.brand || product.brand,
                 genderFromMainCategory,
                 defaultColor
             );
-            
+
             // Append random string for uniqueness
             if (!product.slug) {
                 const randomStr = Math.floor(1000 + Math.random() * 9000);
                 newData.slug = newData.slug + '-' + randomStr;
             }
         }
-        
+
         // Set gender from mainCategory name if category changed
         if (newData.category && !newData.gender) {
             const categoryDoc = await Category.findById(newData.category)
@@ -478,10 +548,10 @@ exports.updateProduct = async (req, res) => {
                 .populate('mainCategory', 'name') : null;
             const subCategoryId = newData.subCategory || product.subCategory;
             const subCategoryDoc = subCategoryId ? await SubCategory.findById(subCategoryId) : null;
-            
+
             // Derive gender from mainCategory name
             const genderFromMainCategory = categoryDoc?.mainCategory?.name || newData.gender || product.gender || 'Unisex';
-            
+
             // Use subCategory name for category code
             const categoryCode = getCategoryCode(
                 subCategoryDoc?.name || categoryDoc?.name,

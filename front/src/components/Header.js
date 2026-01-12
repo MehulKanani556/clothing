@@ -65,8 +65,8 @@ export default function Header() {
   // Organize categories and subcategories by 4-level hierarchy
   const organizeNavigation = (mainCatId) => {
     // Get categories under this main category
-    const mainCatCategories = categories.filter(cat => 
-      cat.mainCategory && 
+    const mainCatCategories = categories.filter(cat =>
+      cat.mainCategory &&
       (cat.mainCategory._id === mainCatId || cat.mainCategory === mainCatId) &&
       !cat.deletedAt &&
       cat.isActive
@@ -108,14 +108,14 @@ export default function Header() {
 
         return {
           name: mainCat.name, // Level 1: Men, Women, Kids (MainCategory)
-          href: `/category/${mainCat._id}`,
+          href: `/${mainCat.slug || mainCat.name.toLowerCase()}`,
           slug: mainCat.slug,
           type: 'dropdown',
           columns: columns, // Category (Topwear) -> SubCategory (T-Shirts, Jeans)
           images: categoryImages[mainCat.name] || []
         };
       }),
-    { name: 'Best Sellers', href: '/category/best-sellers' }
+    { name: 'Best Sellers', href: '/best-sellers' }
   ];
 
   // Dynamic Search Logic
@@ -151,7 +151,7 @@ export default function Header() {
     e.preventDefault();
     if (searchQuery.trim()) {
       setIsSearchOpen(false);
-      navigate(`/category/all-products?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/all-products?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -232,7 +232,7 @@ export default function Header() {
                         <Link
                           to={item.href}
                           className={classNames(
-                            location.pathname.startsWith(item.href) || location.pathname.includes(item.slug || '')
+                            location.pathname.startsWith(item.href) || (item.slug && location.pathname.split('/').includes(item.slug))
                               ? 'font-bold border-b-2 border-pink-500'
                               : 'font-regular',
                             'px-1 py-2 text-sm text-black group-hover:text-pink-600 transition-colors inline-flex items-center gap-1',
@@ -260,7 +260,7 @@ export default function Header() {
                                         {col.items.map((subItem) => (
                                           <li key={typeof subItem === 'string' ? subItem : subItem.name || subItem}>
                                             <Link
-                                              to={`${item.href}?sub=${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : (subItem.slug || subItem.name?.toLowerCase().replace(/\s+/g, '-'))}`}
+                                              to={`/${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : (subItem.slug || subItem.name?.toLowerCase().replace(/\s+/g, '-'))}`}
                                               className="text-sm text-gray-600 hover:text-black transition-colors block py-0.5"
                                             >
                                               {typeof subItem === 'string' ? subItem : (subItem.name || subItem)}
@@ -270,7 +270,7 @@ export default function Header() {
                                       </ul>
                                     </div>
                                   ))}
-                                  
+
                                   {/* If more than 5 columns, continue on new row */}
                                   {item.columns.length > 5 && (
                                     <>
@@ -285,7 +285,7 @@ export default function Header() {
                                             {col.items.map((subItem) => (
                                               <li key={typeof subItem === 'string' ? subItem : subItem.name || subItem}>
                                                 <Link
-                                                  to={`/category?sub=${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : (subItem.slug || subItem.name?.toLowerCase().replace(/\s+/g, '-'))}`}
+                                                  to={`/${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : (subItem.slug || subItem.name?.toLowerCase().replace(/\s+/g, '-'))}`}
                                                   className="text-sm text-gray-600 hover:text-black transition-colors block py-0.5"
                                                 >
                                                   {typeof subItem === 'string' ? subItem : (subItem.name || subItem)}

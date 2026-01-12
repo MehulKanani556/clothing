@@ -226,23 +226,54 @@ const DataTable = ({ columns, data, pagination, onPageChange, selection = true, 
                             <MdKeyboardArrowLeft size={16} />
                         </button>
 
-                        {/* Simple Logic for pagination numbers - active is black */}
-                        {[...Array(pagination.totalPages)].map((_, i) => {
-                            const page = i + 1;
-                            const isActive = page === pagination.current;
-                            return (
-                                <button
-                                    key={page}
-                                    onClick={() => onPageChange(page)}
-                                    className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${isActive
-                                        ? 'bg-black text-white shadow-sm'
-                                        : 'border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-black'
-                                        }`}
-                                >
-                                    {page}
-                                </button>
-                            );
-                        })}
+                        {(() => {
+                            const { current, totalPages } = pagination;
+                            const delta = 1; // Number of pages to show around current page
+                            const range = [];
+                            const rangeWithDots = [];
+                            let l;
+
+                            for (let i = 1; i <= totalPages; i++) {
+                                if (i === 1 || i === totalPages || (i >= current - delta && i <= current + delta)) {
+                                    range.push(i);
+                                }
+                            }
+
+                            for (let i of range) {
+                                if (l) {
+                                    if (i - l === 2) {
+                                        rangeWithDots.push(l + 1);
+                                    } else if (i - l !== 1) {
+                                        rangeWithDots.push('...');
+                                    }
+                                }
+                                rangeWithDots.push(i);
+                                l = i;
+                            }
+
+                            return rangeWithDots.map((page, index) => {
+                                if (page === '...') {
+                                    return (
+                                        <span key={`dots-${index}`} className="w-8 h-8 flex items-center justify-center text-gray-400">
+                                            ...
+                                        </span>
+                                    );
+                                }
+                                const isActive = page === current;
+                                return (
+                                    <button
+                                        key={page}
+                                        onClick={() => onPageChange(page)}
+                                        className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${isActive
+                                            ? 'bg-black text-white shadow-sm'
+                                            : 'border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-black'
+                                            }`}
+                                    >
+                                        {page}
+                                    </button>
+                                );
+                            });
+                        })()}
 
                         <button
                             className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-black transition-colors disabled:opacity-50"

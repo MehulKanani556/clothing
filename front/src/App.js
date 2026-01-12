@@ -56,8 +56,8 @@ function App() {
                 <Header />
                 <Routes>
                   <Route path="/" element={<Home />} />
-                  <Route path="/category/:id" element={<CategoryPage />} />
-                  <Route path="/product/:id" element={<ProductDetails />} />
+
+                  <Route path="/product/:slug" element={<ProductDetails />} />
                   <Route path="/cart" element={<CartPage />} />
                   <Route path="/wishlist" element={<WishlistPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
@@ -66,6 +66,8 @@ function App() {
                   <Route path="/about" element={<AboutUsPage />} />
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/checkout/payment" element={<PaymentPage />} />
+                  {/* Catch-all for Categories/Listings - Must be last */}
+                  <Route path="/:slug" element={<CategoryPage />} />
                 </Routes>
                 <Footer />
               </>

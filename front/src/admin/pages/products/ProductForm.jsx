@@ -13,6 +13,7 @@ import { generateSKU, getCategoryCode } from '../../../utils/skuGenerator';
 
 const ProductSchema = Yup.object().shape({
     name: Yup.string().required('Required'),
+    slug: Yup.string().required('Required'),
     description: Yup.string(),
     brand: Yup.string().required('Brand Required'),
     mainCategory: Yup.string().required('Main Category Required'),
@@ -58,6 +59,7 @@ const ProductForm = () => {
 
     const initialValues = {
         name: '',
+        slug: '',
         description: '',
         brand: '',
         mainCategory: '',
@@ -138,9 +140,10 @@ const ProductForm = () => {
                 }
 
                 const mainCategoryId = product.category?.mainCategory?._id || product.category?.mainCategory || '';
-                
+
                 formik.setValues({
                     name: product.name,
+                    slug: product.slug || '',
                     description: product.description || '',
                     brand: product.brand,
                     mainCategory: mainCategoryId,
@@ -172,10 +175,10 @@ const ProductForm = () => {
 
     // Filter categories by selected mainCategory
     const filteredCategories = formik.values.mainCategory
-        ? categories.filter(cat => 
-            cat.mainCategory && 
+        ? categories.filter(cat =>
+            cat.mainCategory &&
             (cat.mainCategory._id === formik.values.mainCategory || cat.mainCategory === formik.values.mainCategory)
-          )
+        )
         : categories;
 
     const handleMainCategoryChange = (mainCategoryId) => {
@@ -203,7 +206,7 @@ const ProductForm = () => {
     const generateAllSKUs = useCallback(() => {
         const currentValues = formik.values;
         const { name, brand, mainCategory, category, subCategory, gender, variants } = currentValues;
-        
+
         // Check if we have all required fields
         if (!name || !brand || !category || !gender) {
             return;
@@ -213,10 +216,10 @@ const ProductForm = () => {
         const categoryObj = categories.find(cat => cat._id === category);
         const subCategoryObj = subCategories.find(sub => sub._id === subCategory);
         const mainCategoryObj = mainCategories.find(mc => mc._id === mainCategory);
-        
+
         // Derive gender from mainCategory name (as per backend logic)
         const genderFromMainCategory = mainCategoryObj?.name || gender || 'Unisex';
-        
+
         // Get category code
         const categoryCode = getCategoryCode(
             subCategoryObj?.name || categoryObj?.name,
@@ -226,10 +229,10 @@ const ProductForm = () => {
         // Generate SKUs for all variants and options
         const updatedVariants = variants.map((variant) => {
             if (!variant.color) return variant; // Skip if color not set
-            
+
             const updatedOptions = variant.options.map((option) => {
                 if (!option.size) return option; // Skip if size not set
-                
+
                 // Generate SKU
                 const sku = generateSKU({
                     categoryCode,
@@ -240,19 +243,19 @@ const ProductForm = () => {
                     color: variant.color,
                     size: option.size
                 });
-                
+
                 return {
                     ...option,
                     sku: sku
                 };
             });
-            
+
             return {
                 ...variant,
                 options: updatedOptions
             };
         });
-        
+
         formik.setFieldValue('variants', updatedVariants);
     }, [formik, categories, subCategories, mainCategories]);
 
@@ -304,50 +307,50 @@ const ProductForm = () => {
     // Auto-generate SKU when main product fields change (not variant fields to avoid interfering with typing)
     useEffect(() => {
         const { name, brand, mainCategory, category, subCategory, gender, variants } = formik.values;
-        
+
         // Only generate if we have minimum required fields
         if (name && brand && category && gender && variants.length > 0) {
             // Check if at least one variant has color and one option has size
-            const hasValidVariant = variants.some(v => 
+            const hasValidVariant = variants.some(v =>
                 v.color && v.options && v.options.some(o => o.size)
             );
-            
+
             if (hasValidVariant) {
                 // Longer delay to avoid interfering with user input
                 const timeoutId = setTimeout(() => {
                     generateAllSKUs();
                 }, 500);
-                
+
                 return () => clearTimeout(timeoutId);
             }
         }
         // Only trigger on main product fields, not variant fields (variants handled via onBlur)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [formik.values.name, formik.values.brand, formik.values.mainCategory, 
-        formik.values.category, formik.values.subCategory, formik.values.gender]);
+    }, [formik.values.name, formik.values.brand, formik.values.mainCategory,
+    formik.values.category, formik.values.subCategory, formik.values.gender]);
 
     // Generate SKU for a specific variant option
     const generateSKUForOption = useCallback((variantIndex, optionIndex) => {
         const { name, brand, mainCategory, category, subCategory, gender, variants } = formik.values;
-        
+
         if (!name || !brand || !category || !gender) return;
-        
+
         const categoryObj = categories.find(cat => cat._id === category);
         const subCategoryObj = subCategories.find(sub => sub._id === subCategory);
         const mainCategoryObj = mainCategories.find(mc => mc._id === mainCategory);
-        
+
         const genderFromMainCategory = mainCategoryObj?.name || gender || 'Unisex';
         const categoryCode = getCategoryCode(
             subCategoryObj?.name || categoryObj?.name,
             subCategoryObj?.name
         );
-        
+
         const variant = variants[variantIndex];
         if (!variant) return;
-        
+
         const option = variant.options?.[optionIndex];
         if (!option) return;
-        
+
         if (variant.color && option.size) {
             const sku = generateSKU({
                 categoryCode,
@@ -358,7 +361,7 @@ const ProductForm = () => {
                 color: variant.color,
                 size: option.size
             });
-            
+
             formik.setFieldValue(`variants[${variantIndex}].options[${optionIndex}].sku`, sku);
         }
     }, [formik, categories, subCategories, mainCategories]);
@@ -366,22 +369,22 @@ const ProductForm = () => {
     // Generate SKUs for all options in a variant
     const generateSKUsForVariant = useCallback((variantIndex) => {
         const { name, brand, mainCategory, category, subCategory, gender, variants } = formik.values;
-        
+
         if (!name || !brand || !category || !gender) return;
-        
+
         const categoryObj = categories.find(cat => cat._id === category);
         const subCategoryObj = subCategories.find(sub => sub._id === subCategory);
         const mainCategoryObj = mainCategories.find(mc => mc._id === mainCategory);
-        
+
         const genderFromMainCategory = mainCategoryObj?.name || gender || 'Unisex';
         const categoryCode = getCategoryCode(
             subCategoryObj?.name || categoryObj?.name,
             subCategoryObj?.name
         );
-        
+
         const variant = variants[variantIndex];
         if (!variant || !variant.color) return;
-        
+
         // Update SKUs for all options in this variant
         variant.options.forEach((option, optIndex) => {
             if (option.size) {
@@ -394,7 +397,7 @@ const ProductForm = () => {
                     color: variant.color,
                     size: option.size
                 });
-                
+
                 formik.setFieldValue(`variants[${variantIndex}].options[${optIndex}].sku`, sku);
             }
         });
@@ -436,6 +439,8 @@ const ProductForm = () => {
                                         name="name"
                                         onChange={(e) => {
                                             formik.handleChange(e);
+                                            const slug = e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                                            formik.setFieldValue('slug', slug);
                                             setTimeout(() => generateAllSKUs(), 300);
                                         }}
                                         onBlur={formik.handleBlur}
@@ -449,6 +454,19 @@ const ProductForm = () => {
                                     {formik.touched.name && formik.errors.name && (
                                         <p className="text-xs text-red-500 mt-1">{formik.errors.name}</p>
                                     )}
+                                </div>
+
+                                {/* Slug */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700">Slug</label>
+                                    <input
+                                        type="text"
+                                        name="slug"
+                                        readOnly
+                                        value={formik.values.slug}
+                                        placeholder="e.g. classic-cotton-t-shirt"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed focus:outline-none"
+                                    />
                                 </div>
 
                                 {/* Brand */}

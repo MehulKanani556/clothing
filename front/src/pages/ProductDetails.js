@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProductById, fetchRelatedProducts } from '../redux/slice/product.slice';
+import { fetchProductBySlug, fetchRelatedProducts } from '../redux/slice/product.slice';
 import { addToCart } from '../redux/slice/cart.slice';
 import { fetchCart } from '../redux/slice/cart.slice';
 import { addToWishlist, removeFromWishlist, fetchWishlist } from '../redux/slice/wishlist.slice';
@@ -12,7 +12,7 @@ import ProductCard from '../components/ProductCard';
 import { BASE_URL } from '../utils/BASE_URL';
 
 export default function ProductDetails() {
-    const { id } = useParams();
+    const { slug } = useParams();
     const location = useLocation();
     const dispatch = useDispatch();
     const productFromState = location.state?.product;
@@ -35,9 +35,25 @@ export default function ProductDetails() {
     const [checkingPincode, setCheckingPincode] = useState(false);
 
     useEffect(() => {
-        if (id) {
-            dispatch(fetchProductById(id));
-            dispatch(fetchRelatedProducts(id));
+        if (slug) {
+            dispatch(fetchProductBySlug(slug));
+            // Related products might need ID. But we can fetch related inside fetchProductBySlug or 
+            // wait for product to accept ID.
+            // For now, let's assume we need to wait for productData to get ID for related products?
+            // Or change backend to accept slug for related?
+            // The existing getRelatedProducts uses ID.
+            // We can dispatch fetchRelatedProducts AFTER we have productData._id
+        }
+    }, [dispatch, slug]);
+
+    useEffect(() => {
+        if (apiProduct?._id) {
+            dispatch(fetchRelatedProducts(apiProduct._id));
+        }
+    }, [dispatch, apiProduct]);
+
+    useEffect(() => {
+        if (slug) {
             window.scrollTo(0, 0);
             setActiveImage(0);
         }
@@ -46,7 +62,7 @@ export default function ProductDetails() {
             dispatch(fetchCart());
             dispatch(fetchWishlist());
         }
-    }, [dispatch, id, isAuthenticated]);
+    }, [dispatch, isAuthenticated]);
 
     // Initialize selection when data loads
     useEffect(() => {
@@ -114,14 +130,14 @@ export default function ProductDetails() {
     const displayRelated = apiRelated.length > 0 ? apiRelated : [];
 
     // Check if current product with selected size and color is already in cart
-    const isInCart = cartItems && cartItems.length > 0 && cartItems.some(item => 
-        item.product._id === product._id && 
-        item.size === selectedSize && 
+    const isInCart = cartItems && cartItems.length > 0 && cartItems.some(item =>
+        item.product?._id === product?._id &&
+        item.size === selectedSize &&
         item.color === selectedColor
     );
 
     // Check if current product is in wishlist
-    const isInWishlist = wishlistItems && wishlistItems.length > 0 && wishlistItems.some(item => 
+    const isInWishlist = wishlistItems && wishlistItems.length > 0 && wishlistItems.some(item =>
         item._id === product._id
     );
 
@@ -194,9 +210,9 @@ export default function ProductDetails() {
         }
 
         // Check if product with same size and color is already in cart
-        const existingItem = cartItems && cartItems.find(item => 
-            item.product._id === product._id && 
-            item.size === selectedSize && 
+        const existingItem = cartItems && cartItems.find(item =>
+            item.product._id === product._id &&
+            item.size === selectedSize &&
             item.color === selectedColor
         );
 
@@ -228,10 +244,36 @@ export default function ProductDetails() {
         <div className="bg-white min-h-screen pb-20 font-sans">
             {/* Breadcrumb */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <div className="flex items-center text-xs text-gray-500 uppercase tracking-wide">
+                <div className="flex items-center text-xs text-gray-500 uppercase tracking-wide overflow-x-auto whitespace-nowrap pb-1">
                     <Link to="/" className="hover:text-black transition-colors">Home</Link>
-                    <span className="mx-2">/</span>
-                    <Link to="/category/men" className="hover:text-black transition-colors">Men</Link>
+
+                    {productData?.category?.mainCategory && (
+                        <>
+                            <span className="mx-2">/</span>
+                            <Link to={`/${productData.category.mainCategory.slug}`} className="hover:text-black transition-colors">
+                                {productData.category.mainCategory.name}
+                            </Link>
+                        </>
+                    )}
+
+                    {productData?.category && (
+                        <>
+                            <span className="mx-2">/</span>
+                            <Link to={`/${productData.category.slug}`} className="hover:text-black transition-colors">
+                                {productData.category.name}
+                            </Link>
+                        </>
+                    )}
+
+                    {productData?.subCategory && (
+                        <>
+                            <span className="mx-2">/</span>
+                            <Link to={`/${productData.subCategory.slug}`} className="hover:text-black transition-colors">
+                                {productData.subCategory.name}
+                            </Link>
+                        </>
+                    )}
+
                     <span className="mx-2">/</span>
                     <span className="text-black font-medium truncate max-w-[200px]">{product.name}</span>
                 </div>
@@ -361,7 +403,7 @@ export default function ProductDetails() {
                                         maxLength={6}
                                         className="w-full bg-gray-100 border-none rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-black/5"
                                     />
-                                    <button 
+                                    <button
                                         onClick={handlePincodeCheck}
                                         disabled={checkingPincode || pincode.length !== 6}
                                         className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500 uppercase hover:text-black px-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -370,20 +412,20 @@ export default function ProductDetails() {
                                     </button>
                                 </div>
                             </div>
-                            
+
                             {/* Pincode Result */}
                             {pincodeResult && (
-                                <div className={`mt-3 p-3 rounded-lg border ${pincodeResult.serviceable 
-                                    ? 'bg-green-50 border-green-200 text-green-800' 
+                                <div className={`mt-3 p-3 rounded-lg border ${pincodeResult.serviceable
+                                    ? 'bg-green-50 border-green-200 text-green-800'
                                     : 'bg-red-50 border-red-200 text-red-800'
-                                }`}>
+                                    }`}>
                                     {pincodeResult.serviceable ? (
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
                                                 <FiCheck size={16} />
                                                 <span className="font-semibold text-sm">{pincodeResult.message || 'Delivery available'}</span>
                                             </div>
-                                           
+
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2">
@@ -419,22 +461,20 @@ export default function ProductDetails() {
                             <button
                                 onClick={handleAddToCart}
                                 disabled={isInCart}
-                                className={`flex-1 h-12 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 uppercase tracking-wide ${
-                                    isInCart 
-                                        ? 'bg-gray-400 text-white cursor-not-allowed' 
-                                        : 'bg-black text-white hover:bg-gray-900'
-                                }`}
+                                className={`flex-1 h-12 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 uppercase tracking-wide ${isInCart
+                                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                                    : 'bg-black text-white hover:bg-gray-900'
+                                    }`}
                             >
-                                <FiShoppingBag size={18} /> 
+                                <FiShoppingBag size={18} />
                                 {isInCart ? 'Already in Cart' : 'Add to Bag'}
                             </button>
                             <button
                                 onClick={handleAddToWishlist}
-                                className={`w-12 h-12 flex items-center justify-center border rounded-lg transition-colors ${
-                                    isInWishlist 
-                                        ? 'border-red-500 bg-red-50 text-red-500 hover:bg-red-100' 
-                                        : 'border-gray-200 hover:border-black'
-                                }`}
+                                className={`w-12 h-12 flex items-center justify-center border rounded-lg transition-colors ${isInWishlist
+                                    ? 'border-red-500 bg-red-50 text-red-500 hover:bg-red-100'
+                                    : 'border-gray-200 hover:border-black'
+                                    }`}
                                 title={isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
                             >
                                 <FiHeart size={20} fill={isInWishlist ? "currentColor" : "none"} />
