@@ -19,7 +19,7 @@ export default function BannerModal({ isOpen, onClose, editBanner }) {
             textPosition: Yup.string().oneOf(['left', 'center', 'right']),
             // Image is required only if NOT editing (no editBanner)
             image: editBanner
-                ? Yup.mixed().optional()
+                ? Yup.mixed().nullable().optional()
                 : Yup.mixed().required('Banner Image is required')
         });
     }, [editBanner]);
@@ -35,6 +35,7 @@ export default function BannerModal({ isOpen, onClose, editBanner }) {
             previewImage: editBanner?.image || null,
             textColor: editBanner?.textColor || '#000000',
             highlightColor: editBanner?.highlightColor || '#DC2626',
+            subtitleHighlightColor: editBanner?.subtitleHighlightColor || '#ECA72C',
             buttonColor: editBanner?.buttonColor || '#000000',
             backgroundColor: editBanner?.backgroundColor || '#F3F4F6',
         },
@@ -50,6 +51,7 @@ export default function BannerModal({ isOpen, onClose, editBanner }) {
                 data.append('textPosition', values.textPosition);
                 data.append('textColor', values.textColor);
                 data.append('highlightColor', values.highlightColor);
+                data.append('subtitleHighlightColor', values.subtitleHighlightColor);
                 data.append('buttonColor', values.buttonColor);
                 data.append('backgroundColor', values.backgroundColor);
 
@@ -85,6 +87,7 @@ export default function BannerModal({ isOpen, onClose, editBanner }) {
                 previewImage: null,
                 textColor: '#000000',
                 highlightColor: '#DC2626',
+                subtitleHighlightColor: '#ECA72C',
                 buttonColor: '#000000',
                 backgroundColor: '#F3F4F6',
             });
@@ -125,8 +128,8 @@ export default function BannerModal({ isOpen, onClose, editBanner }) {
                                 )}
                                 <div className="flex-1">
                                     <label className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${formik.touched.image && formik.errors.image
-                                            ? 'border-red-300 bg-red-50 hover:bg-red-100'
-                                            : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                                        ? 'border-red-300 bg-red-50 hover:bg-red-100'
+                                        : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
                                         }`}>
                                         <div className="flex items-center gap-2 text-gray-500">
                                             <MdCloudUpload size={24} />
@@ -159,8 +162,8 @@ export default function BannerModal({ isOpen, onClose, editBanner }) {
                                     onChange={formik.handleChange}
                                     onBlur={formik.handleBlur}
                                     className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-1 transition-colors ${formik.touched.title && formik.errors.title
-                                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                                            : 'border-gray-300 focus:ring-black focus:border-black'
+                                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                        : 'border-gray-300 focus:ring-black focus:border-black'
                                         }`}
                                     placeholder="e.g. Get [Exclusive] Offers"
                                 />
@@ -256,6 +259,19 @@ export default function BannerModal({ isOpen, onClose, editBanner }) {
                                             className="h-10 w-10 rounded shadow-sm cursor-pointer border-0 p-0"
                                         />
                                         <span className="text-xs font-mono text-gray-500">{formik.values.highlightColor}</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">Sub Highlight</label>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="color"
+                                            name="subtitleHighlightColor"
+                                            value={formik.values.subtitleHighlightColor}
+                                            onChange={formik.handleChange}
+                                            className="h-10 w-10 rounded shadow-sm cursor-pointer border-0 p-0"
+                                        />
+                                        <span className="text-xs font-mono text-gray-500">{formik.values.subtitleHighlightColor}</span>
                                     </div>
                                 </div>
                                 <div className="space-y-2">

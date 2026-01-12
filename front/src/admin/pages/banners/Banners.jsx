@@ -64,6 +64,17 @@ export default function Banners() {
         setEditingBanner(null);
     };
 
+    const renderHighlightedText = (text, highlightColor) => {
+        if (!text) return null;
+        return text.split(/\[(.*?)\]/).map((part, i) =>
+            i % 2 === 1 ? (
+                <span key={i} style={{ color: highlightColor }}>{part}</span>
+            ) : (
+                <span key={i}>{part}</span>
+            )
+        );
+    };
+
     if (loading && !banners.length) return <div className="p-8 text-center">Loading banners...</div>;
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
@@ -110,8 +121,8 @@ export default function Banners() {
                                     </span>
                                     <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">Order: {banner.order}</span>
                                 </div>
-                                <h3 className="text-2xl font-bold text-gray-900 mt-5 mb-2 line-clamp-2">{banner.title.replace(/[\[\]]/g, '')}</h3>
-                                <p className="text-gray-600 mb-4 line-clamp-2">{banner.subtitle.replace(/[\[\]]/g, '')}</p>
+                                <h3 className="text-2xl font-bold text-gray-900 mt-5 mb-2 line-clamp-2">{renderHighlightedText(banner.title, banner.highlightColor)}</h3>
+                                <p className="text-gray-600 mb-4 line-clamp-2">{renderHighlightedText(banner.subtitle, banner.subtitleHighlightColor || '#ECA72C')}</p>
 
                                 <div className="inline-block bg-black text-white px-5 py-2 rounded-md text-sm font-bold tracking-wide">
                                     {banner.buttonText}

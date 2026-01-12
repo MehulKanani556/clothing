@@ -35,6 +35,10 @@ const bannerSchema = new mongoose.Schema({
         type: String, // For the "Exclusive" or highlighted part
         default: '#DC2626' // Red-600
     },
+    subtitleHighlightColor: {
+        type: String,
+        default: '#ECA72C' // Gold/Orange
+    },
     backgroundColor: {
         type: String,
         default: '#F3F4F6' // Gray-100

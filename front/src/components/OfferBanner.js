@@ -11,11 +11,23 @@ export default function OfferBanner({
     bgColor = "#F3F4F6",
     buttonColor = "#000000",
     highlightColor = "#DC2626",
+    subtitleHighlightColor = "#ECA72C", // Gold/Orange default
     link = "#",
     textPosition = "left"
 }) {
     // Check if bgColor is a tailwind class (starts with 'bg-') or a hex code
     const isTailwindBg = bgColor.startsWith('bg-');
+
+    const renderTextWithHighlight = (text, baseColor = null, highlightOverride = null) => {
+        if (!text) return null;
+        return text.split(/\[(.*?)\]/).map((part, i) =>
+            i % 2 === 1 ? (
+                <span key={i} style={{ color: highlightOverride || highlightColor }}>{part}</span>
+            ) : (
+                <span key={i} style={baseColor ? { color: baseColor } : {}}>{part}</span>
+            )
+        );
+    };
 
     // Layout variation for "Center" position: Background Image Style
     if (textPosition === 'center') {
@@ -37,15 +49,11 @@ export default function OfferBanner({
                             className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight drop-shadow-md"
                             style={{ color: '#FFFFFF' }} // Force white text on dark overlay for contrast
                         >
-                            {title.split(/\[(.*?)\]/).map((part, i) =>
-                                i % 2 === 1 ? (
-                                    <span key={i} style={{ color: highlightColor }}>{part}</span>
-                                ) : (
-                                    <span key={i}>{part}</span>
-                                )
-                            )}
+                            {renderTextWithHighlight(title)}
                         </h2>
-                        <p className="text-xl text-gray-100 mb-8 max-w-2xl drop-shadow-sm">{subtitle}</p>
+                        <p className="text-xl text-gray-100 mb-8 max-w-2xl drop-shadow-sm">
+                            {renderTextWithHighlight(subtitle, '#f3f4f6', subtitleHighlightColor)}
+                        </p>
                         <Link
                             to={link}
                             className="inline-block rounded-[4px] text-white px-10 py-4 text-sm font-bold uppercase tracking-wider hover:opacity-90 transition-opacity transform hover:-translate-y-1 shadow-lg"
@@ -73,16 +81,11 @@ export default function OfferBanner({
                             className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight"
                             style={{ color: textColor }}
                         >
-                            {/* Parse title for [highlighted] text */}
-                            {title.split(/\[(.*?)\]/).map((part, i) =>
-                                i % 2 === 1 ? (
-                                    <span key={i} style={{ color: highlightColor }}>{part}</span>
-                                ) : (
-                                    <span key={i}>{part}</span>
-                                )
-                            )}
+                            {renderTextWithHighlight(title)}
                         </h2>
-                        <p className="text-lg text-gray-600 mb-8">{subtitle}</p>
+                        <p className="text-lg text-gray-600 mb-8 font-serif">
+                            {renderTextWithHighlight(subtitle, null, subtitleHighlightColor)}
+                        </p>
                         <Link
                             to={link}
                             className="inline-block rounded-[4px] text-white px-8 py-3 text-sm font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"

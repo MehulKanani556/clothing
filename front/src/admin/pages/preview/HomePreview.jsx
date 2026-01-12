@@ -15,6 +15,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { MdDragIndicator, MdSave, MdViewStream, MdViewColumn, MdAdd, MdDeleteOutline, MdCropLandscape, MdVerticalSplit } from 'react-icons/md';
 import { TbRectangle, TbColumns, TbColumns3 } from 'react-icons/tb';
 import CustomSelect from '../../components/common/CustomSelect';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 const SECTION_LABELS = {
     hero_section: 'Hero Slider Section',
@@ -264,13 +265,33 @@ export default function HomePreview() {
 
     return (
         <div className="p-6">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Home Page Layout</h2>
-                    <p className="text-gray-500 text-sm">Drag to reorder. Configure banners for each slot.</p>
-                </div>
+            <Breadcrumbs
+                title="Home Page Layout"
+                items={[
+                    { label: 'Dashboard', to: '/admin/dashboard' },
+                    { label: 'Home Page Layout' },
+                ]}
+            />
 
-                <div className="flex gap-3">
+            <div className="flex justify-end mb-6 gap-2">
+                <button
+                    onClick={handleAddBannerSlot}
+                    className="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium"
+                >
+                    <MdAdd size={20} />
+                    Add Banner Section
+                </button>
+                <button
+                    onClick={handleSaveLayout}
+                    disabled={saving || loadingLayout}
+                    className="flex items-center gap-2 bg-black text-white px-6 py-2.5 rounded-lg hover:bg-gray-800 transition-all disabled:opacity-50"
+                >
+                    <MdSave size={20} />
+                    {saving ? 'Saving...' : 'Save Layout'}
+                </button>
+            </div>
+
+            {/* <div className="flex gap-3">
                     <button
                         onClick={handleAddBannerSlot}
                         className="flex items-center gap-2 bg-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium"
@@ -286,8 +307,7 @@ export default function HomePreview() {
                         <MdSave size={20} />
                         {saving ? 'Saving...' : 'Save Layout'}
                     </button>
-                </div>
-            </div>
+                </div> */}
 
             <div className="flex flex-col xl:flex-row gap-8">
                 {/* 1. Draggable Configuration Panel */}
@@ -343,10 +363,10 @@ export default function HomePreview() {
                                                                     <button
                                                                         onClick={() => handleToggleBannerMode(key)}
                                                                         className={`w-full text-xs flex items-center justify-center gap-1.5 px-2 py-1.5 rounded border transition-colors mb-2 ${bannerConfig[key] === 'triple'
-                                                                                ? 'bg-purple-50 text-purple-600 border-purple-200'
-                                                                                : bannerConfig[key] === 'split'
-                                                                                    ? 'bg-blue-50 text-blue-600 border-blue-200'
-                                                                                    : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                                                                            ? 'bg-purple-50 text-purple-600 border-purple-200'
+                                                                            : bannerConfig[key] === 'split'
+                                                                                ? 'bg-blue-50 text-blue-600 border-blue-200'
+                                                                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                                                                             }`}
                                                                     >
                                                                         {bannerConfig[key] === 'triple' ? (
