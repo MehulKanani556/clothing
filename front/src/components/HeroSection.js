@@ -2,42 +2,44 @@ import React, { useState, useEffect, useRef } from 'react';
 import hero1 from '../assets/image/hero.png';
 import hero2 from '../assets/image/hero2.png';
 import hero3 from '../assets/image/hero3.png';
+import { fetchHeroBanners } from '../redux/slice/heroBanner.slice';
+import { useDispatch, useSelector } from 'react-redux';
 
-const slides = [
-    {
-        id: 1,
-        image: hero1,
-        subtitle: 'New Season',
-        titleMain: 'Prove your generation',
-        titleHighlight: 'URBAN STYLE',
-        description: 'Discover the latest distinctive styles that define the new era of urban fashion.',
-        buttonText: 'Shop Now',
-        color: 'text-red-500',
-        bgGradient: 'from-orange-100/20'
-    },
-    {
-        id: 2,
-        image: hero2,
-        subtitle: 'Street Collection',
-        titleMain: 'Discover Fashion',
-        titleHighlight: 'That Defines You',
-        description: 'Bold designs and premium comfort for the modern urban explorer.',
-        buttonText: 'Shop Now',
-        color: 'text-yellow-500',
-        bgGradient: 'from-yellow-100/20'
-    },
-    {
-        id: 3,
-        image: hero3,
-        subtitle: 'Premium Studio',
-        titleMain: 'Just Design ',
-        titleHighlight: 'for YOU.',
-        description: 'Sophisticated cuts and timeless pieces for a standout wardrobe.',
-        buttonText: 'Shop Now',
-        color: 'text-blue-500',
-        bgGradient: 'from-blue-100/20'
-    }
-];
+// const slides = [
+//     {
+//         id: 1,
+//         image: hero1,
+//         subtitle: 'New Season',
+//         titleMain: 'Prove your generation',
+//         titleHighlight: 'URBAN STYLE',
+//         description: 'Discover the latest distinctive styles that define the new era of urban fashion.',
+//         buttonText: 'Shop Now',
+//         color: 'text-red-500',
+//         bgGradient: 'from-orange-100/20'
+//     },
+//     {
+//         id: 2,
+//         image: hero2,
+//         subtitle: 'Street Collection',
+//         titleMain: 'Discover Fashion',
+//         titleHighlight: 'That Defines You',
+//         description: 'Bold designs and premium comfort for the modern urban explorer.',
+//         buttonText: 'Shop Now',
+//         color: 'text-yellow-500',
+//         bgGradient: 'from-yellow-100/20'
+//     },
+//     {
+//         id: 3,
+//         image: hero3,
+//         subtitle: 'Premium Studio',
+//         titleMain: 'Just Design ',
+//         titleHighlight: 'for YOU.',
+//         description: 'Sophisticated cuts and timeless pieces for a standout wardrobe.',
+//         buttonText: 'Shop Now',
+//         color: 'text-blue-500',
+//         bgGradient: 'from-blue-100/20'
+//     }
+// ];
 
 export default function HeroSection() {
     const [currentSlide, setCurrentSlide] = useState(0);
@@ -45,6 +47,13 @@ export default function HeroSection() {
     const [isAnimating, setIsAnimating] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const containerRef = useRef(null);
+    const dispatch = useDispatch();
+
+    const { heroBanners: slides, loading, error } = useSelector((state) => state.heroBanner);
+
+    useEffect(() => {
+        dispatch(fetchHeroBanners());
+    }, []);
 
     const handleSlideChange = (index) => {
         if (isAnimating) return;
@@ -83,6 +92,17 @@ export default function HeroSection() {
         setIsHovered(true);
     };
 
+    const renderHighlightedText = (text, highlightColor) => {
+        if (!text) return null;
+        return text.split(/\[(.*?)\]/).map((part, i) =>
+            i % 2 === 1 ? (
+                <span key={i} style={{ color: highlightColor }}>{part}</span>
+            ) : (
+                <span key={i}>{part}</span>
+            )
+        );
+    };
+
     return (
         <div
             ref={containerRef}
@@ -99,8 +119,9 @@ export default function HeroSection() {
             </div>
 
             {slides.map((slide, index) => (
+                console.log(slide),
                 <div
-                    key={slide.id}
+                    key={slide._id}
                     className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
                         }`}
                 >
@@ -109,7 +130,7 @@ export default function HeroSection() {
                         {/* <div className="absolute inset-0 bg-gray-200"></div> Placeholder while loading/revealing */}
                         <img
                             src={slide.image}
-                            alt={slide.titleMain}
+                            alt={slide.title}
                             loading={index === 0 ? "eager" : "lazy"}
                             fetchPriority={index === 0 ? "high" : "low"}
                             style={{
@@ -118,7 +139,7 @@ export default function HeroSection() {
                             className={`w-full h-full object-cover object-center md:object-[center_top] transition-transform duration-[2000ms] ease-out will-change-transform`}
                         />
                         {/* complex gradient overlay */}
-                        <div className={`absolute inset-0 bg-gradient-to-r ${slide.bgGradient} via-white/40 to-white/10 mix-blend-overlay`}></div>
+                        <div className={`absolute inset-0 bg-gradient-to-r ${slide.backgroundColor} via-white/40 to-white/10 mix-blend-overlay`}></div>
                         <div className="absolute inset-0 bg-gradient-to-r from-white via-white/60 to-transparent"></div>
                     </div>
 
@@ -133,8 +154,13 @@ export default function HeroSection() {
                         <div className="max-w-xl transform-style-3d">
                             {/* Floating Subtitle */}
                             <div className="animate-float">
-                                <span className={`${slide.color} font-black tracking-[0.3em] uppercase text-sm mb-4 block`}>
-                                    <span className="inline-block border-b-2 border-current pb-1"> {slide.subtitle}</span>
+                                <span
+                                    className="font-black tracking-[0.3em] uppercase text-sm block"
+                                    style={{ color: slide.subtitleHighlightColor }}
+                                >
+                                    <span className="inline-block border-b-2 border-current pb-1">
+                                        {renderHighlightedText(slide.subtitle, slide.subtitleHighlightColor)}
+                                    </span>
                                 </span>
                             </div>
 
@@ -142,25 +168,25 @@ export default function HeroSection() {
                             <h1 className="text-6xl font-black text-gray-900 leading-[0.9] mb-6">
                                 <div className="overflow-hidden mb-2">
                                     <span className={`block transition-transform duration-700 delay-100 ${index === currentSlide ? 'translate-y-0' : 'translate-y-[120%]'}`}>
-                                        {slide.titleMain}
+                                        {renderHighlightedText(slide.title.replace(/\[.*?\]/g, '').trim(), slide.titleHighlightColor)}
                                     </span>
                                 </div>
                                 {/* <div className="overflow-hidden mb-2">
                                     <span className={`block transition-transform duration-700 delay-200 ${index === currentSlide ? 'translate-y-0' : 'translate-y-[120%]'}`}>
-                                        {slide.titleMain2}
+                                        {slide.title}
                                     </span>
                                 </div> */}
                                 <div className="relative">
-                                    <span className="absolute inset-0 text-stroke-white translate-x-1 translate-y-1" aria-hidden="true">{slide.titleHighlight}</span>
+                                    <span className="absolute inset-0 text-stroke-white translate-x-1 translate-y-1" aria-hidden="true">{slide.title.match(/\[(.*?)\]/)?.[1] || ''}</span>
                                     <span className={`block text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 transition-all duration-700 delay-300 transform ${index === currentSlide ? 'scale-100 opacity-100 blur-0' : 'scale-150 opacity-0 blur-sm'}`}>
-                                        {slide.titleHighlight}
+                                        {slide.title.match(/\[(.*?)\]/)?.[1] || ''}
                                     </span>
                                 </div>
                             </h1>
 
                             {/* Floating Description */}
                             <p className="mt-8 text-gray-600 text-lg mb-10 max-w-md leading-relaxed animate-float-delayed">
-                                {slide.description}
+                                {renderHighlightedText(slide.description, slide.descriptionColor)}
                             </p>
 
                             {/* Magnetic Button */}

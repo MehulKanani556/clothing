@@ -83,7 +83,7 @@ export default function OfferBanner({
                         >
                             {renderTextWithHighlight(title)}
                         </h2>
-                        <p className="text-lg text-gray-600 mb-8 font-serif">
+                        <p className="text-lg text-gray-600 mb-8">
                             {renderTextWithHighlight(subtitle, null, subtitleHighlightColor)}
                         </p>
                         <Link

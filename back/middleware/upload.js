@@ -30,6 +30,7 @@ const storage = multerS3({
 
         if (url.includes("products")) folder = "products";
         else if (url.includes("banners")) folder = "banners";
+        else if (url.includes("heroBanners")) folder = "heroBanners";
         else if (url.includes("categories") || url.includes("subcategories")) folder = "categories";
         else if (url.includes("users") || url.includes("auth")) folder = "users";
         else if (url.includes("blogs")) folder = "blogs";

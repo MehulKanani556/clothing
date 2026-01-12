@@ -5,13 +5,12 @@ import {
     MdOutlineInventory,
     MdKeyboardArrowRight,
     MdOutlineCategory,
-    MdOutlineClass,
     MdOutlineReceiptLong,
     MdOutlineRateReview,
     MdOutlineLocalOffer,
     MdOutlinePreview,
-    MdInventory,
 } from 'react-icons/md';
+import { PiFlagBanner } from "react-icons/pi";
 
 const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
     const location = useLocation();
@@ -47,11 +46,14 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             icon: <MdOutlinePreview size={20} />,
         },
         {
-            type: 'item',
+            type: 'submenu',
             key: 'banners',
             name: 'Banners',
-            path: '/admin/banners',
-            icon: <MdOutlineLocalOffer size={20} />,
+            icon: <PiFlagBanner size={20} />,
+            children: [
+                { name: 'Hero Banner', path: '/admin/hero-banner' },
+                { name: 'Offer Banner', path: '/admin/offer-banner' },
+            ]
         },
         // { type: 'item', key: 'categories', name: 'Categories', path: '/admin/categories', icon: <MdOutlineCategory size={20} /> },
         // { type: 'item', key: 'subcategories', name: 'Subcategories', path: '/admin/subcategories', icon: <MdOutlineClass size={20} /> },

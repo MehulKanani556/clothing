@@ -23,7 +23,12 @@ const { createOffer, validateCoupon, getOffers, getAllOffersAdmin, uploadBanner,
 const { createBlogPost, getAllBlogs, getBlogBySlug, deleteBlog } = require('../controllers/blog.controller');
 const { addReview, getProductReviews, getAllReviews, updateReviewStatus, deleteReview } = require('../controllers/review.controller');
 const { orderValidation, returnValidation, offerValidation } = require('../middleware/validators');
+const { getSettings, updateSetting } = require('../controllers/settings.controller');
+const { createTicket, getAllTickets, updateTicketStatus } = require('../controllers/support.controller');
+const { createCashfreeOrder, verifyPayment, processPayment, processCODPayment, getPaymentMethods, handleWebhook } = require('../controllers/payment.controller');
+const shiprocketRoutes = require('./shiprocket.routes');
 const { createBanner, getBanners, getAdminBanners, updateBanner, deleteBanner, toggleBannerStatus, updateBannerOrder } = require('../controllers/banner.controller');
+const { createheroBanner, getHeroBanners, getAdminHeroBanners, updateheroBanner, deleteheroBanner } = require('../controllers/herobanner.controller');
 
 // ... (skipping unchanged lines)
 
@@ -35,6 +40,13 @@ router.put('/banners/order', auth, updateBannerOrder);
 router.put('/banners/:id', auth, upload.single('image'), updateBanner);
 router.delete('/banners/:id', auth, deleteBanner);
 router.patch('/banners/:id/status', auth, toggleBannerStatus);
+
+// herobanner
+router.get('/herobanners', getHeroBanners); // Public
+router.get('/herobanners/admin', auth, getAdminHeroBanners);
+router.post('/herobanners', auth, upload.single('image'), createheroBanner);
+router.put('/herobanners/:id', auth, upload.single('image'), updateheroBanner);
+router.delete('/herobanners/:id', auth, deleteheroBanner);
 
 // auth
 router.post('/register', upload.single("photo"), createUser);
@@ -128,18 +140,15 @@ router.get('/reports/gst', auth, getGstReport);
 router.get('/reports/payout', auth, getNetPayout);
 
 // --- SUPPORT SERVICE ---
-const { createTicket, getAllTickets, updateTicketStatus } = require('../controllers/support.controller');
 router.post('/support', createTicket); // Public or Auth? Let's say public allowed for guest support
 router.get('/support', auth, getAllTickets);
 router.put('/support/:id', auth, updateTicketStatus);
 
 // --- SETTINGS SERVICE ---
-const { getSettings, updateSetting } = require('../controllers/settings.controller');
 router.get('/settings', auth, getSettings);
 router.post('/settings', auth, updateSetting);
 
 // Payment
-const { createCashfreeOrder, verifyPayment, processPayment, processCODPayment, getPaymentMethods, handleWebhook } = require('../controllers/payment.controller');
 router.post('/payment/create', auth, createCashfreeOrder);
 router.post('/payment/pay', auth, processPayment);
 router.post('/payment/cod', auth, processCODPayment);
@@ -159,7 +168,6 @@ router.put('/reviews/:id', auth, updateReviewStatus);
 router.delete('/reviews/:id', auth, deleteReview);
 
 // Shiprocket Integration
-const shiprocketRoutes = require('./shiprocket.routes');
 router.use('/shiprocket', shiprocketRoutes);
 
 // --- BANNER SERVICE ---

@@ -40,9 +40,10 @@ import ProductForm from './admin/pages/products/ProductForm';
 import AdminProfile from './admin/pages/profile/AdminProfile';
 import SubCategory from './admin/pages/categories/Subcategory';
 import OfferForm from './admin/pages/offerZone/OfferForm';
-import Banners from './admin/pages/banners/Banners';
 import HomePreview from './admin/pages/preview/HomePreview';
 import MainCategory from './admin/pages/categories/MainCategory';
+import OfferBanner from './admin/pages/banners/OfferBanner';
+import HeroBanner from './admin/pages/banners/HeroBanner';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -79,7 +80,8 @@ function App() {
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
-              <Route path="banners" element={<Banners />} />
+              <Route path="offer-banner" element={<OfferBanner />} />
+              <Route path="hero-banner" element={<HeroBanner />} />
               <Route path="home-preview" element={<HomePreview />} />
               <Route path="products" element={<Products />} />
               <Route path="add-product" element={<ProductForm />} />
@@ -90,11 +92,6 @@ function App() {
               <Route path="categories" element={<Categories />} />
               <Route path="subcategories" element={<SubCategory />} />
               <Route path="categories/:id" element={<CategoriesProduct />} />
-              <Route path="products" element={<Products />} />
-              <Route path="add-product" element={<ProductForm />} />
-              <Route path="product/edit/:id" element={<ProductForm />} />
-              <Route path="products/:id" element={<ProductsDetails />} />
-              <Route path="reviews" element={<Reviews />} />
               <Route path="orders" element={<Orders />} />
               <Route path="orders/:id" element={<OrderDetails />} />
               <Route path="offers" element={<OfferZone />} />

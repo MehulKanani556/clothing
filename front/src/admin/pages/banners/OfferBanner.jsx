@@ -8,7 +8,7 @@ import DeleteModal from '../../components/modals/DeleteModal'; // Import Delete 
 import { toast } from 'react-hot-toast';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
 
-export default function Banners() {
+export default function OfferBanner() {
     const dispatch = useDispatch();
     const { banners, loading, error } = useSelector((state) => state.banner);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,14 +77,14 @@ export default function Banners() {
 
     if (loading && !banners.length) return <div className="p-8 text-center">Loading banners...</div>;
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
-
     return (
         <div className="p-6 bg-[#f9f9f9]">
             <Breadcrumbs
-                title="Banners"
+                title="Offer Banner"
                 items={[
                     { label: 'Dashboard', to: '/admin/dashboard' },
-                    { label: 'Banners' },
+                    { label: 'Banner' },
+                    { label: 'Offer Banner' },
                 ]}
             />
             <div className="flex justify-end mb-6">

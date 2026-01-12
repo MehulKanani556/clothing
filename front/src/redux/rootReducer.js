@@ -21,6 +21,7 @@ import trackingReducer from "./slice/tracking.slice.js";
 import deliveryReducer from "./slice/delivery.slice.js";
 import bannerReducer from "./slice/banner.slice.js";
 import adminHomeReducer from "./slice/adminHome.slice.js";
+import heroBannerReducer from "./slice/heroBanner.slice.js";
 
 export const rootReducer = combineReducers({
     adminDashboard: adminDashboardReducer,
@@ -44,5 +45,6 @@ export const rootReducer = combineReducers({
     tracking: trackingReducer,
     delivery: deliveryReducer,
     banner: bannerReducer,
-    adminHome: adminHomeReducer
+    adminHome: adminHomeReducer,
+    heroBanner: heroBannerReducer
 });
