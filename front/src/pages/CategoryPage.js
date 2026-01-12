@@ -2,41 +2,42 @@ import React, { useState, Fragment, useEffect } from 'react';
 import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProducts } from '../redux/slice/product.slice';
-import { fetchCategoryById } from '../redux/slice/category.slice';
+import { fetchProductsBySlug } from '../redux/slice/product.slice';
+// import { fetchCategoryById } from '../redux/slice/category.slice'; // Not needed if product slice provides details
 import { FiFilter, FiChevronDown, FiGrid, FiList, FiX, FiMinus, FiPlus } from 'react-icons/fi';
 import ProductCard from '../components/ProductCard';
 
 export default function CategoryPage() {
-    const { id } = useParams();
+    const { slug } = useParams();
     const location = useLocation();
     const dispatch = useDispatch();
-    const { products: allProducts, loading } = useSelector((state) => state.product);
-    const { categoryDetails } = useSelector((state) => state.category);
+    const { products: allProducts, loading, categoryDetails } = useSelector((state) => state.product);
+    // const { categoryDetails } = useSelector((state) => state.category);
 
     const [viewMode, setViewMode] = useState('grid');
     const [sortBy, setSortBy] = useState('recommended');
     const [isSortOpen, setSortOpen] = useState(false);
     const [isFilterOpen, setFilterOpen] = useState(false);
 
-    // Fetch products and category details when id, sort or search changes
+    // Fetch products and category details when slug, sort or search changes
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         const searchQuery = searchParams.get('search');
-        const subQuery = searchParams.get('sub');
 
+        // Prepare params
         const params = {
-            category: id !== 'all-products' ? id : undefined,
             sort: sortBy,
             search: searchQuery,
-            subCategory: subQuery
+            // Add other filters here from 'filters' state if needed, 
+            // but currently the frontend does client-side filtering (filteredProducts).
+            // For true server-side filtering (Myntra style), we should pass filters to backend.
+            // But let's stick to initial fetch for now as per current structure.
         };
-        dispatch(fetchProducts(params));
 
-        if (id && id !== 'all-products') {
-            dispatch(fetchCategoryById(id));
+        if (slug) {
+            dispatch(fetchProductsBySlug({ slug, params }));
         }
-    }, [dispatch, id, sortBy, location.search]);
+    }, [dispatch, slug, sortBy, location.search]);
 
     const products = allProducts.length > 0 ? allProducts : [];
 
@@ -158,10 +159,27 @@ export default function CategoryPage() {
             {/* Breadcrumb & Title */}
             <div className="border-b border-gray-100">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center text-sm text-gray-500 mb-4">
-                        <Link to="/" className="hover:text-black">Home</Link>
-                        <span className="mx-2">/</span>
-                        <span className="capitalize text-black font-medium">{id !== 'all-products' ? categoryDetails?.name || 'Category' : 'All Products'}</span>
+                    <div className="flex items-center text-sm text-gray-500 mb-4 overflow-x-auto whitespace-nowrap pb-1">
+                        {/* {location.pathname === '/' ? null : <Link to="/" className="hover:text-black">Home</Link>} */}
+                        {categoryDetails?.breadcrumbs ? (
+                            categoryDetails.breadcrumbs.map((crumb, index) => (
+                                <React.Fragment key={index}>
+                                    <Link
+                                        to={crumb.slug}
+                                        className={`hover:text-black ${index === categoryDetails.breadcrumbs.length - 1 ? 'text-black font-medium capitalize' : ''}`}
+                                    >
+                                        {crumb.name}
+                                    </Link>
+                                    {index < categoryDetails.breadcrumbs.length - 1 && <span className="mx-2">/</span>}
+                                </React.Fragment>
+                            ))
+                        ) : (
+                            <>
+                                <Link to="/" className="hover:text-black">Home</Link>
+                                <span className="mx-2">/</span>
+                                <span className="capitalize text-black font-medium">{slug}</span>
+                            </>
+                        )}
                     </div>
 
                     {/* Filters Bar */}

@@ -6,9 +6,11 @@ const { createUser, verifyRegistration, login, logout, forgotPassword, verifyOtp
 const { auth } = require('../middleware/auth');
 const { getAllUsers, getSingleUser, deleteUser, updateUser, addAddress, deleteAddress, setDefaultAddress } = require('../controllers/user.controller');
 
-const { getAllProducts, getProductById, getRelatedProducts, createProduct, uploadProductImage, updateProduct, deleteProduct } = require('../controllers/product.controller');
+const { getAllProducts, getProductById, getRelatedProducts, createProduct, uploadProductImage, updateProduct, deleteProduct, getAdminProducts } = require('../controllers/product.controller');
+const { getAllMainCategories, createMainCategory, updateMainCategory, deleteMainCategory, getMainCategoryById, getAllAdminMainCategories } = require('../controllers/mainCategory.controller');
 const { getAllCategories, createCategory, updateCategory, deleteCategory, getCategoryById, getAlladminCategories } = require('../controllers/category.controller');
 const { getAllSubCategories, createSubCategory, getSubCategoriesByCategoryId, updateSubCategory, deleteSubCategory, getAllAdminSubCategories } = require('../controllers/subCategory.controller');
+const { getProductsBySlug, getProductBySlug } = require('../controllers/listing.controller');
 
 const { addToCart, getCart, removeFromCart, updateCartItem } = require('../controllers/cart.controller');
 const { addToWishlist, getWishlist, removeFromWishlist } = require('../controllers/wishlist.controller');
@@ -54,6 +56,7 @@ router.delete('/users/address/:addressId', auth, deleteAddress);
 router.put('/users/address/:addressId/default', auth, setDefaultAddress);
 
 // products
+router.get('/products/admin', auth, getAdminProducts);
 router.get('/products', getAllProducts);
 router.post('/products', upload.any(), createProduct); // Updated to handle FormData
 router.put('/products/:id', upload.any(), updateProduct); // Updated to handle FormData
@@ -61,6 +64,16 @@ router.delete('/products/:id', auth, deleteProduct);
 router.post('/products/upload-image', auth, upload.single("image"), uploadProductImage);
 router.get('/products/:id', getProductById);
 router.get('/products/:id/related', getRelatedProducts);
+router.get('/products/listing/:slug', getProductsBySlug);
+router.get('/products/details/:slug', getProductBySlug);
+
+// main categories
+router.get('/maincategories', getAllMainCategories);
+router.get('/adminmaincategories', getAllAdminMainCategories);
+router.get('/maincategories/:id', getMainCategoryById);
+router.post('/maincategories', upload.single('image'), createMainCategory);
+router.put('/maincategories/:id', upload.single('image'), updateMainCategory);
+router.delete('/maincategories/:id', deleteMainCategory);
 
 // categories
 router.get('/categories', getAllCategories);
@@ -74,8 +87,8 @@ router.delete('/categories/:id', deleteCategory);
 router.get('/subcategories', getAllSubCategories);
 router.get('/adminsubcategories', getAllAdminSubCategories);
 router.get('/subcategories/:categoryId', getSubCategoriesByCategoryId);
-router.post('/subcategories', createSubCategory);
-router.put('/subcategories/:id', updateSubCategory);
+router.post('/subcategories', upload.single('image'), createSubCategory);
+router.put('/subcategories/:id', upload.single('image'), updateSubCategory);
 router.delete('/subcategories/:id', deleteSubCategory);
 
 // Cart

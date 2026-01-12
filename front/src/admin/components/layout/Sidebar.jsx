@@ -10,6 +10,7 @@ import {
     MdOutlineRateReview,
     MdOutlineLocalOffer,
     MdOutlinePreview,
+    MdInventory,
 } from 'react-icons/md';
 
 const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
@@ -52,8 +53,19 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             path: '/admin/banners',
             icon: <MdOutlineLocalOffer size={20} />,
         },
-        { type: 'item', key: 'categories', name: 'Categories', path: '/admin/categories', icon: <MdOutlineCategory size={20} /> },
-        { type: 'item', key: 'subcategories', name: 'Subcategories', path: '/admin/subcategories', icon: <MdOutlineClass size={20} /> },
+        // { type: 'item', key: 'categories', name: 'Categories', path: '/admin/categories', icon: <MdOutlineCategory size={20} /> },
+        // { type: 'item', key: 'subcategories', name: 'Subcategories', path: '/admin/subcategories', icon: <MdOutlineClass size={20} /> },
+        {
+            type: 'submenu',
+            key: 'categories',
+            name: 'Categories',
+            icon: <MdOutlineCategory size={20} />,
+            children: [
+                { name: 'Main Categories', path: '/admin/main-categories' },
+                { name: 'Categories', path: '/admin/categories' },
+                { name: 'Subcategories', path: '/admin/subcategories' },
+            ]
+        },
         {
             type: 'submenu',
             key: 'products',

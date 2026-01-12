@@ -12,7 +12,8 @@ const initialState = {
     error: null,
     totalPages: 0,
     currentPage: 1,
-    totalProducts: 0
+    totalProducts: 0,
+    categoryDetails: null // For slug-based listing context
 };
 
 const handleErrors = (error, rejectWithValue) => {
@@ -81,6 +82,31 @@ export const fetchRelatedProducts = createAsyncThunk(
     async (id, { rejectWithValue }) => {
         try {
             const response = await axios.get(`${BASE_URL}/products/${id}/related`);
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, rejectWithValue);
+        }
+    }
+
+);
+
+export const fetchProductsBySlug = createAsyncThunk(
+    'product/fetchProductsBySlug',
+    async ({ slug, params }, { rejectWithValue }) => {
+        try {
+            const response = await axios.get(`${BASE_URL}/products/listing/${slug}`, { params });
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, rejectWithValue);
+        }
+    }
+);
+
+export const fetchProductBySlug = createAsyncThunk(
+    'product/fetchProductBySlug',
+    async (slug, { rejectWithValue }) => {
+        try {
+            const response = await axios.get(`${BASE_URL}/products/details/${slug}`);
             return response.data;
         } catch (error) {
             return handleErrors(error, rejectWithValue);
@@ -158,6 +184,36 @@ export const productSlice = createSlice({
             // Related
             .addCase(fetchRelatedProducts.fulfilled, (state, action) => {
                 state.relatedProducts = action.payload.data;
+            })
+
+            // Slug based fetching
+            .addCase(fetchProductsBySlug.pending, (state) => {
+                state.loading = true;
+                state.categoryDetails = null;
+            })
+            .addCase(fetchProductsBySlug.fulfilled, (state, action) => {
+                state.loading = false;
+                state.products = action.payload.data;
+                state.totalPages = action.payload.pages;
+                state.currentPage = action.payload.page;
+                state.totalProducts = action.payload.total;
+                state.categoryDetails = action.payload.categoryDetails;
+            })
+            .addCase(fetchProductsBySlug.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+
+            .addCase(fetchProductBySlug.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(fetchProductBySlug.fulfilled, (state, action) => {
+                state.loading = false;
+                state.product = action.payload.data;
+            })
+            .addCase(fetchProductBySlug.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
             });
     }
 });

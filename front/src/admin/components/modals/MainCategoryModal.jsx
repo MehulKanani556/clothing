@@ -2,24 +2,12 @@ import React, { useEffect, useMemo } from 'react';
 import { MdClose, MdCloudUpload } from 'react-icons/md';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import CustomSelect from '../common/CustomSelect';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchAdminMainCategories } from '../../../redux/slice/category.slice';
 
-const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
-    const dispatch = useDispatch();
-    const { mainCategories } = useSelector((state) => state.category);
-
-    useEffect(() => {
-        if (isOpen) {
-            dispatch(fetchAdminMainCategories());
-        }
-    }, [isOpen, dispatch]);
+const MainCategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
 
     const validationSchema = useMemo(() => {
         return Yup.object({
-            name: Yup.string().required('Category Name is required'),
-            mainCategory: Yup.string().required('Main Category is required'),
+            name: Yup.string().required('Main Category Name is required'),
             isActive: Yup.boolean().required('Status is required'),
             description: Yup.string(),
             image: initialData
@@ -32,27 +20,24 @@ const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
         initialValues: {
             name: initialData?.name || '',
             slug: initialData?.slug || '',
-            mainCategory: initialData?.mainCategory?._id || initialData?.mainCategory || '',
             isActive: initialData?.isActive !== undefined ? initialData.isActive : true,
             description: initialData?.description || '',
             image: initialData?.image || null,
             previewImage: initialData?.image || null
         },
         validationSchema,
-        enableReinitialize: true, // Important: Reset form when initialData changes
+        enableReinitialize: true,
         onSubmit: (values) => {
             onSave(values);
         }
     });
 
-    // Reset form when modal closes or opens to ensure clean state for "Add" mode
     useEffect(() => {
         if (isOpen && !initialData) {
             formik.resetForm();
             formik.setValues({
                 name: '',
                 slug: '',
-                mainCategory: '',
                 isActive: true,
                 description: '',
                 image: null,
@@ -66,25 +51,8 @@ const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
     const handleNameChange = (e) => {
         formik.handleChange(e);
         const name = e.target.value;
-        if (formik.values.mainCategory && name) {
-            const mainCat = mainCategories.find(mc => mc._id === formik.values.mainCategory);
-            const mainCatSlug = mainCat ? (mainCat.slug || mainCat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')) : '';
-            const catSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-            formik.setFieldValue('slug', mainCatSlug ? `${mainCatSlug}-${catSlug}` : catSlug);
-        } else {
-            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-            formik.setFieldValue('slug', slug);
-        }
-    };
-
-    const handleMainCategoryChange = (val) => {
-        formik.setFieldValue('mainCategory', val);
-        if (formik.values.name) {
-            const mainCat = mainCategories.find(mc => mc._id === val);
-            const mainCatSlug = mainCat ? (mainCat.slug || mainCat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')) : '';
-            const catSlug = formik.values.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-            formik.setFieldValue('slug', mainCatSlug ? `${mainCatSlug}-${catSlug}` : catSlug);
-        }
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        formik.setFieldValue('slug', slug);
     };
 
     const handleImageChange = (e) => {
@@ -101,7 +69,7 @@ const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-100">
                     <h3 className="text-lg font-bold text-gray-800">
-                        {initialData ? 'Edit Category' : 'Add New Category'}
+                        {initialData ? 'Edit Main Category' : 'Add New Main Category'}
                     </h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
                         <MdClose size={24} />
@@ -111,31 +79,16 @@ const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
                 {/* Body */}
                 <form onSubmit={formik.handleSubmit} className="p-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Main Category */}
+                        {/* Name */}
                         <div className="space-y-2">
-                            <label className="text-sm font-semibold text-gray-700">Main Category</label>
-                            <CustomSelect
-                                value={formik.values.mainCategory}
-                                onChange={handleMainCategoryChange}
-                                options={mainCategories.map(mc => ({ label: mc.name, value: mc._id }))}
-                                placeholder="Select Main Category (Men, Women, Kids)"
-                                className={`w-full ${formik.touched.mainCategory && formik.errors.mainCategory ? 'border-red-500' : ''}`}
-                            />
-                            {formik.touched.mainCategory && formik.errors.mainCategory && (
-                                <p className="text-xs text-red-500 mt-1">{formik.errors.mainCategory}</p>
-                            )}
-                        </div>
-
-                        {/* Category Name */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-gray-700">Category Name</label>
+                            <label className="text-sm font-semibold text-gray-700">Main Category Name</label>
                             <input
                                 type="text"
                                 name="name"
                                 value={formik.values.name}
                                 onChange={handleNameChange}
                                 onBlur={formik.handleBlur}
-                                placeholder="e.g. Topwear, Bottomwear, Indian Wear"
+                                placeholder="e.g. Men, Women, Kids"
                                 className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-1 transition-colors ${formik.touched.name && formik.errors.name
                                     ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                                     : 'border-gray-300 focus:ring-black focus:border-black'
@@ -145,9 +98,6 @@ const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
                                 <p className="text-xs text-red-500 mt-1">{formik.errors.name}</p>
                             )}
                         </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Slug */}
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-gray-700">Slug</label>
@@ -156,7 +106,7 @@ const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
                                 name="slug"
                                 value={formik.values.slug}
                                 readOnly
-                                placeholder="e.g. men-topwear"
+                                placeholder="e.g. men"
                                 className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed focus:outline-none"
                             />
                         </div>
@@ -164,7 +114,7 @@ const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
 
                     {/* Image */}
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700">Category Image</label>
+                        <label className="text-sm font-semibold text-gray-700">Main Category Image</label>
                         <div className="flex items-center gap-4">
                             {formik.values.previewImage && (
                                 <img src={formik.values.previewImage} alt="Preview" className="w-16 h-16 object-cover rounded-md border border-gray-200" />
@@ -200,19 +150,14 @@ const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
                     {initialData && (
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-gray-700">Status</label>
-                            <CustomSelect
+                            <select
                                 value={formik.values.isActive}
-                                onChange={(val) => formik.setFieldValue('isActive', val)}
-                                options={[
-                                    { label: 'Active', value: true },
-                                    { label: 'Inactive', value: false }
-                                ]}
-                                placeholder="Select Status"
-                                className="w-full"
-                            />
-                            {formik.touched.isActive && formik.errors.isActive && (
-                                <p className="text-xs text-red-500 mt-1">{formik.errors.isActive}</p>
-                            )}
+                                onChange={(e) => formik.setFieldValue('isActive', e.target.value === 'true')}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                            >
+                                <option value={true}>Active</option>
+                                <option value={false}>Inactive</option>
+                            </select>
                         </div>
                     )}
 
@@ -224,7 +169,7 @@ const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
                             value={formik.values.description}
                             onChange={formik.handleChange}
                             onBlur={formik.handleBlur}
-                            placeholder="Brief description of the category..."
+                            placeholder="Brief description of the main category..."
                             rows="4"
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors resize-none"
                         ></textarea>
@@ -243,7 +188,7 @@ const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
                             type="submit"
                             className="px-6 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors shadow-sm"
                         >
-                            {initialData ? 'Update Category' : 'Add Category'}
+                            {initialData ? 'Update Main Category' : 'Add Main Category'}
                         </button>
                     </div>
                 </form>
@@ -252,4 +197,5 @@ const CategoryModal = ({ isOpen, onClose, onSave, initialData }) => {
     );
 };
 
-export default CategoryModal;
+export default MainCategoryModal;
+

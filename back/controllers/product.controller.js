@@ -4,6 +4,7 @@ const SubCategory = require('../models/subCategory.model');
 const { validationResult } = require('express-validator');
 const Review = require('../models/review.model');
 const Order = require('../models/order.model');
+const { generateProductSlug, generateSKU, getCategoryCode } = require('../utils/skuSlugGenerator');
 
 // Upload Image Helper Endpoint
 exports.uploadProductImage = async (req, res) => {
@@ -22,6 +23,76 @@ exports.uploadProductImage = async (req, res) => {
             success: true,
             imageUrl: location
         });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Get all products for ADMIN (no limit, all statuses)
+exports.getAdminProducts = async (req, res) => {
+    try {
+        const products = await Product.find({})
+            .sort({ createdAt: -1 })
+            .populate('category', 'name slug')
+            .populate('subCategory', 'name slug');
+
+        // Reuse stats logic if possible, or simplified version
+        // Product IDs for stats
+        const productIds = products.map(p => p._id);
+
+        // 1. Order Stats
+        const orderStats = await Order.aggregate([
+            { $match: { "items.product": { $in: productIds } } },
+            { $unwind: "$items" },
+            { $match: { "items.product": { $in: productIds } } },
+            { $group: { _id: { product: "$items.product", order: "$_id" } } },
+            { $group: { _id: "$_id.product", count: { $sum: 1 } } }
+        ]);
+
+        const statsMap = {};
+        orderStats.forEach(stat => {
+            statsMap[stat._id.toString()] = stat.count;
+        });
+
+        // 2. Review Stats
+        const allReviews = await Review.find({
+            product: { $in: productIds }
+        }); // Count all reviews for admin, not just published? Or keep published. Let's keep logic simple.
+
+        const reviewsMap = {};
+        allReviews.forEach(r => {
+            const pId = r.product.toString();
+            if (!reviewsMap[pId]) {
+                reviewsMap[pId] = { reviews: [], totalRating: 0, count: 0 };
+            }
+            reviewsMap[pId].reviews.push(r);
+            reviewsMap[pId].totalRating += r.rating;
+            reviewsMap[pId].count += 1;
+        });
+
+        const productsWithStats = products.map(p => {
+            const pObj = p.toObject();
+            pObj.orderCount = statsMap[p._id.toString()] || 0;
+
+            const rStat = reviewsMap[p._id.toString()];
+            if (rStat) {
+                pObj.reviews = rStat.reviews;
+                pObj.reviewCount = rStat.count;
+                pObj.averageRating = Number((rStat.totalRating / rStat.count).toFixed(1));
+            } else {
+                pObj.reviews = [];
+                pObj.reviewCount = 0;
+                pObj.averageRating = 0;
+            }
+            return pObj;
+        });
+
+        res.status(200).json({
+            success: true,
+            count: productsWithStats.length,
+            data: productsWithStats
+        });
+
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -318,6 +389,7 @@ const validateProduct = (data) => {
     return errors;
 };
 
+// Keep generateSlug for backward compatibility if needed elsewhere
 const generateSlug = (name) => {
     return name
         .toString()
@@ -340,25 +412,66 @@ exports.createProduct = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Validation failed', errors });
         }
 
-        // Generate Slug
+        // Generate Product Slug with Gender (derived from category name)
         if (!productData.slug && productData.name) {
-            productData.slug = generateSlug(productData.name);
-            // Append random string to ensure uniqueness collision handling (basic)
-            productData.slug = productData.slug + '-' + Math.floor(1000 + Math.random() * 9000);
+            const categoryDoc = productData.category ? await Category.findById(productData.category) : null;
+            const subCategoryDoc = productData.subCategory ? await SubCategory.findById(productData.subCategory) : null;
+
+            // Derive gender from category name (Men, Women, Kids, etc.)
+            const genderFromCategory = categoryDoc?.name || productData.gender || 'Unisex';
+
+            // Get default color from first variant
+            const defaultColor = productData.variants?.[0]?.color || null;
+
+            productData.slug = generateProductSlug(
+                productData.name,
+                productData.brand,
+                genderFromCategory,
+                defaultColor
+            );
+
+            // Append random string to ensure uniqueness
+            const randomStr = Math.floor(1000 + Math.random() * 9000);
+            productData.slug = productData.slug + '-' + randomStr;
         }
 
-        // Generate SKU
-        if (productData.category && productData.variants) {
+        // Set gender from category name if not provided
+        if (productData.category && !productData.gender) {
             const categoryDoc = await Category.findById(productData.category);
-            const categoryPrefix = categoryDoc ? categoryDoc.name.substring(0, 3).toUpperCase() : 'GEN';
+            if (categoryDoc) {
+                productData.gender = categoryDoc.name; // Category name IS the gender
+            }
+        }
+
+        // Generate SKU with Gender Hierarchy (gender derived from mainCategory)
+        if (productData.category && productData.variants) {
+            const categoryDoc = await Category.findById(productData.category)
+                .populate('mainCategory', 'name');
+            const subCategoryDoc = productData.subCategory ? await SubCategory.findById(productData.subCategory) : null;
+
+            // Derive gender from mainCategory name (Men, Women, Kids)
+            const genderFromMainCategory = categoryDoc?.mainCategory?.name || productData.gender || 'Unisex';
+
+            // Use subCategory name for category code
+            const categoryCode = getCategoryCode(
+                subCategoryDoc?.name || categoryDoc?.name,
+                subCategoryDoc?.name
+            );
 
             productData.variants.forEach(variant => {
                 if (variant.options) {
                     variant.options.forEach(option => {
                         if (!option.sku || option.sku.trim() === '') {
-                            // "product category and uniq 7 digi number"
-                            const random7 = Math.floor(1000000 + Math.random() * 9000000);
-                            option.sku = `${categoryPrefix}-${random7}`;
+                            const sku = generateSKU({
+                                categoryCode,
+                                gender: genderFromMainCategory,
+                                brand: productData.brand,
+                                productName: productData.name,
+                                subCategoryName: subCategoryDoc?.name,
+                                color: variant.color,
+                                size: option.size
+                            });
+                            option.sku = sku;
                         }
                     });
                 }
@@ -392,19 +505,73 @@ exports.updateProduct = async (req, res) => {
         // Handle Slug: preserve existing if not explicitly updating
         // Standard practice: don't auto-update slug on name change to save SEO links.
         // If needed, frontend should allow slug editing.
+        // However, if slug is explicitly provided or doesn't exist, generate new one
+        if (!newData.slug || (!product.slug && newData.name)) {
+            const categoryId = newData.category || product.category;
+            const categoryDoc = categoryId ? await Category.findById(categoryId)
+                .populate('mainCategory', 'name slug') : null;
+            const subCategoryId = newData.subCategory || product.subCategory;
+            const subCategoryDoc = subCategoryId ? await SubCategory.findById(subCategoryId) : null;
 
-        // Auto-generate SKU for NEW options
+            // Derive gender from mainCategory name
+            const genderFromMainCategory = categoryDoc?.mainCategory?.name || newData.gender || product.gender || 'Unisex';
+
+            const defaultColor = newData.variants?.[0]?.color || product.variants?.[0]?.color || null;
+
+            newData.slug = generateProductSlug(
+                newData.name || product.name,
+                newData.brand || product.brand,
+                genderFromMainCategory,
+                defaultColor
+            );
+
+            // Append random string for uniqueness
+            if (!product.slug) {
+                const randomStr = Math.floor(1000 + Math.random() * 9000);
+                newData.slug = newData.slug + '-' + randomStr;
+            }
+        }
+
+        // Set gender from mainCategory name if category changed
+        if (newData.category && !newData.gender) {
+            const categoryDoc = await Category.findById(newData.category)
+                .populate('mainCategory', 'name');
+            if (categoryDoc?.mainCategory) {
+                newData.gender = categoryDoc.mainCategory.name; // MainCategory name IS the gender
+            }
+        }
+
+        // Auto-generate SKU for NEW options with Gender Hierarchy (gender derived from mainCategory)
         if (newData.variants) {
             const categoryId = newData.category || product.category;
-            const categoryDoc = await Category.findById(categoryId);
-            const categoryPrefix = categoryDoc ? categoryDoc.name.substring(0, 3).toUpperCase() : 'GEN';
+            const categoryDoc = categoryId ? await Category.findById(categoryId)
+                .populate('mainCategory', 'name') : null;
+            const subCategoryId = newData.subCategory || product.subCategory;
+            const subCategoryDoc = subCategoryId ? await SubCategory.findById(subCategoryId) : null;
+
+            // Derive gender from mainCategory name
+            const genderFromMainCategory = categoryDoc?.mainCategory?.name || newData.gender || product.gender || 'Unisex';
+
+            // Use subCategory name for category code
+            const categoryCode = getCategoryCode(
+                subCategoryDoc?.name || categoryDoc?.name,
+                subCategoryDoc?.name
+            );
 
             newData.variants.forEach(variant => {
                 if (variant.options) {
                     variant.options.forEach(option => {
                         if (!option.sku || option.sku.trim() === '') {
-                            const random7 = Math.floor(1000000 + Math.random() * 9000000);
-                            option.sku = `${categoryPrefix}-${random7}`;
+                            const sku = generateSKU({
+                                categoryCode,
+                                gender: genderFromMainCategory,
+                                brand: newData.brand || product.brand,
+                                productName: newData.name || product.name,
+                                subCategoryName: subCategoryDoc?.name,
+                                color: variant.color,
+                                size: option.size
+                            });
+                            option.sku = sku;
                         }
                     });
                 }

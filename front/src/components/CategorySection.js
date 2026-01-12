@@ -57,7 +57,7 @@ export default function CategorySection() {
                     {categories.map((category, index) => (
                         <div
                             key={category._id || index}
-                            onClick={() => navigate(`/category/${category._id}`)}
+                            onClick={() => navigate(`/${category.slug}`)}
                             className="min-w-[280px] md:min-w-[290px] relative group cursor-pointer overflow-hidden rounded-xl h-[400px] snap-start bg-gray-100"
                         >
                             <img

@@ -42,6 +42,7 @@ import SubCategory from './admin/pages/categories/Subcategory';
 import OfferForm from './admin/pages/offerZone/OfferForm';
 import Banners from './admin/pages/banners/Banners';
 import HomePreview from './admin/pages/preview/HomePreview';
+import MainCategory from './admin/pages/categories/MainCategory';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -58,8 +59,8 @@ function App() {
                 <Header />
                 <Routes>
                   <Route path="/" element={<Home />} />
-                  <Route path="/category/:id" element={<CategoryPage />} />
-                  <Route path="/product/:id" element={<ProductDetails />} />
+
+                  <Route path="/product/:slug" element={<ProductDetails />} />
                   <Route path="/cart" element={<CartPage />} />
                   <Route path="/wishlist" element={<WishlistPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
@@ -68,6 +69,8 @@ function App() {
                   <Route path="/about" element={<AboutUsPage />} />
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/checkout/payment" element={<PaymentPage />} />
+                  {/* Catch-all for Categories/Listings - Must be last */}
+                  <Route path="/:slug" element={<CategoryPage />} />
                 </Routes>
                 <Footer />
               </>
@@ -83,9 +86,15 @@ function App() {
               <Route path="product/edit/:id" element={<ProductForm />} />
               <Route path="reviews" element={<Reviews />} />
               <Route path="products/:id" element={<ProductsDetails />} />
+              <Route path="main-categories" element={<MainCategory />} />
               <Route path="categories" element={<Categories />} />
               <Route path="subcategories" element={<SubCategory />} />
               <Route path="categories/:id" element={<CategoriesProduct />} />
+              <Route path="products" element={<Products />} />
+              <Route path="add-product" element={<ProductForm />} />
+              <Route path="product/edit/:id" element={<ProductForm />} />
+              <Route path="products/:id" element={<ProductsDetails />} />
+              <Route path="reviews" element={<Reviews />} />
               <Route path="orders" element={<Orders />} />
               <Route path="orders/:id" element={<OrderDetails />} />
               <Route path="offers" element={<OfferZone />} />
@@ -97,7 +106,6 @@ function App() {
               <Route path="payments" element={<Payments />} />
               <Route path="size-charts" element={<SizeCharts />} />
               <Route path="blogs" element={<Blogs />} />
-              <Route path="pricing-rules" element={<PricingRules />} />
               <Route path="pricing-rules" element={<PricingRules />} />
               <Route path="support" element={<Support />} />
               <Route path="profile" element={<AdminProfile />} />

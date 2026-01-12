@@ -1,16 +1,11 @@
 const mongoose = require('mongoose');
 
-const categorySchema = new mongoose.Schema({
-    mainCategory: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'MainCategory',
-        required: true,
-        index: true
-    },
+const mainCategorySchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        unique: true
     },
     slug: {
         type: String,
@@ -34,4 +29,5 @@ const categorySchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Category', categorySchema);
+module.exports = mongoose.model('MainCategory', mainCategorySchema);
+
