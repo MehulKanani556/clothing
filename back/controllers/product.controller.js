@@ -97,6 +97,87 @@ exports.getAdminProducts = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+// Get New Arrivals
+exports.getNewArrivals = async (req, res) => {
+    try {
+        const limit = Number(req.query.limit) || 12;
+
+        const products = await Product.find({ isActive: true })
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .populate('category', 'name slug')
+            .populate('subCategory', 'name slug');
+
+        res.status(200).json({
+            success: true,
+            count: products.length,
+            data: products
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Get Most Popular (Most Reviewed)
+exports.getMostPopular = async (req, res) => {
+    try {
+        const limit = Number(req.query.limit) || 12;
+
+        // Aggregate reviews to find most reviewed products
+        const topReviewed = await Review.aggregate([
+            { $group: { _id: "$product", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: limit }
+        ]);
+
+        const productIds = topReviewed.map(item => item._id);
+
+        // Fetch products matching these IDs
+        // Note: $in does not guarantee order, so we might need to re-sort if strict order needed
+        const products = await Product.find({ _id: { $in: productIds }, isActive: true })
+            .populate('category', 'name slug')
+            .populate('subCategory', 'name slug');
+
+        // Re-sort products to match the review count order
+        const productsMap = new Map(products.map(p => [p._id.toString(), p]));
+        const countMap = new Map(topReviewed.map(item => [item._id.toString(), item.count]));
+
+        const sortedProducts = productIds
+            .map(id => {
+                const product = productsMap.get(id.toString());
+                if (product) {
+                    const pObj = product.toObject();
+                    pObj.reviewCountDynamic = countMap.get(id.toString());
+                    return pObj;
+                }
+                return null;
+            })
+            .filter(p => p); // Filter out any nulls (if product was deleted/inactive)
+
+        // If we don't have enough reviewed products to fill the limit, fetch more random/active products?
+        // User asked for "most review product", so if 0 reviews, maybe don't show or show recommended.
+        // For now, let's append some recent products if list is too short
+        if (sortedProducts.length < limit) {
+            const remainingLimit = limit - sortedProducts.length;
+            const existingIds = sortedProducts.map(p => p._id);
+            const moreProducts = await Product.find({ _id: { $nin: existingIds }, isActive: true })
+                .sort({ createdAt: -1 })
+                .limit(remainingLimit)
+                .populate('category', 'name slug')
+                .populate('subCategory', 'name slug');
+
+            sortedProducts.push(...moreProducts);
+        }
+
+        res.status(200).json({
+            success: true,
+            count: sortedProducts.length,
+            data: sortedProducts
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 
 // Get all products (with filters, search, pagination)
 exports.getAllProducts = async (req, res) => {
@@ -615,3 +696,4 @@ exports.deleteProduct = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+

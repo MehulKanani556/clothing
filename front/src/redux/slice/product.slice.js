@@ -12,8 +12,10 @@ const initialState = {
     error: null,
     totalPages: 0,
     currentPage: 1,
+    bestSellers: [],
+    mostPopular: [],
     totalProducts: 0,
-    categoryDetails: null // For slug-based listing context
+    categoryDetails: null // For category specific details (banner, breadcrumbs)
 };
 
 const handleErrors = (error, rejectWithValue) => {
@@ -41,7 +43,8 @@ export const fetchNewArrivals = createAsyncThunk(
         try {
             // Assuming backend supports sort=newest or featured=new-arrivals
             // const response = await axios.get(`${BASE_URL}/products?sort=newest&limit=8`);
-            const response = await axios.get(`${BASE_URL}/products`);
+            // Fetch from new dedicated API endpoint
+            const response = await axios.get(`${BASE_URL}/products/new-arrivals`);
             return response.data;
         } catch (error) {
             return handleErrors(error, rejectWithValue);
@@ -58,6 +61,19 @@ export const fetchBestSellers = createAsyncThunk(
             // const response = await axios.get(`${BASE_URL}/products?featured=best-sellers&limit=8`);
             const response = await axios.get(`${BASE_URL}/products`);
             // console.log("response", response.data);
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, rejectWithValue);
+        }
+    }
+);
+
+// Fetch Most Popular
+export const fetchMostPopular = createAsyncThunk(
+    'product/fetchMostPopular',
+    async ({ limit } = { limit: 12 }, { rejectWithValue }) => {
+        try {
+            const response = await axios.get(`${BASE_URL}/products/most-popular`, { params: { limit } });
             return response.data;
         } catch (error) {
             return handleErrors(error, rejectWithValue);
@@ -214,6 +230,19 @@ export const productSlice = createSlice({
             .addCase(fetchProductBySlug.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload?.message;
+            })
+            // Most Popular
+            .addCase(fetchMostPopular.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchMostPopular.fulfilled, (state, action) => {
+                state.loading = false;
+                state.mostPopular = action.payload.data;
+            })
+            .addCase(fetchMostPopular.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
             });
     }
 });

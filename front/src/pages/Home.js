@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchBestSellers, fetchNewArrivals, fetchProducts } from '../redux/slice/product.slice';
+import { fetchBestSellers, fetchNewArrivals, fetchProducts, fetchMostPopular } from '../redux/slice/product.slice';
 import { fetchBanners } from '../redux/slice/banner.slice';
 import { fetchHomeSettings } from '../redux/slice/adminHome.slice';
 import HeroSection from '../components/HeroSection';
@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 
 export default function Home() {
     const dispatch = useDispatch();
-    const { newArrivals, bestSellers, products: allProducts } = useSelector((state) => state.product);
+    const { newArrivals, bestSellers, mostPopular, products: allProducts } = useSelector((state) => state.product);
     const { banners } = useSelector((state) => state.banner);
     const {
         layout,
@@ -21,7 +21,8 @@ export default function Home() {
     } = useSelector((state) => state.adminHome);
 
     useEffect(() => {
-        dispatch(fetchNewArrivals());
+        dispatch(fetchNewArrivals({ limit: 12 })); // Pass limit if backend accepts it via query, otherwise standard fetch
+        dispatch(fetchMostPopular({ limit: 8 }));
         dispatch(fetchBestSellers());
         dispatch(fetchProducts({ limit: 8 }));
         dispatch(fetchBanners());
@@ -60,6 +61,7 @@ export default function Home() {
     const displayProducts = allProducts.length > 0 ? allProducts : [];
     const displayNewArrivals = newArrivals.length > 0 ? newArrivals : [];
     const displayBestSellers = bestSellers.length > 0 ? bestSellers : [];
+    const displayMostPopular = mostPopular && mostPopular.length > 0 ? mostPopular : [];
 
     // --- RENDER HELPERS ---
 
@@ -138,12 +140,12 @@ export default function Home() {
                     <section key="most_popular" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">Most Popular</h2>
-                            <Link to="/category/all-products" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
+                            <Link to="/most-popular" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
                                 View All &rarr;
                             </Link>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                            {displayProducts.map((product) => (
+                            {displayMostPopular.map((product) => (
                                 <ProductCard key={product._id || product.id || Math.random()} product={product} />
                             ))}
                         </div>
@@ -154,12 +156,12 @@ export default function Home() {
                     <section key="new_arrivals" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">New Arrivals</h2>
-                            <Link to="/category/new-arrivals" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
+                            <Link to="/new-arrivals" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
                                 View All &rarr;
                             </Link>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                            {displayNewArrivals.map((product) => (
+                            {displayNewArrivals.slice(0, 8).map((product) => (
                                 <ProductCard key={`na-${product._id || product.id}`} product={product} />
                             ))}
                         </div>

@@ -97,10 +97,23 @@ exports.getProductsBySlug = async (req, res) => {
                         { name: 'All Products', slug: '/all-products' }
                     ];
                 } else if (slug === 'best-sellers') {
-                    categoryDetails = { name: 'Best Sellers', description: 'Our most popular products.' };
                     breadcrumbs = [
                         { name: 'Home', slug: '/' },
                         { name: 'Best Sellers', slug: '/best-sellers' }
+                    ];
+                } else if (slug === 'new-arrivals') {
+                    categoryDetails = { name: 'New Arrivals', description: 'Check out our latest additions.' };
+                    breadcrumbs = [
+                        { name: 'Home', slug: '/' },
+                        { name: 'New Arrivals', slug: '/new-arrivals' }
+                    ];
+                    // Enforce newest sort if not specified, or just let the default sort handle it (which is date desc)
+                    if (!sort) sort = 'newest';
+                } else if (slug === 'most-popular') {
+                    categoryDetails = { name: 'Most Popular', description: 'Our top reviewed products.' };
+                    breadcrumbs = [
+                        { name: 'Home', slug: '/' },
+                        { name: 'Most Popular', slug: '/most-popular' }
                     ];
                 } else {
                     return res.status(404).json({ success: false, message: 'Category not found' });
