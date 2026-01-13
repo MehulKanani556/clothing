@@ -3,7 +3,6 @@ import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/re
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductsBySlug } from '../redux/slice/product.slice';
-// import { fetchCategoryById } from '../redux/slice/category.slice'; // Not needed if product slice provides details
 import { FiFilter, FiGrid, FiList, FiX, FiMinus, FiPlus, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import ProductCard from '../components/ProductCard';
 import CustomSelect from '../admin/components/common/CustomSelect';
@@ -12,33 +11,59 @@ export default function CategoryPage() {
     const { slug } = useParams();
     const location = useLocation();
     const dispatch = useDispatch();
-    const { products: allProducts, loading, categoryDetails } = useSelector((state) => state.product);
-    
-    // const { categoryDetails } = useSelector((state) => state.category);
+    const { products, loading, categoryDetails, totalPages, currentPage: serverPage, totalProducts } = useSelector((state) => state.product);
 
     const [viewMode, setViewMode] = useState('grid');
     const [sortBy, setSortBy] = useState('recommended');
     const [isFilterOpen, setFilterOpen] = useState(false);
 
-    // Fetch products and category details when slug, sort or search changes
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+
+    // Filter state
+    const [filters, setFilters] = useState({
+        gender: [],
+        size: [],
+        color: [],
+        discount: [],
+        rating: [],
+        productType: [],
+        pattern: [],
+        sleeveLength: [],
+        brand: [],
+        priceRange: [0, 10000]
+    });
+
+    // Fetch products and category details when slug, sort, search, filters or page changes
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         const searchQuery = searchParams.get('search');
 
-        // Prepare params
+        // Prepare params for server-side processing
         const params = {
+            page: currentPage,
+            limit: 12, // Match backend default or itemPerPage
             sort: sortBy,
             search: searchQuery,
+            minPrice: filters.priceRange[0],
+            maxPrice: filters.priceRange[1],
         };
+
+        // Add array filters if present (joining for backend)
+        if (filters.gender.length > 0) params.gender = filters.gender.join('|'); // Regex friendly join
+        if (filters.brand.length > 0) params.brand = filters.brand.join(',');
+        if (filters.color.length > 0) params.color = filters.color.join(',');
+        if (filters.size.length > 0) params.size = filters.size.join(',');
+
+        // Note: discount, rating, productType are not currently supported by backend query params, 
+        // but are kept in state for UI consistency or future implementation.
 
         if (slug) {
             dispatch(fetchProductsBySlug({ slug, params }));
         }
-    }, [dispatch, slug, sortBy, location.search]);
+    }, [dispatch, slug, sortBy, location.search, currentPage, filters]); // Added filters and currentPage dependencies
 
-    const products = allProducts.length > 0 ? allProducts : [];
-
-    // Derive available filters from products
+    // Derive available filters from CURRENT PAGE products (limitation of server-side pagination without facet API)
     const derivedFilters = useMemo(() => {
         const sizes = new Set();
         const colors = new Map();
@@ -46,7 +71,10 @@ export default function CategoryPage() {
         const productTypes = new Set();
         let maxPrice = 0;
 
-        products.forEach(product => {
+        // Ensure products is an array
+        const productList = Array.isArray(products) ? products : [];
+
+        productList.forEach(product => {
             // Brand
             if (product.brand) brands.add(product.brand);
 
@@ -96,20 +124,6 @@ export default function CategoryPage() {
         };
     }, [products]);
 
-    // Filter state
-    const [filters, setFilters] = useState({
-        gender: [],
-        size: [],
-        color: [],
-        discount: [],
-        rating: [],
-        productType: [],
-        pattern: [],
-        sleeveLength: [],
-        brand: [],
-        priceRange: [0, 10000]
-    });
-
     // Toggle section state
     const [expandedSections, setExpandedSections] = useState({
         gender: true,
@@ -133,16 +147,18 @@ export default function CategoryPage() {
         setFilters(prev => {
             const sectionFilters = prev[section];
             const isSelected = sectionFilters.includes(value);
-            if (isSelected) {
-                return { ...prev, [section]: sectionFilters.filter(item => item !== value) };
-            } else {
-                return { ...prev, [section]: [...sectionFilters, value] };
-            }
+            const newFilters = isSelected
+                ? sectionFilters.filter(item => item !== value)
+                : [...sectionFilters, value];
+
+            return { ...prev, [section]: newFilters };
         });
+        setCurrentPage(1); // Reset to page 1 on filter change
     };
 
     const handlePriceChange = (e) => {
         setFilters(prev => ({ ...prev, priceRange: [0, parseInt(e.target.value)] }));
+        setCurrentPage(1);
     };
 
     const filterOptions = {
@@ -155,130 +171,7 @@ export default function CategoryPage() {
         brand: derivedFilters.brands
     };
 
-    // Filter Logic
-    const filteredProducts = products.filter(product => {
-        // Gender Filter
-        if (filters.gender.length > 0 && !filters.gender.includes(product.gender)) return false;
-
-        // Brand Filter
-        if (filters.brand.length > 0 && !filters.brand.includes(product.brand)) return false;
-
-        // Size Filter
-        if (filters.size.length > 0) {
-            const productSizes = new Set();
-            if (product.variants && Array.isArray(product.variants)) {
-                product.variants.forEach(variant => {
-                    if (variant.options && Array.isArray(variant.options)) {
-                        variant.options.forEach(option => {
-                            if (option.size) {
-                                productSizes.add(option.size);
-                            }
-                        });
-                    }
-                });
-            }
-
-            const hasSize = filters.size.some(size => productSizes.has(size));
-            if (!hasSize) return false;
-        }
-
-        // Color Filter
-        if (filters.color.length > 0) {
-            const productColors = new Set();
-            if (product.variants && Array.isArray(product.variants)) {
-                product.variants.forEach(variant => {
-                    if (variant.color) productColors.add(variant.color);
-                });
-            }
-            const hasColor = filters.color.some(color => productColors.has(color));
-            if (!hasColor) return false;
-        }
-
-        // Price Filter
-        // Calculate min price from variants for comparison
-        let minPrice = Infinity;
-        let maxDiscount = 0;
-
-        if (product.variants && Array.isArray(product.variants)) {
-            product.variants.forEach(variant => {
-                if (variant.options && Array.isArray(variant.options)) {
-                    variant.options.forEach(opt => {
-                        if (opt.price) minPrice = Math.min(minPrice, opt.price);
-                        // Calculate discount
-                        if (opt.mrp && opt.price) {
-                            const discount = ((opt.mrp - opt.price) / opt.mrp) * 100;
-                            maxDiscount = Math.max(maxDiscount, discount);
-                        }
-                    });
-                }
-            });
-        }
-        // If no price found, treat as 0 or exclude? Treating as matching/valid for now if data is bad, but logic implies valid price
-        if (minPrice === Infinity) minPrice = 0;
-
-        if (minPrice > filters.priceRange[1]) return false;
-
-        // Discount Filter
-        if (filters.discount.length > 0) {
-            const hasDiscount = filters.discount.some(selected => {
-                const threshold = parseInt(selected);
-                return maxDiscount >= threshold;
-            });
-            if (!hasDiscount) return false;
-        }
-
-        // Rating Filter
-        if (filters.rating.length > 0) {
-            const rating = product.rating?.average || 0;
-            const hasRating = filters.rating.some(selected => {
-                const threshold = parseInt(selected);
-                return rating >= threshold;
-            });
-            if (!hasRating) return false;
-        }
-
-        // Product Type Filter
-        if (filters.productType.length > 0) {
-            // Looking at subCategory name as filtered list comes from there
-            if (!filters.productType.includes(product.subCategory?.name)) return false;
-        }
-
-        return true;
-    });
-
-    // Sort Logic
-    const sortedProducts = [...filteredProducts].sort((a, b) => {
-        const getPrice = (p) => {
-            let minP = Infinity;
-            if (p.variants) {
-                p.variants.forEach(v => v.options?.forEach(o => {
-                    if (o.price) minP = Math.min(minP, o.price);
-                }));
-            }
-            return minP === Infinity ? 0 : minP;
-        };
-
-        if (sortBy === 'price-low-high') {
-            return getPrice(a) - getPrice(b);
-        } else if (sortBy === 'price-high-low') {
-            return getPrice(b) - getPrice(a);
-        } else if (sortBy === 'newest') {
-            return new Date(b.createdAt) - new Date(a.createdAt);
-        }
-        return 0; // Default: Recommended (no specific sort)
-    });
-
-
-
     // Pagination Logic
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 12;
-
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentProducts = sortedProducts.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
-
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -323,7 +216,7 @@ export default function CategoryPage() {
                                 <span className="font-medium">Filters</span>
                             </button>
                             <div className="hidden sm:block w-px h-8 bg-gray-200"></div>
-                            <span className="text-gray-500">Showing {sortedProducts.length} Results</span>
+                            <span className="text-gray-500">Showing {totalProducts || products.length} Results</span>
                         </div>
 
                         <div className="flex items-center gap-4">
@@ -345,15 +238,22 @@ export default function CategoryPage() {
 
             {/* Product Grid */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {sortedProducts.length > 0 ? (
+                {loading ? (
+                    <div className="flex justify-center py-20">
+                        {/* Simple loading state */}
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+                    </div>
+                ) : products.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
-                        {currentProducts.map((product) => (
+                        {products.map((product) => (
                             <ProductCard
                                 key={product._id || product.id}
                                 product={{
                                     ...product,
                                     category: product.brand, // Mapping brand to category field for display
-                                    tag: product.discount // Using discount as tag
+                                    tag: (product.variants?.[0]?.options?.[0]?.mrp && product.variants?.[0]?.options?.[0]?.price) ?
+                                        `${Math.round(((product.variants[0].options[0].mrp - product.variants[0].options[0].price) / product.variants[0].options[0].mrp) * 100)}% OFF` :
+                                        null
                                 }}
                             />
                         ))}
@@ -372,7 +272,7 @@ export default function CategoryPage() {
             </div>
 
             {/* Pagination */}
-            {sortedProducts.length > itemsPerPage && (
+            {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-2 pb-8">
                     <button
                         onClick={() => handlePageChange(currentPage - 1)}
@@ -383,18 +283,29 @@ export default function CategoryPage() {
                         <FiChevronLeft size={20} />
                     </button>
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
-                        <button
-                            key={number}
-                            onClick={() => handlePageChange(number)}
-                            className={`w-10 h-10 rounded-lg border transition-colors ${currentPage === number
-                                ? 'bg-black text-white border-black'
-                                : 'border-gray-200 text-gray-600 hover:border-black hover:text-black'
-                                }`}
-                        >
-                            {number}
-                        </button>
-                    ))}
+                    {/* Simple Pagination Range: Show current, prev, next, first, last or just simple mapping. 
+                        For safe large number handling, we might want to truncate, but for now map up to totalPages if small. 
+                        Assuming strict limit is not an issue for now. */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => {
+                        // Logic to hide too many pages if totalPages is large could go here
+                        if (totalPages > 7 && Math.abs(currentPage - number) > 2 && number !== 1 && number !== totalPages) {
+                            if (number === 2 || number === totalPages - 1) return <span key={number} className="px-1">...</span>;
+                            return null;
+                        }
+
+                        return (
+                            <button
+                                key={number}
+                                onClick={() => handlePageChange(number)}
+                                className={`w-10 h-10 rounded-lg border transition-colors ${currentPage === number
+                                    ? 'bg-black text-white border-black'
+                                    : 'border-gray-200 text-gray-600 hover:border-black hover:text-black'
+                                    }`}
+                            >
+                                {number}
+                            </button>
+                        )
+                    })}
 
                     <button
                         onClick={() => handlePageChange(currentPage + 1)}
@@ -490,7 +401,12 @@ export default function CategoryPage() {
                                                         <div className="space-y-2">
                                                             {filterOptions.size.map(option => (
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
-                                                                    <input type="checkbox" className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black" />
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={filters.size.includes(option)}
+                                                                        onChange={() => handleFilterChange('size', option)}
+                                                                        className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
+                                                                    />
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                 </label>
                                                             ))}
@@ -558,7 +474,7 @@ export default function CategoryPage() {
                                                     )}
                                                 </div>
 
-                                                {/* Discount */}
+                                                {/* Discount (Visual Only) */}
                                                 <div className="border-b border-gray-100 pb-4">
                                                     <button
                                                         onClick={() => toggleSection('discount')}
@@ -584,7 +500,7 @@ export default function CategoryPage() {
                                                     )}
                                                 </div>
 
-                                                {/* Rating */}
+                                                {/* Rating (Visual Only) */}
                                                 <div className="border-b border-gray-100 pb-4">
                                                     <button
                                                         onClick={() => toggleSection('rating')}
@@ -610,7 +526,7 @@ export default function CategoryPage() {
                                                     )}
                                                 </div>
 
-                                                {/* Product Type */}
+                                                {/* Product Type (Visual Only) */}
                                                 <div className="border-b border-gray-100 pb-4">
                                                     <button
                                                         onClick={() => toggleSection('productType')}
@@ -663,24 +579,6 @@ export default function CategoryPage() {
                                                 </div>
 
                                             </div>
-
-                                            {/* Footer */}
-                                            {/* <div className="p-4 border-t border-gray-100 bg-white">
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <button
-                                                        onClick={() => setFilterOpen(false)}
-                                                        className="px-4 py-3 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setFilterOpen(false)}
-                                                        className="px-4 py-3 rounded-lg bg-black text-white font-medium hover:bg-gray-800 transition-colors"
-                                                    >
-                                                        Apply
-                                                    </button>
-                                                </div>
-                                            </div> */}
                                         </div>
                                     </DialogPanel>
                                 </TransitionChild>

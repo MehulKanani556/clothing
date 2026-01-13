@@ -233,35 +233,34 @@ export default function Header() {
                           to={item.href}
                           className={classNames(
                             location.pathname.startsWith(item.href) || (item.slug && location.pathname.split('/').includes(item.slug))
-                              ? 'font-bold border-b-2 border-pink-500'
+                              ? 'font-bold border-b-2 border-black hover:border-b-2 hover:border-black'
                               : 'font-regular',
-                            'px-1 py-2 text-sm text-black group-hover:text-pink-600 transition-colors inline-flex items-center gap-1',
+                            'px-1 py-2 text-sm text-black group-hover:text-black transition-colors inline-flex items-center gap-1 z-10',
                           )}
                         >
                           {item.name}
                           <MdKeyboardArrowDown className="transition-transform duration-200 group-hover:rotate-180" />
                         </Link>
 
-                        {/* Mega Menu / Dropdown - Myntra Style */}
+                        {/* Mega Menu / Dropdown - Content Sized */}
                         {item.columns.length > 0 && (
-                          <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out z-50 w-screen max-w-screen-xl -translate-x-1/4">
-                            <div className="bg-white rounded-lg shadow-2xl ring-1 ring-black ring-opacity-5 overflow-hidden">
+                          <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 ease-out z-50">
+                            <div className="bg-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden w-max">
                               <div className="p-8">
-                                {/* Myntra-style multi-column layout */}
-                                <div className="grid grid-cols-5 gap-8">
-                                  {item.columns.slice(0, 5).map((col, idx) => (
-                                    <div key={col.heading || idx} className="flex flex-col">
+                                <div className="flex gap-12">
+                                  {item.columns.map((col, idx) => (
+                                    <div key={col.heading || idx} className="flex flex-col min-w-[140px]">
                                       {col.heading && (
-                                        <h3 className="font-bold text-pink-600 mb-4 text-sm uppercase tracking-wide">
+                                        <h3 className="font-bold text-black mb-4 text-sm uppercase tracking-wide border-b border-gray-100 pb-2">
                                           {col.heading}
                                         </h3>
                                       )}
-                                      <ul className="space-y-2.5 flex-1">
+                                      <ul className="space-y-3 flex-1">
                                         {col.items.map((subItem) => (
                                           <li key={typeof subItem === 'string' ? subItem : subItem.name || subItem}>
                                             <Link
                                               to={`/${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : (subItem.slug || subItem.name?.toLowerCase().replace(/\s+/g, '-'))}`}
-                                              className="text-sm text-gray-600 hover:text-black transition-colors block py-0.5"
+                                              className="text-sm text-gray-500 hover:text-black hover:translate-x-1 transition-all block"
                                             >
                                               {typeof subItem === 'string' ? subItem : (subItem.name || subItem)}
                                             </Link>
@@ -270,33 +269,6 @@ export default function Header() {
                                       </ul>
                                     </div>
                                   ))}
-
-                                  {/* If more than 5 columns, continue on new row */}
-                                  {item.columns.length > 5 && (
-                                    <>
-                                      {item.columns.slice(5).map((col, idx) => (
-                                        <div key={col.heading || idx + 5} className="flex flex-col">
-                                          {col.heading && (
-                                            <h3 className="font-bold text-pink-600 mb-4 text-sm uppercase tracking-wide">
-                                              {col.heading}
-                                            </h3>
-                                          )}
-                                          <ul className="space-y-2.5 flex-1">
-                                            {col.items.map((subItem) => (
-                                              <li key={typeof subItem === 'string' ? subItem : subItem.name || subItem}>
-                                                <Link
-                                                  to={`/${typeof subItem === 'string' ? subItem.toLowerCase().replace(/\s+/g, '-') : (subItem.slug || subItem.name?.toLowerCase().replace(/\s+/g, '-'))}`}
-                                                  className="text-sm text-gray-600 hover:text-black transition-colors block py-0.5"
-                                                >
-                                                  {typeof subItem === 'string' ? subItem : (subItem.name || subItem)}
-                                                </Link>
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      ))}
-                                    </>
-                                  )}
                                 </div>
                               </div>
                             </div>

@@ -107,7 +107,7 @@ const ProductForm = () => {
                 sizeChart: (values.sizeChart instanceof File) ? null : values.sizeChart,
                 variants: values.variants.map(v => ({
                     ...v,
-                    images: v.images.filter(img => !(img instanceof File))
+                    images: v.images.map(img => (img instanceof File ? null : img))
                 }))
             };
 
@@ -293,8 +293,6 @@ const ProductForm = () => {
             options: [{ sku: '', size: '', price: '', mrp: '', stock: '' }]
         };
         formik.setFieldValue('variants', [...formik.values.variants, newVariant]);
-        // Auto-generate SKU after variant is added (will trigger when color and size are entered)
-        setTimeout(() => generateAllSKUs(), 100);
     };
 
     const removeVariant = (index) => {
@@ -318,8 +316,6 @@ const ProductForm = () => {
         const currentOptions = formik.values.variants[variantIndex].options;
         const newOption = { sku: '', size: '', price: '', mrp: '', stock: '' };
         formik.setFieldValue(`variants[${variantIndex}].options`, [...currentOptions, newOption]);
-        // Auto-generate SKU after option is added (will trigger when size is entered)
-        setTimeout(() => generateAllSKUs(), 100);
     };
 
     const removeOption = (variantIndex, optionIndex) => {

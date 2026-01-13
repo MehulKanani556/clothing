@@ -53,7 +53,7 @@ function App() {
     <>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          <Toaster position="top-center" reverseOrder={false} />
+          {/* <Toaster position="top-center" /> */}
           <Routes>
             <Route path="/*" element={
               <>
