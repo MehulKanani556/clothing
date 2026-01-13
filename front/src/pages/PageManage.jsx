@@ -30,7 +30,7 @@ export default function PageManage() {
     }, [dispatch, slug]);
 
     return (
-        <div className="container mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="rounded-lg pt-8">
                 {/* Header */}
                 <h1 className="text-3xl font-bold text-gray-900 mb-5">{currentLegalPage?.title}</h1>
