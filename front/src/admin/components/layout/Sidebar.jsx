@@ -111,6 +111,7 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             icon: <MdOutlineSettings size={20} />,
             children: [
                 { name: 'Pick Up Address', path: '/admin/settings' },
+                { name: 'Maintenance', path: '/admin/maintenance' },
             ]
         },
     ];

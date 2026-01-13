@@ -15,6 +15,7 @@ import ProfilePage from './pages/ProfilePage';
 import ContactPage from './pages/ContactPage';
 import FAQPage from './pages/FAQPage';
 import AboutUsPage from './pages/AboutUsPage';
+import MaintenancePage from './pages/MaintenancePage';
 
 import AdminLayout from './admin/components/layout/AdminLayout';
 import Dashboard from './admin/pages/dashboard/Dashboard';
@@ -45,6 +46,7 @@ import MainCategory from './admin/pages/categories/MainCategory';
 import OfferBanner from './admin/pages/banners/OfferBanner';
 import HeroBanner from './admin/pages/banners/HeroBanner';
 import Settings from './admin/pages/settings/Settings';
+import Maintenance from './admin/pages/settings/Maintenance';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -56,6 +58,7 @@ function App() {
         <PersistGate loading={null} persistor={persistor}>
           {/* <Toaster position="top-center" /> */}
           <Routes>
+            <Route path="/maintenance" element={<MaintenancePage />} />
             <Route path="/*" element={
               <>
                 <Header />
@@ -108,6 +111,7 @@ function App() {
               <Route path="support" element={<Support />} />
               <Route path="profile" element={<AdminProfile />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="maintenance" element={<Maintenance />} />
               {/* Fallback */}
               <Route index element={<Dashboard />} />
             </Route>
