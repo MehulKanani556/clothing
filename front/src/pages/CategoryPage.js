@@ -175,6 +175,35 @@ export default function CategoryPage() {
         setFilterOpen(false);
     };
 
+    const isAnyFilterSelected =
+        tempFilters.gender.length > 0 ||
+        tempFilters.size.length > 0 ||
+        tempFilters.color.length > 0 ||
+        tempFilters.discount.length > 0 ||
+        tempFilters.rating.length > 0 ||
+        tempFilters.productType.length > 0 ||
+        tempFilters.brand.length > 0 ||
+        tempFilters.priceRange[1] !== 10000;
+
+    const handleClearFilters = () => {
+        const clearedFilters = {
+            gender: [],
+            size: [],
+            color: [],
+            discount: [],
+            rating: [],
+            productType: [],
+            pattern: [],
+            sleeveLength: [],
+            brand: [],
+            priceRange: [0, 10000]
+        };
+        setTempFilters(clearedFilters);
+        setFilters(clearedFilters);
+        setCurrentPage(1);
+        setFilterOpen(false);
+    };
+
     const filterOptions = {
         gender: ['Men', 'Women', 'Unisex'], // Updated to include Unisex based on data
         size: derivedFilters.sizes,
@@ -595,10 +624,10 @@ export default function CategoryPage() {
                                                 <div className="p-4 border-t border-gray-100 bg-white">
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <button
-                                                            onClick={() => setFilterOpen(false)}
+                                                            onClick={handleClearFilters}
                                                             className="px-4 py-3 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
                                                         >
-                                                            Cancel
+                                                            {isAnyFilterSelected ? 'Clear' : 'Cancel'}
                                                         </button>
                                                         <button
                                                             onClick={handleApplyFilters}
