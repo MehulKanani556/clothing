@@ -49,6 +49,7 @@ import HeroBanner from './admin/pages/banners/HeroBanner';
 import Settings from './admin/pages/settings/Settings';
 import Maintenance from './admin/pages/settings/Maintenance';
 import PrivacyPolicy from './admin/pages/page-management/PrivacyPolicy';
+import PageManage from './pages/PageManage';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -75,8 +76,9 @@ function App() {
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/faq" element={<FAQPage />} />
                     <Route path="/about" element={<AboutUsPage />} />
-                    <Route path="/terms" element={<TermsPage />} />
+                    {/* <Route path="/terms" element={<TermsPage />} /> */}
                     <Route path="/checkout/payment" element={<PaymentPage />} />
+                    <Route path="/terms" element={<PageManage />} />
                     {/* Catch-all for Categories/Listings - Must be last */}
                     <Route path="/:slug" element={<CategoryPage />} />
                   </Routes>
