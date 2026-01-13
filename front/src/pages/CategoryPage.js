@@ -124,6 +124,16 @@ export default function CategoryPage() {
         };
     }, [products]);
 
+    // Temp Filter state for sidebar (applied only on "Apply")
+    const [tempFilters, setTempFilters] = useState(filters);
+
+    // Sync temp filters with actual filters when sidebar opens
+    useEffect(() => {
+        if (isFilterOpen) {
+            setTempFilters(filters);
+        }
+    }, [isFilterOpen, filters]);
+
     // Toggle section state
     const [expandedSections, setExpandedSections] = useState({
         gender: true,
@@ -144,7 +154,7 @@ export default function CategoryPage() {
     };
 
     const handleFilterChange = (section, value) => {
-        setFilters(prev => {
+        setTempFilters(prev => {
             const sectionFilters = prev[section];
             const isSelected = sectionFilters.includes(value);
             const newFilters = isSelected
@@ -153,12 +163,16 @@ export default function CategoryPage() {
 
             return { ...prev, [section]: newFilters };
         });
-        setCurrentPage(1); // Reset to page 1 on filter change
     };
 
     const handlePriceChange = (e) => {
-        setFilters(prev => ({ ...prev, priceRange: [0, parseInt(e.target.value)] }));
+        setTempFilters(prev => ({ ...prev, priceRange: [0, parseInt(e.target.value)] }));
+    };
+
+    const handleApplyFilters = () => {
+        setFilters(tempFilters);
         setCurrentPage(1);
+        setFilterOpen(false);
     };
 
     const filterOptions = {
@@ -269,54 +283,54 @@ export default function CategoryPage() {
                         </p>
                     </div>
                 )}
-            </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 pb-8">
-                    <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className={`p-2 rounded-lg border border-gray-200 transition-colors ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:border-black hover:text-black'
-                            }`}
-                    >
-                        <FiChevronLeft size={20} />
-                    </button>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex justify-end items-center gap-2 pt-8">
+                        <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className={`p-2 rounded-lg border border-gray-200 transition-colors ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:border-black hover:text-black'
+                                }`}
+                        >
+                            <FiChevronLeft size={20} />
+                        </button>
 
-                    {/* Simple Pagination Range: Show current, prev, next, first, last or just simple mapping. 
+                        {/* Simple Pagination Range: Show current, prev, next, first, last or just simple mapping. 
                         For safe large number handling, we might want to truncate, but for now map up to totalPages if small. 
                         Assuming strict limit is not an issue for now. */}
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => {
-                        // Logic to hide too many pages if totalPages is large could go here
-                        if (totalPages > 7 && Math.abs(currentPage - number) > 2 && number !== 1 && number !== totalPages) {
-                            if (number === 2 || number === totalPages - 1) return <span key={number} className="px-1">...</span>;
-                            return null;
-                        }
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => {
+                            // Logic to hide too many pages if totalPages is large could go here
+                            if (totalPages > 7 && Math.abs(currentPage - number) > 2 && number !== 1 && number !== totalPages) {
+                                if (number === 2 || number === totalPages - 1) return <span key={number} className="px-1">...</span>;
+                                return null;
+                            }
 
-                        return (
-                            <button
-                                key={number}
-                                onClick={() => handlePageChange(number)}
-                                className={`w-10 h-10 rounded-lg border transition-colors ${currentPage === number
-                                    ? 'bg-black text-white border-black'
-                                    : 'border-gray-200 text-gray-600 hover:border-black hover:text-black'
-                                    }`}
-                            >
-                                {number}
-                            </button>
-                        )
-                    })}
+                            return (
+                                <button
+                                    key={number}
+                                    onClick={() => handlePageChange(number)}
+                                    className={`w-10 h-10 rounded-lg border transition-colors ${currentPage === number
+                                        ? 'bg-black text-white border-black'
+                                        : 'border-gray-200 text-gray-600 hover:border-black hover:text-black'
+                                        }`}
+                                >
+                                    {number}
+                                </button>
+                            )
+                        })}
 
-                    <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className={`p-2 rounded-lg border border-gray-200 transition-colors ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:border-black hover:text-black'
-                            }`}
-                    >
-                        <FiChevronRight size={20} />
-                    </button>
-                </div>
-            )}
+                        <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className={`p-2 rounded-lg border border-gray-200 transition-colors ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:border-black hover:text-black'
+                                }`}
+                        >
+                            <FiChevronRight size={20} />
+                        </button>
+                    </div>
+                )}
+            </div>
 
             <Transition show={isFilterOpen} as={Fragment}>
                 <Dialog as="div" className="relative z-50" onClose={setFilterOpen}>
@@ -376,7 +390,7 @@ export default function CategoryPage() {
                                                                     <div className="relative flex items-center">
                                                                         <input
                                                                             type="checkbox"
-                                                                            checked={filters.gender.includes(option)}
+                                                                            checked={tempFilters.gender.includes(option)}
                                                                             onChange={() => handleFilterChange('gender', option)}
                                                                             className="peer h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                         />
@@ -403,7 +417,7 @@ export default function CategoryPage() {
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={filters.size.includes(option)}
+                                                                        checked={tempFilters.size.includes(option)}
                                                                         onChange={() => handleFilterChange('size', option)}
                                                                         className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
@@ -429,7 +443,7 @@ export default function CategoryPage() {
                                                                 <label key={option.name} className="flex items-center gap-3 cursor-pointer group">
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={filters.color.includes(option.name)}
+                                                                        checked={tempFilters.color.includes(option.name)}
                                                                         onChange={() => handleFilterChange('color', option.name)}
                                                                         className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
@@ -462,13 +476,13 @@ export default function CategoryPage() {
                                                                 min="0"
                                                                 max={derivedFilters.maxPrice} // Dynamic Max
                                                                 step="100"
-                                                                value={Math.min(filters.priceRange[1], derivedFilters.maxPrice)} // Clamp value
+                                                                value={Math.min(tempFilters.priceRange[1], derivedFilters.maxPrice)} // Clamp value
                                                                 onChange={handlePriceChange}
                                                                 className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
                                                             />
                                                             <div className="flex justify-between mt-2 text-sm text-gray-500">
                                                                 <span>₹0</span>
-                                                                <span>₹{filters.priceRange[1].toLocaleString()}</span>
+                                                                <span>₹{tempFilters.priceRange[1].toLocaleString()}</span>
                                                             </div>
                                                         </div>
                                                     )}
@@ -489,7 +503,7 @@ export default function CategoryPage() {
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={filters.discount.includes(option)}
+                                                                        checked={tempFilters.discount.includes(option)}
                                                                         onChange={() => handleFilterChange('discount', option)}
                                                                         className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
@@ -515,7 +529,7 @@ export default function CategoryPage() {
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={filters.rating.includes(option)}
+                                                                        checked={tempFilters.rating.includes(option)}
                                                                         onChange={() => handleFilterChange('rating', option)}
                                                                         className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
@@ -541,7 +555,7 @@ export default function CategoryPage() {
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={filters.productType.includes(option)}
+                                                                        checked={tempFilters.productType.includes(option)}
                                                                         onChange={() => handleFilterChange('productType', option)}
                                                                         className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
@@ -567,7 +581,7 @@ export default function CategoryPage() {
                                                                 <label key={option} className="flex items-center gap-3 cursor-pointer group">
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={filters.brand.includes(option)}
+                                                                        checked={tempFilters.brand.includes(option)}
                                                                         onChange={() => handleFilterChange('brand', option)}
                                                                         className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
@@ -578,6 +592,22 @@ export default function CategoryPage() {
                                                     )}
                                                 </div>
 
+                                                <div className="p-4 border-t border-gray-100 bg-white">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <button
+                                                            onClick={() => setFilterOpen(false)}
+                                                            className="px-4 py-3 rounded-lg border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            onClick={handleApplyFilters}
+                                                            className="px-4 py-3 rounded-lg bg-black text-white font-medium hover:bg-gray-800 transition-colors"
+                                                        >
+                                                            Apply
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </DialogPanel>
