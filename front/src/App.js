@@ -48,6 +48,7 @@ import OfferBanner from './admin/pages/banners/OfferBanner';
 import HeroBanner from './admin/pages/banners/HeroBanner';
 import Settings from './admin/pages/settings/Settings';
 import Maintenance from './admin/pages/settings/Maintenance';
+import PrivacyPolicy from './admin/pages/page-management/PrivacyPolicy';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -114,6 +115,7 @@ function App() {
                 <Route path="profile" element={<AdminProfile />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="maintenance" element={<Maintenance />} />
+                <Route path="privacy-policy" element={<PrivacyPolicy />} />
                 {/* Fallback */}
                 <Route index element={<Dashboard />} />
               </Route>

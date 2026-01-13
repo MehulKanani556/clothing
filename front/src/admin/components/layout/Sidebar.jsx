@@ -12,6 +12,7 @@ import {
     MdOutlineSettings,
 } from 'react-icons/md';
 import { PiFlagBanner } from "react-icons/pi";
+import { LuFile } from 'react-icons/lu';
 
 const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
     const location = useLocation();
@@ -114,6 +115,16 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
                 { name: 'Maintenance', path: '/admin/maintenance' },
             ]
         },
+        {
+            type: 'submenu',
+            key: 'page-management',
+            name: 'Page Management',
+            icon: <LuFile size={20} />,
+            children: [
+                { name: 'Privacy Policy', path: '/admin/privacy-policy' },
+                { name: 'Terms & Conditions', path: '/admin/terms-conditions' },
+            ]
+        },
     ];
 
     const isActive = (path) => location.pathname === path;
@@ -137,10 +148,10 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
                 <div className={`h-[70px] flex items-center ${isCollapsed ? 'justify-center' : 'px-6'} border-b border-gray-100 sticky top-0 bg-white z-10 transition-all duration-300`}>
                     <div className="flex items-center gap-2 text-gray-900">
                         <div className="w-8 h-8 bg-black rounded flex items-center justify-center font-bold text-lg text-white shrink-0">
-                            L
+                            V
                         </div>
                         {!isCollapsed && (
-                            <span className="text-xl font-bold tracking-wide transition-opacity duration-300">LOGO</span>
+                            <span className="text-xl font-bold tracking-wide transition-opacity duration-300">Velora</span>
                         )}
                     </div>
                 </div>

@@ -9,7 +9,7 @@ export default function Footer() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
                     {/* Column 1: Logo & Vision */}
                     <div className="col-span-1 md:col-span-1">
-                        <h3 className="text-white text-2xl font-bold mb-6">LOGO</h3>
+                        <h3 className="text-white text-2xl font-bold mb-6">Velora</h3>
                         <p className="text-sm leading-relaxed mb-6">
                             Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
                         </p>
@@ -50,7 +50,7 @@ export default function Footer() {
                 </div>
 
                 <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs">
-                    <p>&copy; 2025 Clothing Co. All rights reserved.</p>
+                    <p>&copy; 2025 Velora Co. All rights reserved.</p>
                     <div className="mt-4 md:mt-0">
                         <span className="mr-4">Privacy Policy</span>
                         <span>Terms of Use</span>

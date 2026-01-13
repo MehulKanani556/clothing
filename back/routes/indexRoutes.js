@@ -29,6 +29,7 @@ const { createCashfreeOrder, verifyPayment, processPayment, processCODPayment, g
 const shiprocketRoutes = require('./shiprocket.routes');
 const { createBanner, getBanners, getAdminBanners, updateBanner, deleteBanner, toggleBannerStatus, updateBannerOrder } = require('../controllers/banner.controller');
 const { createheroBanner, getHeroBanners, getAdminHeroBanners, updateheroBanner, deleteheroBanner } = require('../controllers/herobanner.controller');
+const { getLegalPage, upsertLegalPage, softDeleteLegalPage, uploadImage } = require('../controllers/legalPage.controller');
 
 // ... (skipping unchanged lines)
 
@@ -47,6 +48,12 @@ router.get('/herobanners/admin', auth, getAdminHeroBanners);
 router.post('/herobanners', auth, upload.single('image'), createheroBanner);
 router.put('/herobanners/:id', auth, upload.single('image'), updateheroBanner);
 router.delete('/herobanners/:id', auth, deleteheroBanner);
+
+// Legal Pages (Privacy Policy, Terms, etc.)
+router.get('/legal-page/:slug', getLegalPage);
+router.post('/legal-page/:slug', auth, upsertLegalPage);
+router.delete('/legal-page/:slug/:id', auth, softDeleteLegalPage);
+router.post('/legal-page-upload', auth, upload.single('image'), uploadImage);
 
 // auth
 router.post('/register', upload.single("photo"), createUser);

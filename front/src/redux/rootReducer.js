@@ -22,6 +22,7 @@ import deliveryReducer from "./slice/delivery.slice.js";
 import bannerReducer from "./slice/banner.slice.js";
 import adminHomeReducer from "./slice/adminHome.slice.js";
 import heroBannerReducer from "./slice/heroBanner.slice.js";
+import legalPageReducer from "./slice/legalPage.slice.js";
 
 export const rootReducer = combineReducers({
     adminDashboard: adminDashboardReducer,
@@ -46,5 +47,6 @@ export const rootReducer = combineReducers({
     delivery: deliveryReducer,
     banner: bannerReducer,
     adminHome: adminHomeReducer,
-    heroBanner: heroBannerReducer
+    heroBanner: heroBannerReducer,
+    legalPage: legalPageReducer,
 });
