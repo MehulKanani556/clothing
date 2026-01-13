@@ -280,36 +280,54 @@ exports.getDetailedTrackingInfo = async (req, res) => {
 
             // Process tracking data and extract history
             if (trackingData && trackingData.tracking_data) {
-                const scans = trackingData.tracking_data.shipment_track || [];
-
-                trackingHistory = scans.map(scan => ({
-                    status: scan.current_status,
-                    location: scan.location || 'Unknown',
-                    timestamp: new Date(scan.date),
-                    description: scan.activity || scan.current_status,
-                    courierStatus: scan.status_code
+                const trackingInfo = trackingData.tracking_data;
+                const activities = trackingInfo.shipment_track_activities || [];
+                const shipmentTrack = trackingInfo.shipment_track || [];
+                
+                // Process activities into our tracking history format
+                trackingHistory = activities.map(activity => ({
+                    status: activity['sr-status-label'] || activity.status,
+                    location: activity.location || 'Unknown',
+                    timestamp: new Date(activity.date),
+                    description: activity.activity || activity.status,
+                    courierStatus: activity.status,
+                    srStatus: activity['sr-status'],
+                    srStatusLabel: activity['sr-status-label']
                 })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-                // Update order with latest tracking info
-                const latestScan = trackingHistory[0];
+                // Get shipment details
+                const shipmentDetails = shipmentTrack[0] || {};
+                const latestActivity = trackingHistory[0];
+                
                 const updateData = {
                     trackingHistory: trackingHistory,
-                    currentLocation: latestScan?.location,
-                    shiprocketStatus: latestScan?.status,
+                    currentLocation: latestActivity?.location || shipmentDetails.destination,
+                    shiprocketStatus: latestActivity?.srStatusLabel || shipmentDetails.current_status,
                     lastTrackingSync: new Date(),
-                    lastStatusUpdate: new Date()
+                    lastStatusUpdate: new Date(),
+                    // Update additional tracking info
+                    trackingUrl: trackingInfo.track_url,
+                    estimatedDeliveryDate: trackingInfo.etd ? new Date(trackingInfo.etd) : null,
+                    courierName: shipmentDetails.courier_name,
+                    awbNumber: shipmentDetails.awb_code,
+                    trackingNumber: shipmentDetails.awb_code,
+                    packages: shipmentDetails.packages,
+                    weight: shipmentDetails.weight
                 };
 
-                // Update delivery status based on latest scan
-                if (latestScan?.status?.toLowerCase().includes('delivered')) {
+                // Update delivery status based on latest activity
+                if (latestActivity?.srStatusLabel?.toLowerCase().includes('delivered') || 
+                    shipmentDetails.current_status?.toLowerCase().includes('delivered')) {
                     updateData.status = 'Delivered';
-                    updateData.deliveredAt = latestScan.timestamp;
-                    updateData.returnWindowExpiresAt = new Date(latestScan.timestamp.getTime() + 7 * 24 * 60 * 60 * 1000);
-                } else if (latestScan?.status?.toLowerCase().includes('shipped') ||
-                    latestScan?.status?.toLowerCase().includes('transit')) {
+                    updateData.deliveredAt = shipmentDetails.delivered_date ? 
+                        new Date(shipmentDetails.delivered_date) : latestActivity.timestamp;
+                    updateData.returnWindowExpiresAt = new Date(updateData.deliveredAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+                } else if (latestActivity?.srStatusLabel?.toLowerCase().includes('shipped') || 
+                          latestActivity?.srStatusLabel?.toLowerCase().includes('transit') ||
+                          latestActivity?.srStatusLabel?.toLowerCase().includes('pickup')) {
                     updateData.status = 'Shipped';
-                    if (!order.shippedAt) {
-                        updateData.shippedAt = latestScan.timestamp;
+                    if (!order.shippedAt && shipmentDetails.pickup_date) {
+                        updateData.shippedAt = new Date(shipmentDetails.pickup_date);
                     }
                 }
 
@@ -557,36 +575,50 @@ exports.syncAllTrackingData = async (req, res) => {
                 }
 
                 if (trackingData && trackingData.tracking_data) {
-                    const scans = trackingData.tracking_data.shipment_track || [];
-
-                    const trackingHistory = scans.map(scan => ({
-                        status: scan.current_status,
-                        location: scan.location || 'Unknown',
-                        timestamp: new Date(scan.date),
-                        description: scan.activity || scan.current_status,
-                        courierStatus: scan.status_code
+                    const trackingInfo = trackingData.tracking_data;
+                    const activities = trackingInfo.shipment_track_activities || [];
+                    const shipmentTrack = trackingInfo.shipment_track || [];
+                    
+                    const trackingHistory = activities.map(activity => ({
+                        status: activity['sr-status-label'] || activity.status,
+                        location: activity.location || 'Unknown',
+                        timestamp: new Date(activity.date),
+                        description: activity.activity || activity.status,
+                        courierStatus: activity.status,
+                        srStatus: activity['sr-status'],
+                        srStatusLabel: activity['sr-status-label']
                     })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-                    const latestScan = trackingHistory[0];
+                    const shipmentDetails = shipmentTrack[0] || {};
+                    const latestActivity = trackingHistory[0];
                     let orderStatus = order.status;
                     let deliveredAt = order.deliveredAt;
 
-                    // Update status based on latest scan
-                    if (latestScan?.status?.toLowerCase().includes('delivered')) {
+                    // Update status based on latest activity
+                    if (latestActivity?.srStatusLabel?.toLowerCase().includes('delivered') || 
+                        shipmentDetails.current_status?.toLowerCase().includes('delivered')) {
                         orderStatus = 'Delivered';
-                        deliveredAt = latestScan.timestamp;
-                    } else if (latestScan?.status?.toLowerCase().includes('shipped') ||
-                        latestScan?.status?.toLowerCase().includes('transit')) {
+                        deliveredAt = shipmentDetails.delivered_date ? 
+                            new Date(shipmentDetails.delivered_date) : latestActivity.timestamp;
+                    } else if (latestActivity?.srStatusLabel?.toLowerCase().includes('shipped') ||
+                              latestActivity?.srStatusLabel?.toLowerCase().includes('transit') ||
+                              latestActivity?.srStatusLabel?.toLowerCase().includes('pickup')) {
                         orderStatus = 'Shipped';
                     }
 
                     const updateData = {
                         trackingHistory: trackingHistory,
-                        currentLocation: latestScan?.location,
-                        shiprocketStatus: latestScan?.status,
+                        currentLocation: latestActivity?.location || shipmentDetails.destination,
+                        shiprocketStatus: latestActivity?.srStatusLabel || shipmentDetails.current_status,
                         lastTrackingSync: new Date(),
                         lastStatusUpdate: new Date(),
-                        status: orderStatus
+                        status: orderStatus,
+                        // Update additional tracking info
+                        trackingUrl: trackingInfo.track_url,
+                        estimatedDeliveryDate: trackingInfo.etd ? new Date(trackingInfo.etd) : null,
+                        courierName: shipmentDetails.courier_name,
+                        awbNumber: shipmentDetails.awb_code,
+                        trackingNumber: shipmentDetails.awb_code
                     };
 
                     if (deliveredAt && !order.deliveredAt) {
@@ -599,7 +631,7 @@ exports.syncAllTrackingData = async (req, res) => {
                     syncResults.push({
                         orderId: order.orderId,
                         status: 'success',
-                        latestStatus: latestScan?.status,
+                        latestStatus: latestActivity?.srStatusLabel || shipmentDetails.current_status,
                         location: latestScan?.location
                     });
 

@@ -58,9 +58,9 @@ export default function TrackingWidget({ order, showFullDetails = false }) {
             return <FiHome className="w-4 h-4 text-green-600" />;
         } else if (statusLower.includes('out for delivery')) {
             return <FiTruck className="w-4 h-4 text-blue-600" />;
-        } else if (statusLower.includes('transit') || statusLower.includes('shipped')) {
+        } else if (statusLower.includes('transit') || statusLower.includes('shipped') || statusLower.includes('destination')) {
             return <FiTruck className="w-4 h-4 text-indigo-600" />;
-        } else if (statusLower.includes('picked') || statusLower.includes('dispatched')) {
+        } else if (statusLower.includes('picked') || statusLower.includes('pickup')) {
             return <FiPackage className="w-4 h-4 text-orange-600" />;
         } else {
             return <FiClock className="w-4 h-4 text-gray-600" />;
@@ -165,25 +165,72 @@ export default function TrackingWidget({ order, showFullDetails = false }) {
                                         Expected delivery: {formatDate(trackingData.expectedDeliveryDate)}
                                     </p>
                                 )}
+                                {trackingData.estimatedDeliveryDate && (
+                                    <p className="text-sm text-blue-600 mt-1">
+                                        Estimated delivery: {formatDate(trackingData.estimatedDeliveryDate)}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Tracking Number */}
-                    {trackingData.trackingNumber && (
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600">Tracking Number:</span>
-                            <span className="font-mono font-semibold text-gray-900">{trackingData.trackingNumber}</span>
-                        </div>
-                    )}
+                    {/* Tracking Details */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        {/* Tracking Number */}
+                        {trackingData.trackingNumber && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Tracking Number:</span>
+                                <span className="font-mono font-semibold text-gray-900">{trackingData.trackingNumber}</span>
+                            </div>
+                        )}
 
-                    {/* Carrier Info */}
-                    {trackingData.carrier && (
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600">Carrier:</span>
-                            <span className="font-semibold text-gray-900">{trackingData.carrier}</span>
-                        </div>
-                    )}
+                        {/* Carrier Info */}
+                        {trackingData.carrier && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Carrier:</span>
+                                <span className="font-semibold text-gray-900">{trackingData.carrier}</span>
+                            </div>
+                        )}
+
+                        {/* Courier Name */}
+                        {trackingData.courierName && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Courier:</span>
+                                <span className="font-semibold text-gray-900">{trackingData.courierName}</span>
+                            </div>
+                        )}
+
+                        {/* Package Count */}
+                        {trackingData.packages && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Packages:</span>
+                                <span className="font-semibold text-gray-900">{trackingData.packages}</span>
+                            </div>
+                        )}
+
+                        {/* Weight */}
+                        {trackingData.weight && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Weight:</span>
+                                <span className="font-semibold text-gray-900">{trackingData.weight} kg</span>
+                            </div>
+                        )}
+
+                        {/* Tracking URL */}
+                        {trackingData.trackingUrl && (
+                            <div className="sm:col-span-2">
+                                <a 
+                                    href={trackingData.trackingUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                >
+                                    <FiTruck className="w-4 h-4" />
+                                    Track on Shiprocket
+                                </a>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Tracking History */}
                     {showFullDetails && trackingData.trackingHistory && trackingData.trackingHistory.length > 0 && (

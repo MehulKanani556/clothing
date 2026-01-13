@@ -67,6 +67,7 @@ const orderSchema = new mongoose.Schema({
     trackingNumber: { type: String },
     awbNumber: { type: String },
     carrier: { type: String },
+    courierName: { type: String },
     trackingUrl: { type: String },
     shiprocketResponse: { type: Object },
     shippingLabel: { type: String },
@@ -75,6 +76,8 @@ const orderSchema = new mongoose.Schema({
     shiprocketStatus: { type: String },
     lastStatusUpdate: { type: Date },
     courierCompanyId: { type: String },
+    packages: { type: Number },
+    weight: { type: String },
     
     // Enhanced Tracking Information
     trackingHistory: [{
