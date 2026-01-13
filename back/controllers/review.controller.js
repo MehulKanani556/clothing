@@ -8,22 +8,50 @@ exports.addReview = async (req, res) => {
         const { product, rating, title, review } = req.body;
         const userId = req.user._id;
 
-        // Check if verified purchase
-        // (Assuming you have logic to check if user bought product)
-        // const hasPurchased = await Order.findOne({ user: userId, "items.product": product, paymentStatus: 'Paid' });
+        // Ensure rating is a number
+        const parsedRating = Number(rating);
 
+        let imageUrls = [];
+        if (req.files && req.files.length > 0) {
+            imageUrls = req.files.map(file => file.location);
+        }
+
+        console.log(product, "newReview");
         // For now, simple create
         const newReview = await Review.create({
             user: userId,
             product,
-            rating,
+            rating: parsedRating,
             title,
             review,
+            images: imageUrls,
             // isVerifiedPurchase: !!hasPurchased,
             status: 'Pending' // Default to pending moderation
         });
 
+
         // Update Product aggregate rating (optional here, usually done effectively via aggregation on fetch)
+        const allReviews = await Review.find({ product: product, status: { $in: ['Pending', 'Published'] } });
+
+        let totalRating = 0;
+        const breakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+        allReviews.forEach(rev => {
+            totalRating += rev.rating;
+            if (breakdown[rev.rating] !== undefined) {
+                breakdown[rev.rating] += 1;
+            }
+        });
+
+        const avgRating = allReviews.length > 0 ? (totalRating / allReviews.length) : 0;
+
+        await Product.findByIdAndUpdate(product, {
+            rating: {
+                average: Number(avgRating.toFixed(1)),
+                count: allReviews.length,
+                breakdown
+            }
+        });
 
         res.status(201).json({
             success: true,
@@ -31,6 +59,7 @@ exports.addReview = async (req, res) => {
         });
 
     } catch (error) {
+        console.log(error, "error");
         if (error.code === 11000) {
             return res.status(400).json({ success: false, message: 'You have already reviewed this product' });
         }

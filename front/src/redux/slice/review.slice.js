@@ -6,7 +6,15 @@ export const addReview = createAsyncThunk(
     'review/addReview',
     async (reviewData, { rejectWithValue }) => {
         try {
-            const response = await axiosInstance.post('/reviews', reviewData);
+            const config = {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            };
+            // If reviewData is standard object, axios sends json, if FormData, it handles boundary. 
+            // Explicitly setting header is safer if we know it's FormData, but often axios detects it.
+            // Let's pass headers just in case if input is FormData.
+            const response = await axiosInstance.post('/reviews', reviewData, config);
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data || error.message);

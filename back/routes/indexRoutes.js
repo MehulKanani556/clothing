@@ -164,7 +164,7 @@ router.post('/wishlist', auth, addToWishlist);
 router.get('/wishlist', auth, getWishlist);
 router.delete('/wishlist/:productId', auth, removeFromWishlist);
 
-router.post('/reviews', auth, addReview);
+router.post('/reviews', auth, upload.array('images', 5), addReview);
 router.get('/reviews/product/:productId', getProductReviews);
 router.get('/reviews/admin', auth, getAllReviews);
 router.put('/reviews/:id', auth, updateReviewStatus);

@@ -35,6 +35,7 @@ const storage = multerS3({
         else if (url.includes("users") || url.includes("auth")) folder = "users";
         else if (url.includes("blogs")) folder = "blogs";
         else if (url.includes("offers")) folder = "offers";
+        else if (url.includes("reviews")) folder = "reviews";
 
         const uniqueName =
             folder + "/" + Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
