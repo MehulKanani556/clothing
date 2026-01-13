@@ -55,12 +55,9 @@ export const fetchNewArrivals = createAsyncThunk(
 // Fetch Best Sellers
 export const fetchBestSellers = createAsyncThunk(
     'product/fetchBestSellers',
-    async (_, { rejectWithValue }) => {
+    async ({ limit } = { limit: 12 }, { rejectWithValue }) => {
         try {
-            // Assuming backend supports featured=best-sellers
-            // const response = await axios.get(`${BASE_URL}/products?featured=best-sellers&limit=8`);
-            const response = await axios.get(`${BASE_URL}/products`);
-            // console.log("response", response.data);
+            const response = await axios.get(`${BASE_URL}/products/best-sellers`, { params: { limit } });
             return response.data;
         } catch (error) {
             return handleErrors(error, rejectWithValue);

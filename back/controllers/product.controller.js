@@ -179,6 +179,64 @@ exports.getMostPopular = async (req, res) => {
     }
 };
 
+// Get Best Sellers (Most Ordered)
+exports.getBestSellers = async (req, res) => {
+    try {
+        const limit = Number(req.query.limit) || 12;
+
+        // Aggregate orders to find most sold products
+        // Orders model structure: items: [{ product: ObjectId, ... }]
+        const topSelling = await Order.aggregate([
+            { $unwind: "$items" },
+            { $group: { _id: "$items.product", count: { $sum: 1 } } }, // or $sum: "$items.quantity"
+            { $sort: { count: -1 } },
+            { $limit: limit }
+        ]);
+
+        const productIds = topSelling.map(item => item._id);
+
+        const products = await Product.find({ _id: { $in: productIds }, isActive: true })
+            .populate('category', 'name slug')
+            .populate('subCategory', 'name slug');
+
+        const productsMap = new Map(products.map(p => [p._id.toString(), p]));
+        const countMap = new Map(topSelling.map(item => [item._id.toString(), item.count]));
+
+        const sortedProducts = productIds
+            .map(id => {
+                const product = productsMap.get(id.toString());
+                if (product) {
+                    const pObj = product.toObject ? product.toObject() : product;
+                    pObj.orderCountDynamic = countMap.get(id.toString());
+                    return pObj;
+                }
+                return null;
+            })
+            .filter(p => p);
+
+        // Fill with recent products if not enough sales data
+        if (sortedProducts.length < limit) {
+            const remainingLimit = limit - sortedProducts.length;
+            const existingIds = sortedProducts.map(p => p._id);
+            const moreProducts = await Product.find({ _id: { $nin: existingIds }, isActive: true })
+                .sort({ createdAt: -1 })
+                .limit(remainingLimit)
+                .populate('category', 'name slug')
+                .populate('subCategory', 'name slug');
+
+            sortedProducts.push(...moreProducts);
+        }
+
+        res.status(200).json({
+            success: true,
+            count: sortedProducts.length,
+            data: sortedProducts
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // Get all products (with filters, search, pagination)
 exports.getAllProducts = async (req, res) => {
     try {

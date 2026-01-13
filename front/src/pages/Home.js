@@ -23,7 +23,7 @@ export default function Home() {
     useEffect(() => {
         dispatch(fetchNewArrivals({ limit: 12 })); // Pass limit if backend accepts it via query, otherwise standard fetch
         dispatch(fetchMostPopular({ limit: 8 }));
-        dispatch(fetchBestSellers());
+        dispatch(fetchBestSellers({ limit: 8 }));
         dispatch(fetchProducts({ limit: 8 }));
         dispatch(fetchBanners());
         dispatch(fetchHomeSettings());
@@ -172,9 +172,12 @@ export default function Home() {
                     <section key="best_sellers" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-bold tracking-tight text-gray-900 uppercase">Best Sellers</h2>
+                            <Link to="/best-sellers" className="hidden sm:block text-xs font-bold text-gray-500 hover:text-black uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-0.5 after:bg-gray-300">
+                                View All &rarr;
+                            </Link>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-10 gap-x-8">
-                            {displayBestSellers.map((product) => (
+                            {displayBestSellers.slice(0, 8).map((product) => (
                                 <ProductCard key={`bs-${product._id || product.id}`} product={product} />
                             ))}
                         </div>

@@ -6,7 +6,7 @@ const { createUser, verifyRegistration, login, logout, forgotPassword, verifyOtp
 const { auth } = require('../middleware/auth');
 const { getAllUsers, getSingleUser, deleteUser, updateUser, addAddress, deleteAddress, setDefaultAddress } = require('../controllers/user.controller');
 
-const { getAllProducts, getProductById, getRelatedProducts, createProduct, uploadProductImage, updateProduct, deleteProduct, getAdminProducts, getNewArrivals, getMostPopular } = require('../controllers/product.controller');
+const { getAllProducts, getProductById, getRelatedProducts, createProduct, uploadProductImage, updateProduct, deleteProduct, getAdminProducts, getNewArrivals, getMostPopular, getBestSellers } = require('../controllers/product.controller');
 const { getAllMainCategories, createMainCategory, updateMainCategory, deleteMainCategory, getMainCategoryById, getAllAdminMainCategories } = require('../controllers/mainCategory.controller');
 const { getAllCategories, createCategory, updateCategory, deleteCategory, getCategoryById, getAlladminCategories } = require('../controllers/category.controller');
 const { getAllSubCategories, createSubCategory, getSubCategoriesByCategoryId, updateSubCategory, deleteSubCategory, getAllAdminSubCategories } = require('../controllers/subCategory.controller');
@@ -71,6 +71,7 @@ router.put('/users/address/:addressId/default', auth, setDefaultAddress);
 router.get('/products/admin', auth, getAdminProducts);
 router.get('/products/new-arrivals', getNewArrivals);
 router.get('/products/most-popular', getMostPopular);
+router.get('/products/best-sellers', getBestSellers);
 router.get('/products', getAllProducts);
 router.post('/products', upload.any(), createProduct); // Updated to handle FormData
 router.put('/products/:id', upload.any(), updateProduct); // Updated to handle FormData
