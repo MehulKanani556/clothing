@@ -1,22 +1,23 @@
-import React, { useState, Fragment, useEffect } from 'react';
+import React, { useState, Fragment, useEffect, useMemo } from 'react';
 import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductsBySlug } from '../redux/slice/product.slice';
 // import { fetchCategoryById } from '../redux/slice/category.slice'; // Not needed if product slice provides details
-import { FiFilter, FiChevronDown, FiGrid, FiList, FiX, FiMinus, FiPlus } from 'react-icons/fi';
+import { FiFilter, FiGrid, FiList, FiX, FiMinus, FiPlus, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import ProductCard from '../components/ProductCard';
+import CustomSelect from '../admin/components/common/CustomSelect';
 
 export default function CategoryPage() {
     const { slug } = useParams();
     const location = useLocation();
     const dispatch = useDispatch();
     const { products: allProducts, loading, categoryDetails } = useSelector((state) => state.product);
+    
     // const { categoryDetails } = useSelector((state) => state.category);
 
     const [viewMode, setViewMode] = useState('grid');
     const [sortBy, setSortBy] = useState('recommended');
-    const [isSortOpen, setSortOpen] = useState(false);
     const [isFilterOpen, setFilterOpen] = useState(false);
 
     // Fetch products and category details when slug, sort or search changes
@@ -28,10 +29,6 @@ export default function CategoryPage() {
         const params = {
             sort: sortBy,
             search: searchQuery,
-            // Add other filters here from 'filters' state if needed, 
-            // but currently the frontend does client-side filtering (filteredProducts).
-            // For true server-side filtering (Myntra style), we should pass filters to backend.
-            // But let's stick to initial fetch for now as per current structure.
         };
 
         if (slug) {
@@ -40,6 +37,64 @@ export default function CategoryPage() {
     }, [dispatch, slug, sortBy, location.search]);
 
     const products = allProducts.length > 0 ? allProducts : [];
+
+    // Derive available filters from products
+    const derivedFilters = useMemo(() => {
+        const sizes = new Set();
+        const colors = new Map();
+        const brands = new Set();
+        const productTypes = new Set();
+        let maxPrice = 0;
+
+        products.forEach(product => {
+            // Brand
+            if (product.brand) brands.add(product.brand);
+
+            // Product Type (using subCategory name)
+            if (product.subCategory?.name) productTypes.add(product.subCategory.name);
+
+            if (product.variants && Array.isArray(product.variants)) {
+                product.variants.forEach(variant => {
+                    if (variant.color) {
+                        if (!colors.has(variant.color)) {
+                            colors.set(variant.color, variant.colorCode || '#000000');
+                        }
+                    }
+                    if (variant.options && Array.isArray(variant.options)) {
+                        variant.options.forEach(opt => {
+                            if (opt.size) sizes.add(opt.size);
+                            if (opt.price) {
+                                maxPrice = Math.max(maxPrice, opt.price);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        // Sort sizes
+        const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL'];
+        const sortedSizes = Array.from(sizes).sort((a, b) => {
+            const indexA = sizeOrder.indexOf(a);
+            const indexB = sizeOrder.indexOf(b);
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            return a.localeCompare(b);
+        });
+
+        const sortedColors = Array.from(colors.entries()).map(([name, hex]) => ({
+            name,
+            hex,
+            border: hex.toUpperCase() === '#FFFFFF' || name.toLowerCase() === 'white'
+        }));
+
+        return {
+            sizes: sortedSizes,
+            colors: sortedColors,
+            brands: Array.from(brands).sort(),
+            productTypes: Array.from(productTypes).sort(),
+            maxPrice: Math.ceil(maxPrice / 1000) * 1000 || 10000 // Round up to nearest 1000
+        };
+    }, [products]);
 
     // Filter state
     const [filters, setFilters] = useState({
@@ -91,22 +146,13 @@ export default function CategoryPage() {
     };
 
     const filterOptions = {
-        gender: ['Men', 'Women'],
-        size: ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
-        color: [
-            { name: 'Black', hex: '#000000' },
-            { name: 'White', hex: '#FFFFFF', border: true },
-            { name: 'Green', hex: '#228B22' },
-            { name: 'Brown', hex: '#8B4513' },
-            { name: 'Orange', hex: '#FFA500' },
-            { name: 'Purple', hex: '#800080' },
-            { name: 'Blue', hex: '#0000FF' },
-            { name: 'Red', hex: '#FF0000' },
-        ],
+        gender: ['Men', 'Women', 'Unisex'], // Updated to include Unisex based on data
+        size: derivedFilters.sizes,
+        color: derivedFilters.colors,
         discount: ['10% or more', '20% or more', '30% or more', '40% or more', '50% or more'],
         rating: ['4★ & above', '3★ & above', '2★ & above'],
-        productType: ['T-shirt', 'Sweatshirt', 'Hoodie', 'Shirt', 'Jeans', 'Jacket'],
-        brand: ['Puma', 'Nike', 'Adidas', 'Zara', 'H&M', 'Levis', 'Jack & Jones']
+        productType: derivedFilters.productTypes,
+        brand: derivedFilters.brands
     };
 
     // Filter Logic
@@ -117,35 +163,105 @@ export default function CategoryPage() {
         // Brand Filter
         if (filters.brand.length > 0 && !filters.brand.includes(product.brand)) return false;
 
-        // Size Filter (Assuming product.sizes is an array)
+        // Size Filter
         if (filters.size.length > 0) {
-            const hasSize = product.sizes?.some(size => filters.size.includes(size));
+            const productSizes = new Set();
+            if (product.variants && Array.isArray(product.variants)) {
+                product.variants.forEach(variant => {
+                    if (variant.options && Array.isArray(variant.options)) {
+                        variant.options.forEach(option => {
+                            if (option.size) {
+                                productSizes.add(option.size);
+                            }
+                        });
+                    }
+                });
+            }
+
+            const hasSize = filters.size.some(size => productSizes.has(size));
             if (!hasSize) return false;
         }
 
-        // Color Filter (Assuming product.colors is an array of strings or objects)
+        // Color Filter
         if (filters.color.length > 0) {
-            const hasColor = product.colors?.some(color => filters.color.includes(typeof color === 'string' ? color : color.name));
+            const productColors = new Set();
+            if (product.variants && Array.isArray(product.variants)) {
+                product.variants.forEach(variant => {
+                    if (variant.color) productColors.add(variant.color);
+                });
+            }
+            const hasColor = filters.color.some(color => productColors.has(color));
             if (!hasColor) return false;
         }
 
         // Price Filter
-        const price = parseInt(product.price?.toString().replace(/[^0-9]/g, '') || 0);
-        if (price > filters.priceRange[1]) return false;
+        // Calculate min price from variants for comparison
+        let minPrice = Infinity;
+        let maxDiscount = 0;
+
+        if (product.variants && Array.isArray(product.variants)) {
+            product.variants.forEach(variant => {
+                if (variant.options && Array.isArray(variant.options)) {
+                    variant.options.forEach(opt => {
+                        if (opt.price) minPrice = Math.min(minPrice, opt.price);
+                        // Calculate discount
+                        if (opt.mrp && opt.price) {
+                            const discount = ((opt.mrp - opt.price) / opt.mrp) * 100;
+                            maxDiscount = Math.max(maxDiscount, discount);
+                        }
+                    });
+                }
+            });
+        }
+        // If no price found, treat as 0 or exclude? Treating as matching/valid for now if data is bad, but logic implies valid price
+        if (minPrice === Infinity) minPrice = 0;
+
+        if (minPrice > filters.priceRange[1]) return false;
+
+        // Discount Filter
+        if (filters.discount.length > 0) {
+            const hasDiscount = filters.discount.some(selected => {
+                const threshold = parseInt(selected);
+                return maxDiscount >= threshold;
+            });
+            if (!hasDiscount) return false;
+        }
+
+        // Rating Filter
+        if (filters.rating.length > 0) {
+            const rating = product.rating?.average || 0;
+            const hasRating = filters.rating.some(selected => {
+                const threshold = parseInt(selected);
+                return rating >= threshold;
+            });
+            if (!hasRating) return false;
+        }
+
+        // Product Type Filter
+        if (filters.productType.length > 0) {
+            // Looking at subCategory name as filtered list comes from there
+            if (!filters.productType.includes(product.subCategory?.name)) return false;
+        }
 
         return true;
     });
 
     // Sort Logic
     const sortedProducts = [...filteredProducts].sort((a, b) => {
+        const getPrice = (p) => {
+            let minP = Infinity;
+            if (p.variants) {
+                p.variants.forEach(v => v.options?.forEach(o => {
+                    if (o.price) minP = Math.min(minP, o.price);
+                }));
+            }
+            return minP === Infinity ? 0 : minP;
+        };
+
         if (sortBy === 'price-low-high') {
-            const priceA = parseInt(a.price?.toString().replace(/[^0-9]/g, '') || 0);
-            const priceB = parseInt(b.price?.toString().replace(/[^0-9]/g, '') || 0);
-            return priceA - priceB;
+            return getPrice(a) - getPrice(b);
         } else if (sortBy === 'price-high-low') {
-            const priceA = parseInt(a.price?.toString().replace(/[^0-9]/g, '') || 0);
-            const priceB = parseInt(b.price?.toString().replace(/[^0-9]/g, '') || 0);
-            return priceB - priceA;
+            return getPrice(b) - getPrice(a);
         } else if (sortBy === 'newest') {
             return new Date(b.createdAt) - new Date(a.createdAt);
         }
@@ -153,6 +269,20 @@ export default function CategoryPage() {
     });
 
 
+
+    // Pagination Logic
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 12;
+
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentProducts = sortedProducts.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
+
+    const handlePageChange = (pageNumber) => {
+        setCurrentPage(pageNumber);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     return (
         <div className="bg-white min-h-screen">
@@ -197,38 +327,17 @@ export default function CategoryPage() {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <div className="relative group">
-                                <button
-                                    onClick={() => setSortOpen(!isSortOpen)}
-                                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:border-black transition-colors"
-                                >
-                                    <span className="text-gray-600">Sort by:</span>
-                                    <span className="font-medium capitalize">{sortBy.replace('-', ' ')}</span>
-                                    <FiChevronDown className={`transition-transform duration-200 ${isSortOpen ? 'rotate-180' : ''}`} />
-                                </button>
-
-                                {isSortOpen && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1">
-                                        {[
-                                            { label: 'Recommended', value: 'recommended' },
-                                            { label: 'Price: Low to High', value: 'price-low-high' },
-                                            { label: 'Price: High to Low', value: 'price-high-low' },
-                                            { label: 'Newest Arrivals', value: 'newest' }
-                                        ].map((option) => (
-                                            <button
-                                                key={option.value}
-                                                onClick={() => {
-                                                    setSortBy(option.value);
-                                                    setSortOpen(false);
-                                                }}
-                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg ${sortBy === option.value ? 'font-bold text-black' : 'text-gray-600'}`}
-                                            >
-                                                {option.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                            <CustomSelect
+                                value={sortBy}
+                                options={[
+                                    { label: 'Recommended', value: 'recommended' },
+                                    { label: 'Price: Low to High', value: 'price-low-high' },
+                                    { label: 'Price: High to Low', value: 'price-high-low' },
+                                    { label: 'Newest Arrivals', value: 'newest' }
+                                ]}
+                                onChange={setSortBy}
+                                className="w-56"
+                            />
                         </div>
                     </div>
                 </div>
@@ -238,7 +347,7 @@ export default function CategoryPage() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {sortedProducts.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
-                        {sortedProducts.map((product) => (
+                        {currentProducts.map((product) => (
                             <ProductCard
                                 key={product._id || product.id}
                                 product={{
@@ -261,6 +370,42 @@ export default function CategoryPage() {
                     </div>
                 )}
             </div>
+
+            {/* Pagination */}
+            {sortedProducts.length > itemsPerPage && (
+                <div className="flex justify-center items-center gap-2 pb-8">
+                    <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className={`p-2 rounded-lg border border-gray-200 transition-colors ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:border-black hover:text-black'
+                            }`}
+                    >
+                        <FiChevronLeft size={20} />
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                        <button
+                            key={number}
+                            onClick={() => handlePageChange(number)}
+                            className={`w-10 h-10 rounded-lg border transition-colors ${currentPage === number
+                                ? 'bg-black text-white border-black'
+                                : 'border-gray-200 text-gray-600 hover:border-black hover:text-black'
+                                }`}
+                        >
+                            {number}
+                        </button>
+                    ))}
+
+                    <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className={`p-2 rounded-lg border border-gray-200 transition-colors ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:border-black hover:text-black'
+                            }`}
+                    >
+                        <FiChevronRight size={20} />
+                    </button>
+                </div>
+            )}
 
             <Transition show={isFilterOpen} as={Fragment}>
                 <Dialog as="div" className="relative z-50" onClose={setFilterOpen}>
@@ -399,8 +544,9 @@ export default function CategoryPage() {
                                                             <input
                                                                 type="range"
                                                                 min="0"
-                                                                max="10000"
-                                                                value={filters.priceRange[1]}
+                                                                max={derivedFilters.maxPrice} // Dynamic Max
+                                                                step="100"
+                                                                value={Math.min(filters.priceRange[1], derivedFilters.maxPrice)} // Clamp value
                                                                 onChange={handlePriceChange}
                                                                 className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
                                                             />
@@ -510,7 +656,6 @@ export default function CategoryPage() {
                                                                         className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black"
                                                                     />
                                                                     <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
-                                                                    <span className="text-sm text-gray-600 group-hover:text-black">{option}</span>
                                                                 </label>
                                                             ))}
                                                         </div>
@@ -520,7 +665,7 @@ export default function CategoryPage() {
                                             </div>
 
                                             {/* Footer */}
-                                            <div className="p-4 border-t border-gray-100 bg-white">
+                                            {/* <div className="p-4 border-t border-gray-100 bg-white">
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <button
                                                         onClick={() => setFilterOpen(false)}
@@ -535,7 +680,7 @@ export default function CategoryPage() {
                                                         Apply
                                                     </button>
                                                 </div>
-                                            </div>
+                                            </div> */}
                                         </div>
                                     </DialogPanel>
                                 </TransitionChild>
