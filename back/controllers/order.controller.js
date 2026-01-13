@@ -122,14 +122,14 @@ exports.createOrder = async (req, res) => {
                 code: appliedCoupon.code,
                 discount: appliedCoupon.discount
             };
-            
+
             // Mark coupon as used by this user
             const Offer = require('../models/offer.model');
             await Offer.findOneAndUpdate(
                 { code: appliedCoupon.code.toUpperCase() },
-                { 
+                {
                     $inc: { usageCount: 1 },
-                    $push: { 
+                    $push: {
                         usedByUsers: {
                             userId: userId,
                             usedAt: new Date(),
@@ -195,20 +195,50 @@ exports.getUserOrders = async (req, res) => {
 
 exports.getAdminOrders = async (req, res) => {
     try {
-        const { status, page = 1, limit = 20 } = req.query;
+        const { status, page = 1, limit = 20, search } = req.query;
         const query = {};
+
         if (status) query.status = status;
+
+        if (search) {
+            // Find users matching search term first
+            const User = require('../models/user.model');
+            const searchRegex = new RegExp(search, 'i');
+
+            const users = await User.find({
+                $or: [
+                    { firstName: searchRegex },
+                    { lastName: searchRegex },
+                    { email: searchRegex }
+                ]
+            }).select('_id');
+
+            const userIds = users.map(u => u._id);
+
+            query.$or = [
+                { orderId: searchRegex },
+                { user: { $in: userIds } }
+            ];
+        }
+
+        const skip = (Number(page) - 1) * Number(limit);
 
         const orders = await Order.find(query)
             .populate('user', 'firstName lastName email')
             .sort({ createdAt: -1 })
-            .limit(limit * 1)
-            .skip((page - 1) * limit);
-
+            .limit(Number(limit))
+            .skip(skip);
 
         const total = await Order.countDocuments(query);
 
-        res.json({ success: true, total, pages: Math.ceil(total / limit), data: orders });
+        res.json({
+            success: true,
+            total,
+            pages: Math.ceil(total / Number(limit)),
+            page: Number(page),
+            limit: Number(limit),
+            data: orders
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

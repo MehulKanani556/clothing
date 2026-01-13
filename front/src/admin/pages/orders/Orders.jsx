@@ -44,9 +44,14 @@ const Orders = () => {
     const itemsPerPage = 10;
 
     useEffect(() => {
-        // Fetch all orders for client-side filtering/stats (or implement server-side params)
-        dispatch(fetchAdminOrders());
-    }, [dispatch]);
+        // Fetch with server-side pagination and filtering
+        dispatch(fetchAdminOrders({
+            page: currentPage,
+            limit: itemsPerPage,
+            search: searchTerm,
+            status: deliveryFilter || undefined
+        }));
+    }, [dispatch, currentPage, searchTerm, deliveryFilter]);
 
     const handleStatusUpdate = (id, status) => {
         dispatch(updateOrderStatus({ id, status }));
@@ -58,8 +63,13 @@ const Orders = () => {
             const response = await axiosInstance.post(`${BASE_URL}/shiprocket/sync-all-tracking`);
             if (response.data.success) {
                 toast.success(`Synced ${response.data.data.synced} orders successfully`);
-                // Refresh orders data
-                dispatch(fetchAdminOrders());
+                // Refresh data
+                dispatch(fetchAdminOrders({
+                    page: currentPage,
+                    limit: itemsPerPage,
+                    search: searchTerm,
+                    status: deliveryFilter || undefined
+                })); // Refresh
             }
         } catch (error) {
             console.error('Failed to sync tracking:', error);
@@ -70,6 +80,9 @@ const Orders = () => {
     };
 
     // Calculate Stats
+    // Note: Stats relying on 'orders' will only reflect the *current page* of orders.
+    // For accurate global stats, we'd need a separate API call or return statsMetadata from backend.
+    // Keeping this partial view for now as per immediate request scope.
     const stats = useMemo(() => {
         if (!orders) return { completed: 0, pending: 0, canceled: 0, new: 0 };
         return {
@@ -77,31 +90,8 @@ const Orders = () => {
             pending: orders.filter(o => o.status === 'Pending').length,
             canceled: orders.filter(o => o.status === 'Cancelled').length,
             new: orders.filter(o => ['Confirmed', 'Processing'].includes(o.status)).length,
-            // Assuming "New" means Confirmed/Processing here
         };
     }, [orders]);
-
-    // Filter Data
-    const filteredOrders = useMemo(() => {
-        if (!orders) return [];
-        return orders.filter(order => {
-            const matchesSearch =
-                order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                order.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (order.user?.firstName + ' ' + order.user?.lastName).toLowerCase().includes(searchTerm.toLowerCase());
-
-            const matchesPayment = paymentFilter ? order.paymentStatus === paymentFilter : true;
-            const matchesDelivery = deliveryFilter ? order.status === deliveryFilter : true;
-
-            return matchesSearch && matchesPayment && matchesDelivery;
-        });
-    }, [orders, searchTerm, paymentFilter, deliveryFilter]);
-
-    // Pagination
-    const paginatedData = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return filteredOrders.slice(start, start + itemsPerPage);
-    }, [filteredOrders, currentPage]);
 
 
     const getStatusBadge = (status) => {
@@ -304,19 +294,16 @@ const Orders = () => {
                     </button>
                 </div>
 
-
-
                 {/* Table */}
                 <DataTable
                     columns={columns}
-                    data={paginatedData}
-
+                    data={orders || []} // Use server-side data directly
                     pagination={{
                         current: currentPage,
-                        total: filteredOrders.length,
-                        totalPages: Math.ceil(filteredOrders.length / itemsPerPage),
+                        total: total || 0,
+                        totalPages: Math.ceil((total || 0) / itemsPerPage),
                         start: (currentPage - 1) * itemsPerPage + 1,
-                        end: Math.min(currentPage * itemsPerPage, filteredOrders.length)
+                        end: Math.min(currentPage * itemsPerPage, total || 0)
                     }}
                     onPageChange={setCurrentPage}
                     searchProps={{

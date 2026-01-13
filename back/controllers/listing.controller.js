@@ -219,7 +219,16 @@ exports.getProductBySlug = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Product not found' });
         }
 
-        const reviews = []; // Mock reviews or fetch from Review model if available
+        console.log("/products/details,product", product._id);
+
+        // Fetch Reviews
+        const Review = require('../models/review.model');
+        const reviews = await Review.find({ product: product._id, status: { $in: ['Published', 'Pending'] } }) // showing Pending for demo if needed, usually just Published
+            .populate('user', 'firstName lastName')
+            .sort({ createdAt: -1 });
+        console.log("/products/details,reviews22", reviews);
+        // Calculate rating breakdown on the fly if needed, or rely on Product model if it's updated. 
+        // For now, let's trust Product model has overall rating, but reviews array comes from Review model.
 
         res.status(200).json({
             success: true,

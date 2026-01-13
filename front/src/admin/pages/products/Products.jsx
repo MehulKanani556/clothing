@@ -14,7 +14,7 @@ import ProductFilters from './ProductFilters';
 const Products = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { products, loading } = useSelector(state => state.adminProducts);
+    const { products, loading, total } = useSelector(state => state.adminProducts);
 
     // UI State
     const [viewMode, setViewMode] = useState('list');
@@ -25,8 +25,24 @@ const Products = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
 
+    // Filter State
+    const [filterState, setFilterState] = useState({
+        search: '',
+        categories: [],
+        brands: [],
+        rating: null
+    });
+
     useEffect(() => {
-        dispatch(fetchAdminProducts());
+        // Fetch with pagination and search
+        dispatch(fetchAdminProducts({
+            page: currentPage,
+            limit: itemsPerPage,
+            search: searchTerm
+        }));
+    }, [dispatch, currentPage, itemsPerPage, searchTerm]);
+
+    useEffect(() => {
         dispatch(fetchCategories());
     }, [dispatch]);
 
@@ -52,6 +68,12 @@ const Products = () => {
         } else if (productToDelete) {
             await dispatch(deleteProduct(productToDelete));
         }
+        // Refresh after delete
+        dispatch(fetchAdminProducts({
+            page: currentPage,
+            limit: itemsPerPage,
+            search: searchTerm
+        }));
         setIsDeleteModalOpen(false);
         setProductToDelete(null);
     };
@@ -171,44 +193,15 @@ const Products = () => {
         }
     ];
 
-    // Filter State
-    const [filterState, setFilterState] = useState({
-        search: '',
-        categories: [],
-        brands: [],
-        rating: null
-    });
-
     // Sync local search term with filter state for search bar compatibility
     useEffect(() => {
         setFilterState(prev => ({ ...prev, search: searchTerm }));
     }, [searchTerm]);
 
-    // Enhanced Filter Logic
-    const filteredProducts = (products || []).filter(product => {
-        // Search Filter
-        const search = filterState.search.toLowerCase();
-        const matchesSearch = (product.name || '').toLowerCase().includes(search) ||
-            (product.brand || '').toLowerCase().includes(search);
-
-        // Category Filter
-        const matchesCategory = filterState.categories.length === 0 ||
-            (product.category?.name && filterState.categories.includes(product.category.name));
-
-        // Brand Filter
-        const matchesBrand = filterState.brands.length === 0 ||
-            (product.brand && filterState.brands.includes(product.brand));
-
-        // Rating Filter
-        const productRating = product.rating?.average || product.averageRating || 0;
-        const matchesRating = !filterState.rating || productRating >= filterState.rating;
-
-        return matchesSearch && matchesCategory && matchesBrand && matchesRating;
-    });
-
-    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const currentData = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+    // Use products from Redux directly as they are already paginated/filtered by backend
+    const currentData = products || [];
+    const totalPages = Math.ceil((total || 0) / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage; // Just for display logic if needed, but data is already sliced
 
     return (
         <div className="p-6 bg-[#f9f9f9] min-h-screen">
@@ -232,7 +225,7 @@ const Products = () => {
                 }}
                 filters={
                     <ProductFilters
-                        products={products || []}
+                        products={products || []} // Note: This might need full list for filter options, currently passing current page
                         filters={filterState}
                         setFilters={(newFilters) => {
                             setFilterState(newFilters);
@@ -295,9 +288,9 @@ const Products = () => {
                 pagination={{
                     current: currentPage,
                     totalPages: totalPages,
-                    total: filteredProducts.length,
-                    start: filteredProducts.length === 0 ? 0 : startIndex + 1,
-                    end: Math.min(startIndex + itemsPerPage, filteredProducts.length)
+                    total: total || 0,
+                    start: (currentPage - 1) * itemsPerPage + 1,
+                    end: Math.min(currentPage * itemsPerPage, total || 0)
                 }}
                 onPageChange={(page) => setCurrentPage(page)}
             />

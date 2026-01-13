@@ -3,11 +3,14 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductBySlug, fetchRelatedProducts } from '../redux/slice/product.slice';
 import { addToCart } from '../redux/slice/cart.slice';
+import { addReview } from '../redux/slice/review.slice';
 import { fetchCart } from '../redux/slice/cart.slice';
+import { fetchUserOrders } from '../redux/slice/order.slice';
 import { addToWishlist, removeFromWishlist, fetchWishlist } from '../redux/slice/wishlist.slice';
 import toast from 'react-hot-toast';
 import { FiStar, FiShare2, FiHeart, FiShoppingBag, FiTruck, FiRefreshCw, FiChevronDown, FiChevronUp, FiCheck, FiInfo } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
+import ReviewOffcanvas from '../components/ReviewOffcanvas';
 import ProductCard from '../components/ProductCard';
 import { BASE_URL } from '../utils/BASE_URL';
 
@@ -22,6 +25,7 @@ export default function ProductDetails() {
     const { isAuthenticated } = useSelector((state) => state.auth);
     const { items: cartItems } = useSelector((state) => state.cart);
     const { items: wishlistItems } = useSelector((state) => state.wishlist);
+    const { orders } = useSelector((state) => state.order);
 
     // Priority: API Data > Location State
     const productData = apiProduct || productFromState;
@@ -33,6 +37,7 @@ export default function ProductDetails() {
     const [pincode, setPincode] = useState('');
     const [pincodeResult, setPincodeResult] = useState(null);
     const [checkingPincode, setCheckingPincode] = useState(false);
+    const [isReviewOpen, setIsReviewOpen] = useState(false);
 
     useEffect(() => {
         if (slug) {
@@ -46,11 +51,11 @@ export default function ProductDetails() {
         }
     }, [dispatch, slug]);
 
-    useEffect(() => {
-        if (apiProduct?._id) {
-            dispatch(fetchRelatedProducts(apiProduct._id));
-        }
-    }, [dispatch, apiProduct]);
+    // useEffect(() => {
+    //     if (apiProduct?._id) {
+    //         dispatch(fetchRelatedProducts(apiProduct._id));
+    //     }
+    // }, [dispatch, apiProduct]);
 
     useEffect(() => {
         if (slug) {
@@ -61,6 +66,7 @@ export default function ProductDetails() {
         if (isAuthenticated) {
             dispatch(fetchCart());
             dispatch(fetchWishlist());
+            dispatch(fetchUserOrders());
         }
     }, [dispatch, isAuthenticated]);
 
@@ -141,6 +147,10 @@ export default function ProductDetails() {
         item._id === product._id
     );
 
+    const hasOrdered = isAuthenticated && orders?.some(order =>
+        order.items?.some(item => (item.product?._id || item.product) === product._id)
+    );
+
     const toggleSection = (section) => {
         setExpandedSection(expandedSection === section ? null : section);
     };
@@ -197,6 +207,37 @@ export default function ProductDetails() {
                 .then(() => toast.success("Added to wishlist"))
                 .catch((err) => toast.error(err.message || "Failed to add to wishlist"));
         }
+    };
+
+    const handleSubmitReview = async (data) => {
+        if (!isAuthenticated) {
+            toast.error("Please login to write a review");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('product', product._id);
+        formData.append('rating', data.rating);
+        formData.append('title', data.title);
+        formData.append('review', data.description);
+
+        if (data.images && data.images.length > 0) {
+            data.images.forEach((file) => {
+                formData.append('images', file);
+            });
+        }
+
+        dispatch(addReview(formData))
+            .unwrap()
+            .then(() => {
+                toast.success("Review submitted for moderation!");
+                setIsReviewOpen(false);
+                // Refresh to show the new review (since we include Pending in fetch)
+                dispatch(fetchProductBySlug(slug));
+            })
+            .catch((err) => {
+                toast.error(err.message || "Failed to submit review");
+            });
     };
 
     const handleAddToCart = () => {
@@ -507,99 +548,194 @@ export default function ProductDetails() {
                         </div>
 
                         {/* Accordions */}
-                        <div className="border-t border-gray-200 divide-y divide-gray-200 mt-8">
-                            {/* Description */}
-                            <div className="py-4">
-                                <button
-                                    onClick={() => toggleSection('description')}
-                                    className="w-full flex items-center justify-between text-left font-medium text-gray-900 hover:text-black"
-                                >
-                                    <span>Product Description</span>
-                                    {expandedSection === 'description' ? <FiChevronUp /> : <FiChevronDown />}
-                                </button>
-                                {expandedSection === 'description' && (
-                                    <div className="mt-4 text-gray-600 text-sm leading-relaxed animate-fadeIn">
-                                        <p className="mb-4">{product.description}</p>
-                                        <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                                            {product.details.map((detail, idx) => (
-                                                <div key={idx}>
-                                                    <span className="font-semibold text-gray-900 block">{detail.label}</span>
-                                                    <span className="text-gray-500">{detail.value}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
 
-                            {/* Returns & Exchange */}
-                            <div className="py-4">
-                                <button
-                                    onClick={() => toggleSection('returns')}
-                                    className="w-full flex items-center justify-between text-left font-medium text-gray-900 hover:text-black"
-                                >
-                                    <span>Returns & Exchange Policy</span>
-                                    {expandedSection === 'returns' ? <FiChevronUp /> : <FiChevronDown />}
-                                </button>
-                                {expandedSection === 'returns' && (
-                                    <div className="mt-4 text-gray-600 text-sm leading-relaxed animate-fadeIn">
-                                        <div className="flex items-center gap-3 mb-2 text-gray-900 font-medium">
-                                            <FiRefreshCw /> {product.returnPolicy}
-                                        </div>
-                                        <p>
-                                            Dispatch in {product.deliveryDays} days.
-                                            {product.returnPolicy !== 'No Returns' && ' You can return or exchange this item within the policy period. Please ensure tags are intact.'}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
 
-                            {/* Reviews */}
-                            <div className="py-4">
-                                <button
-                                    onClick={() => toggleSection('reviews')}
-                                    className="w-full flex items-center justify-between text-left font-medium text-gray-900 hover:text-black"
-                                >
-                                    <span>Rating & Reviews</span>
-                                    {expandedSection === 'reviews' ? <FiChevronUp /> : <FiChevronDown />}
-                                </button>
-                                {expandedSection === 'reviews' && (
-                                    <div className="mt-4 animate-fadeIn">
-                                        <div className="flex items-center gap-4 mb-4">
-                                            <div className="text-center">
-                                                <span className="text-4xl font-bold text-gray-900 block">{product.rating}</span>
-                                                <div className="flex text-yellow-400 text-sm justify-center my-1">
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <FaStar key={i} className={i < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-200'} />
-                                                    ))}
+                    </div>
+
+
+                </div>
+                {/* Accordions */}
+                <div className="space-y-4 mt-8">
+                    {/* Product Description */}
+                    <div className="p-4 shadow-md rounded-md">
+                        <button
+                            onClick={() => toggleSection('description')}
+                            className="w-full flex items-center justify-between text-left font-medium text-gray-900 hover:text-black"
+                        >
+                            <span>Product Description</span>
+                            {expandedSection === 'description' ? <FiChevronUp /> : <FiChevronDown />}
+                        </button>
+                        {expandedSection === 'description' && (
+                            <div className="mt-4 text-gray-600 text-sm leading-relaxed animate-fadeIn">
+                                <p className="mb-4">{product.description}</p>
+                                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                                    {product.details.map((detail, idx) => (
+                                        <div key={idx}>
+                                            <span className="font-semibold text-gray-900 block">{detail.label}</span>
+                                            <span className="text-gray-500">{detail.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+
+                    {/* Shipping */}
+                    <div className="p-4 shadow-md rounded-md">
+                        <button
+                            onClick={() => toggleSection('shipping')}
+                            className="w-full flex items-center justify-between text-left font-medium text-gray-900 hover:text-black"
+                        >
+                            <span>Shipping</span>
+                            {expandedSection === 'shipping' ? <FiChevronUp /> : <FiChevronDown />}
+                        </button>
+                        {expandedSection === 'shipping' && (
+                            <div className="mt-4 text-gray-600 text-xs leading-loose animate-fadeIn text-justify space-y-4">
+                                <p>
+                                    Once our system has processed the order that you have placed with us, your products are thoroughly inspected to ensure that they are in pristine condition. If they pass the final round of quality checks, we will pack and hand them over to our reliable logistic partner.
+                                </p>
+                                <p>
+                                    Our logistic partner will then deliver the products to you as soon as possible. In the event that our logistic partner is unable to reach you at the shipping address or at the time that you have specified, they will attempt to contact you to resolve the issue.
+                                </p>
+                                <p>
+                                    Please note that all products ordered by you (including any free gifts bundled with the product that you have ordered) will be shipped to you at the shipping address provided by you when you placed your order, along with an invoice. Although we try to ship all products in your order together, this may not be feasible at all times.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Returns & Exchange */}
+                    <div className="p-4 shadow-md rounded-md">
+                        <button
+                            onClick={() => toggleSection('returns')}
+                            className="w-full flex items-center justify-between text-left font-medium text-gray-900 hover:text-black"
+                        >
+                            <span>Return/Exchange policy</span>
+                            {expandedSection === 'returns' ? <FiChevronUp /> : <FiChevronDown />}
+                        </button>
+                        {expandedSection === 'returns' && (
+                            <div className="mt-4 text-gray-600 text-xs leading-loose animate-fadeIn text-justify">
+                                <p className="mb-4">
+                                    For any product, you need to raise the request within 7 days of the product being delivered to you. Within these 7 days, you can thoroughly check the product, and if you do not like it, you can file a return or replacement request as you wish.
+                                </p>
+                                <p className="mb-4">
+                                    {product.returnPolicy !== 'No Returns' ? product.returnPolicy : 'Returns are not accepted for this product unless damaged.'}
+                                </p>
+                                <p>
+                                    Dispatch in {product.deliveryDays} days.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Reviews */}
+                    <div className="p-4 shadow-md rounded-md">
+                        <button
+                            onClick={() => toggleSection('reviews')}
+                            className="w-full flex items-center justify-between text-left font-medium text-gray-900 hover:text-black group"
+                        >
+                            <span className="text-lg">Rating & Review</span>
+                            {expandedSection === 'reviews' ? <FiChevronUp className="group-hover:text-black" /> : <FiChevronDown className="group-hover:text-black" />}
+                        </button>
+                        {expandedSection === 'reviews' && (
+                            <div className="mt-8 animate-fadeIn">
+                                {/* Rating Summary */}
+                                <div className="flex flex-col md:flex-row items-center gap-10 mb-10 pb-8 border-b border-gray-100">
+                                    {/* Score */}
+                                    <div className="text-center">
+                                        <div className="relative w-32 h-32 flex items-center justify-center rounded-full border-4 border-yellow-400 mb-2 mx-auto">
+                                            <span className="text-4xl font-bold text-gray-900">{product.rating ? parseFloat(product.rating).toFixed(1) : '0.0'}</span>
+                                        </div>
+                                        <p className="text-gray-900 text-sm font-medium">from {product.reviews}</p>
+                                    </div>
+
+                                    {/* Bars */}
+                                    <div className="flex-1 w-full max-w-md space-y-3">
+                                        {[5, 4, 3, 2, 1].map((star) => {
+                                            const count = product.ratingBreakdown?.[star] || 0;
+                                            const total = parseInt(productData?.rating?.count) || 1;
+                                            const percentage = total > 0 ? (count / total) * 100 : 0;
+                                            return (
+                                                <div key={star} className="flex items-center gap-4">
+                                                    <div className="flex items-center gap-1 w-8">
+                                                        <span className="text-sm font-semibold">{star}</span>
+                                                        <FaStar className="text-yellow-400 text-xs" />
+                                                    </div>
+                                                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-black rounded-full"
+                                                            style={{ width: `${percentage}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="text-sm text-gray-400 w-8 text-right">{count}</span>
                                                 </div>
-                                                <span className="text-xs text-gray-500">{product.reviews}</span>
-                                            </div>
-                                            <div className="flex-1 border-l pl-4 border-gray-200">
-                                                {[5, 4, 3, 2, 1].map((star) => {
-                                                    const count = product.ratingBreakdown?.[star] || 0;
-                                                    const total = parseInt(product.reviews) || 1;
-                                                    const percentage = (count / total) * 100;
-                                                    return (
-                                                        <div key={star} className="flex items-center gap-2 mb-1">
-                                                            <span className="text-xs font-medium w-3">{star}</span>
-                                                            <FaStar className="text-gray-300 w-3 h-3" />
-                                                            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                                                <div
-                                                                    className="h-full bg-yellow-400 rounded-full"
-                                                                    style={{ width: `${percentage}%` }}
-                                                                ></div>
-                                                            </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Reviews Heading & Write Review */}
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="font-bold text-lg text-gray-900">Reviews</h3>
+                                    {hasOrdered && (
+                                        <button
+                                            onClick={() => setIsReviewOpen(true)}
+                                            className="text-sm font-medium text-gray-900 underline hover:text-gray-600 underline-offset-4 decoration-1"
+                                        >
+                                            Write a review
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Review List */}
+                                <div className="space-y-8">
+                                    {productData.reviews && productData.reviews.length > 0 ? (
+                                        productData.reviews.map((review, idx) => (
+                                            <div key={idx} className="border-b border-gray-100 last:border-0 pb-8 last:pb-0">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                                                        <img
+                                                            src={`https://ui-avatars.com/api/?name=${review.user?.firstName || 'User'}+${review.user?.lastName || ''}&background=000&color=fff`}
+                                                            alt="User"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <span className="font-bold text-sm text-gray-900">{review.user?.firstName || 'User'} {review.user?.lastName}</span>
+                                                            <span className="text-xs text-gray-400">{review.createdAt ? new Date(review.createdAt).toLocaleDateString() : 'Recently'}</span>
                                                         </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                                                        <div className="flex text-yellow-400 text-xs mb-2">
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <FaStar key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-200'} />
+                                                            ))}
+                                                        </div>
 
+                                                        {review.title && <h5 className="font-bold text-gray-900 text-sm mb-1">{review.title}</h5>}
+                                                        <p className="text-sm text-gray-600 leading-relaxed mb-3">{review.comment}</p>
+
+                                                        {review.images && review.images.length > 0 && (
+                                                            <div className="flex gap-2 mt-3">
+                                                                {review.images.map((img, imgIdx) => (
+                                                                    <div key={imgIdx} className="w-16 h-16 rounded bg-gray-100 overflow-hidden border border-gray-200">
+                                                                        <img src={img} alt="Review attachment" className="w-full h-full object-cover" />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-8">
+                                            <p className="text-gray-500 text-sm">No reviews yet. Be the first to review!</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -613,6 +749,13 @@ export default function ProductDetails() {
                     </div>
                 </div>
             </div>
+
+            <ReviewOffcanvas
+                isOpen={isReviewOpen}
+                onClose={() => setIsReviewOpen(false)}
+                product={product}
+                onSubmit={handleSubmitReview}
+            />
         </div>
     );
 }

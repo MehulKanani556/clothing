@@ -26,6 +26,9 @@ const reviewSchema = new mongoose.Schema({
         required: true,
         // maxLength: 1000
     },
+    images: [{
+        type: String
+    }],
     status: {
         type: String,
         enum: ['Pending', 'Published', 'Rejected'],
@@ -42,6 +45,6 @@ const reviewSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Prevent duplicate reviews from same user on same product (optional, but good practice)
-reviewSchema.index({ user: 1, product: 1 }, { unique: true });
+// reviewSchema.index({ user: 1, product: 1 }, { unique: true });
 
 module.exports = mongoose.model('Review', reviewSchema);

@@ -29,46 +29,66 @@ exports.uploadProductImage = async (req, res) => {
 };
 
 // Get all products for ADMIN (no limit, all statuses)
+// Get all products for ADMIN (with pagination, search, stats)
 exports.getAdminProducts = async (req, res) => {
     try {
-        const products = await Product.find({})
-            .sort({ createdAt: -1 })
-            .populate('category', 'name slug')
-            .populate('subCategory', 'name slug');
+        const { page = 1, limit = 10, search } = req.query;
 
-        // Reuse stats logic if possible, or simplified version
-        // Product IDs for stats
-        const productIds = products.map(p => p._id);
+        const query = {};
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { brand: { $regex: search, $options: 'i' } }
+            ];
+        }
 
-        // 1. Order Stats
-        const orderStats = await Order.aggregate([
-            { $match: { "items.product": { $in: productIds } } },
-            { $unwind: "$items" },
-            { $match: { "items.product": { $in: productIds } } },
-            { $group: { _id: { product: "$items.product", order: "$_id" } } },
-            { $group: { _id: "$_id.product", count: { $sum: 1 } } }
+        const skip = (Number(page) - 1) * Number(limit);
+
+        const [products, total] = await Promise.all([
+            Product.find(query)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(Number(limit))
+                .populate('category', 'name slug')
+                .populate('subCategory', 'name slug'),
+            Product.countDocuments(query)
         ]);
 
-        const statsMap = {};
-        orderStats.forEach(stat => {
-            statsMap[stat._id.toString()] = stat.count;
-        });
+        // Product IDs for stats (only for the fetched page)
+        const productIds = products.map(p => p._id);
 
-        // 2. Review Stats
-        const allReviews = await Review.find({
-            product: { $in: productIds }
-        }); // Count all reviews for admin, not just published? Or keep published. Let's keep logic simple.
+        let statsMap = {};
+        let reviewsMap = {};
 
-        const reviewsMap = {};
-        allReviews.forEach(r => {
-            const pId = r.product.toString();
-            if (!reviewsMap[pId]) {
-                reviewsMap[pId] = { reviews: [], totalRating: 0, count: 0 };
-            }
-            reviewsMap[pId].reviews.push(r);
-            reviewsMap[pId].totalRating += r.rating;
-            reviewsMap[pId].count += 1;
-        });
+        if (productIds.length > 0) {
+            // 1. Order Stats
+            const orderStats = await Order.aggregate([
+                { $match: { "items.product": { $in: productIds } } },
+                { $unwind: "$items" },
+                { $match: { "items.product": { $in: productIds } } },
+                { $group: { _id: { product: "$items.product", order: "$_id" } } },
+                { $group: { _id: "$_id.product", count: { $sum: 1 } } }
+            ]);
+
+            orderStats.forEach(stat => {
+                statsMap[stat._id.toString()] = stat.count;
+            });
+
+            // 2. Review Stats
+            const allReviews = await Review.find({
+                product: { $in: productIds }
+            });
+
+            allReviews.forEach(r => {
+                const pId = r.product.toString();
+                if (!reviewsMap[pId]) {
+                    reviewsMap[pId] = { reviews: [], totalRating: 0, count: 0 };
+                }
+                reviewsMap[pId].reviews.push(r);
+                reviewsMap[pId].totalRating += r.rating;
+                reviewsMap[pId].count += 1;
+            });
+        }
 
         const productsWithStats = products.map(p => {
             const pObj = p.toObject();
@@ -90,6 +110,9 @@ exports.getAdminProducts = async (req, res) => {
         res.status(200).json({
             success: true,
             count: productsWithStats.length,
+            total,
+            page: Number(page),
+            pages: Math.ceil(total / Number(limit)),
             data: productsWithStats
         });
 
