@@ -105,11 +105,13 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             ]
         },
         {
-            type: 'item',
+            type: 'submenu',
             key: 'settings',
             name: 'Settings',
-            path: '/admin/settings',
             icon: <MdOutlineSettings size={20} />,
+            children: [
+                { name: 'Pick Up Address', path: '/admin/settings' },
+            ]
         },
     ];
 
