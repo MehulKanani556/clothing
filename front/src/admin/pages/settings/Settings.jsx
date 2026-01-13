@@ -1,11 +1,4 @@
 
-import React, { useState } from 'react';
-import {
-    MdLocationOn, MdSettings, MdShipping, MdPayment,
-    MdNotifications, MdSecurity, MdBusiness
-} from 'react-icons/md';
-import { FiTruck, FiMapPin, FiSettings } from 'react-icons/fi';
-import Breadcrumbs from '../../components/common/Breadcrumbs';
 import PickupAddresses from './PickupAddresses';
 
 const Settings = () => {

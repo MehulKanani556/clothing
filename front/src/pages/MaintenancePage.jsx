@@ -1,33 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { MdConstruction } from 'react-icons/md';
 import { FiSettings } from 'react-icons/fi';
-import axiosInstance from '../utils/axiosInstance';
-import { BASE_URL } from '../utils/BASE_URL';
+import { fetchSettings } from '../redux/slice/settings.slice';
 
 const MaintenancePage = () => {
+    const dispatch = useDispatch();
+    const { settings, loading } = useSelector(state => state.settings);
     const [message, setMessage] = useState('We are currently performing scheduled maintenance. We will be back shortly.');
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchSettings = async () => {
-            try {
-                const response = await axiosInstance.get(`${BASE_URL}/settings`);
-                if (response.data.success) {
-                    const maintenanceSetting = response.data.data.find(s => s.key === 'maintenance_mode');
-                    if (maintenanceSetting && maintenanceSetting.value?.message) {
-                        setMessage(maintenanceSetting.value.message);
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to fetch maintenance message:', error);
-            } finally {
-                setLoading(false);
+        if (settings && settings.length > 0) {
+            const maintenanceSetting = settings.find(s => s.key === 'maintenance_mode');
+            if (maintenanceSetting && maintenanceSetting.value?.message) {
+                setMessage(maintenanceSetting.value.message);
             }
-        };
-
-        fetchSettings();
-    }, []);
+        }
+    }, [settings]);
 
     if (loading) {
         return (
@@ -61,6 +51,12 @@ const MaintenancePage = () => {
 
                 <div className="mt-8 text-sm text-gray-500">
                     <p>Thank you for your patience.</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                    >
+                        Try Again
+                    </button>
                 </div>
             </div>
         </div>

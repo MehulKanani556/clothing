@@ -148,7 +148,7 @@ router.get('/support', auth, getAllTickets);
 router.put('/support/:id', auth, updateTicketStatus);
 
 // --- SETTINGS SERVICE ---
-router.get('/settings', auth, getSettings);
+router.get('/settings', getSettings);
 router.post('/settings', auth, updateSetting);
 
 // Payment
