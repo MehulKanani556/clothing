@@ -116,6 +116,9 @@ function App() {
                 <Route path="settings" element={<Settings />} />
                 <Route path="maintenance" element={<Maintenance />} />
                 <Route path="privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="terms-conditions" element={<PrivacyPolicy />} />
+                <Route path="cookie-statement" element={<PrivacyPolicy />} />
+                <Route path="security" element={<PrivacyPolicy />} />
                 {/* Fallback */}
                 <Route index element={<Dashboard />} />
               </Route>

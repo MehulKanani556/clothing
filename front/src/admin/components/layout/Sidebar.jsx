@@ -123,6 +123,8 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
             children: [
                 { name: 'Privacy Policy', path: '/admin/privacy-policy' },
                 { name: 'Terms & Conditions', path: '/admin/terms-conditions' },
+                { name: 'Cookie Statement', path: '/admin/cookie-statement' },
+                { name: 'Security', path: '/admin/security' },
             ]
         },
     ];
