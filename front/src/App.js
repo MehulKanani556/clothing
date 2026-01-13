@@ -44,6 +44,7 @@ import HomePreview from './admin/pages/preview/HomePreview';
 import MainCategory from './admin/pages/categories/MainCategory';
 import OfferBanner from './admin/pages/banners/OfferBanner';
 import HeroBanner from './admin/pages/banners/HeroBanner';
+import Settings from './admin/pages/settings/Settings';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -106,6 +107,7 @@ function App() {
               <Route path="pricing-rules" element={<PricingRules />} />
               <Route path="support" element={<Support />} />
               <Route path="profile" element={<AdminProfile />} />
+              <Route path="settings" element={<Settings />} />
               {/* Fallback */}
               <Route index element={<Dashboard />} />
             </Route>

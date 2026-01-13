@@ -230,11 +230,48 @@ class ShiprocketAPI {
     // Get pickup locations
     async getPickupLocations() {
         try {
+           
             const headers = await this.getHeaders();
             const response = await axios.get(`${this.baseURL}/settings/company/pickup`, { headers });
             return response.data;
         } catch (error) {
             console.error('Shiprocket get pickup locations failed:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    // Add new pickup location
+    async addPickupLocation(pickupData) {
+        try {
+            const headers = await this.getHeaders();
+            const response = await axios.post(`${this.baseURL}/settings/company/addpickup`, pickupData, { headers });
+            return response.data;
+        } catch (error) {
+            console.error('Shiprocket add pickup location failed:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    // Update pickup location
+    async updatePickupLocation(pickupId, pickupData) {
+        try {
+            const headers = await this.getHeaders();
+            const response = await axios.post(`${this.baseURL}/settings/company/pickup/edit/${pickupId}`, pickupData, { headers });            
+            return response.data;
+        } catch (error) {
+            console.error('Shiprocket update pickup location failed:', error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    // Delete pickup location
+    async deletePickupLocation(pickupId) {
+        try {
+            const headers = await this.getHeaders();
+            const response = await axios.delete(`${this.baseURL}/settings/company/pickup/${pickupId}`, { headers });
+            return response.data;
+        } catch (error) {
+            console.error('Shiprocket delete pickup location failed:', error.response?.data || error.message);
             throw error;
         }
     }

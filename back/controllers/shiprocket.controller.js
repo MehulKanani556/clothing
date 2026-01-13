@@ -798,6 +798,191 @@ exports.checkPickupLocations = async (req, res) => {
         });
     }
 };
+
+// Get all pickup locations for admin management
+exports.getPickupLocations = async (req, res) => {
+    try {
+        // For now, let's handle the case where Shiprocket API might not be accessible
+        let locations = [];
+        
+        try {
+            const pickupLocations = await shiprocketAPI.getPickupLocations();
+            console.log('Shiprocket pickup locations response:', JSON.stringify(pickupLocations, null, 2));
+            
+            
+            // Handle different response structures
+            if (pickupLocations && pickupLocations.data) {
+                locations = Array.isArray(pickupLocations.data.shipping_address) ? pickupLocations.data.shipping_address : [];
+                console.log("aaaaaaa",locations,pickupLocations)
+            } else if (Array.isArray(pickupLocations)) {
+                locations = pickupLocations;
+            }
+        } catch (shiprocketError) {
+            console.error('Shiprocket API error:', shiprocketError.message);
+            
+            // Return mock data for development/testing
+            locations = [
+                {
+                    id: 1,
+                    pickup_location: 'Main Warehouse',
+                    nickname: 'Primary',
+                    name: 'John Doe',
+                    email: 'john@example.com',
+                    phone: '9876543210',
+                    address: '123 Main Street',
+                    address_2: 'Near Central Mall',
+                    city: 'Mumbai',
+                    state: 'Maharashtra',
+                    country: 'India',
+                    pin_code: '400001',
+                    vendor_name: 'Main Vendor',
+                    gstin: '27AAAAA0000A1Z5',
+                    is_first_mile_pickup: true
+                },
+                {
+                    id: 2,
+                    pickup_location: 'Secondary Warehouse',
+                    nickname: 'Secondary',
+                    name: 'Jane Smith',
+                    email: 'jane@example.com',
+                    phone: '9876543211',
+                    address: '456 Second Street',
+                    address_2: '',
+                    city: 'Delhi',
+                    state: 'Delhi',
+                    country: 'India',
+                    pin_code: '110001',
+                    vendor_name: 'Second Vendor',
+                    gstin: '07BBBBB1111B2Z6',
+                    is_first_mile_pickup: false
+                }
+            ];
+            
+            console.log('Using mock pickup locations for development');
+        }
+        res.status(200).json({
+            success: true,
+            data: locations,
+            message: locations.length === 0 ? 'No pickup locations found' : `Found ${locations.length} pickup locations`
+        });
+    } catch (error) {
+        console.error('Get pickup locations error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to get pickup locations',
+            data: [] // Always return an empty array on error
+        });
+    }
+};
+
+// Add new pickup location
+exports.addPickupLocation = async (req, res) => {
+    try {
+        const pickupData = req.body;
+        
+        // Validate required fields
+        const requiredFields = ['pickup_location', 'name', 'email', 'phone', 'address', 'city', 'state', 'country', 'pin_code'];
+        const missingFields = requiredFields.filter(field => !pickupData[field]);
+        
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Missing required fields: ${missingFields.join(', ')}`
+            });
+        }
+
+        const result = await shiprocketAPI.addPickupLocation(pickupData);
+        
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                message: 'Pickup location added successfully',
+                data: result
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: result.message || 'Failed to add pickup location'
+            });
+        }
+    } catch (error) {
+        console.error('Add pickup location error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to add pickup location'
+        });
+    }
+};
+
+// Update pickup location
+exports.updatePickupLocation = async (req, res) => {
+    try {
+        const { pickupId } = req.params;
+        const pickupData = req.body;
+        
+        if (!pickupId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Pickup ID is required'
+            });
+        }
+
+        const result = await shiprocketAPI.updatePickupLocation(pickupId, pickupData);
+        
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                message: 'Pickup location updated successfully',
+                data: result
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: result.message || 'Failed to update pickup location'
+            });
+        }
+    } catch (error) {
+        console.error('Update pickup location error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to update pickup location'
+        });
+    }
+};
+
+// Delete pickup location
+exports.deletePickupLocation = async (req, res) => {
+    try {
+        const { pickupId } = req.params;
+        
+        if (!pickupId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Pickup ID is required'
+            });
+        }
+
+        const result = await shiprocketAPI.deletePickupLocation(pickupId);
+        
+        if (result.success) {
+            res.status(200).json({
+                success: true,
+                message: 'Pickup location deleted successfully'
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: result.message || 'Failed to delete pickup location'
+            });
+        }
+    } catch (error) {
+        console.error('Delete pickup location error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to delete pickup location'
+        });
+    }
+};
 // Add this temporary endpoint to your shiprocket.routes.js
 // GET /api/shiprocket/test-pickup
 

@@ -9,6 +9,7 @@ import {
     MdOutlineRateReview,
     MdOutlineLocalOffer,
     MdOutlinePreview,
+    MdOutlineSettings,
 } from 'react-icons/md';
 import { PiFlagBanner } from "react-icons/pi";
 
@@ -102,6 +103,13 @@ const Sidebar = ({ isCollapsed, isMobileOpen, setIsMobileOpen }) => {
                 { name: 'Offers', path: '/admin/offers' },
                 { name: 'Add Offer', path: '/admin/add-offer' },
             ]
+        },
+        {
+            type: 'item',
+            key: 'settings',
+            name: 'Settings',
+            path: '/admin/settings',
+            icon: <MdOutlineSettings size={20} />,
         },
     ];
 

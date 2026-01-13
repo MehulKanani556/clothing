@@ -11,6 +11,10 @@ const {
     getAvailableCouriers,
     debugOrderData,
     checkPickupLocations,
+    getPickupLocations,
+    addPickupLocation,
+    updatePickupLocation,
+    deletePickupLocation,
     testPickupLocations,
     checkPincodeServiceability
 } = require('../controllers/shiprocket.controller');
@@ -24,6 +28,10 @@ router.post('/orders/:orderId/pickup', auth, requestPickup);
 router.get('/orders/:orderId/couriers', auth, getAvailableCouriers);
 router.get('/orders/:orderId/debug', auth, debugOrderData);
 router.get('/pickup-locations', auth, checkPickupLocations);
+router.get('/pickup-locations/manage', auth, getPickupLocations);
+router.post('/pickup-locations', auth, addPickupLocation);
+router.put('/pickup-locations/:pickupId', auth, updatePickupLocation);
+router.delete('/pickup-locations/:pickupId', auth, deletePickupLocation);
 router.post('/sync-all', auth, syncAllTrackingData);
 router.get('/test-pickup', testPickupLocations);
 router.get('/test-pickup1', async (req, res) => {
