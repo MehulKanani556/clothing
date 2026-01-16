@@ -49,11 +49,11 @@ export default function Footer() {
                     </div>
                 </div>
 
-                <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs">
-                    <p>&copy; {new Date().getFullYear()} Velora Co. All rights reserved.</p>
-                    <div className="mt-4 md:mt-0">
-                        <Link to="/privacy-policy" className="mr-4">Privacy Policy</Link>
-                        <Link to="/terms-conditions">Terms of Use</Link>
+                <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-center md:text-left">
+                    <p className="mb-4 md:mb-0">&copy; {new Date().getFullYear()} Velora Co. All rights reserved.</p>
+                    <div className="flex gap-4">
+                        <Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
+                        <Link to="/terms-conditions" className="hover:text-white transition-colors">Terms of Use</Link>
                     </div>
                 </div>
             </div>

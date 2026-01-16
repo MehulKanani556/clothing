@@ -12,9 +12,14 @@ import {
     isSameDay,
     isToday,
     isValid,
-    parseISO
+    parseISO,
+    setMonth,
+    setYear,
+    getYear,
+    getMonth
 } from 'date-fns';
 import { MdKeyboardArrowLeft, MdKeyboardArrowRight, MdCalendarToday, MdClose } from 'react-icons/md';
+import CustomSelect from './CustomSelect';
 
 const CustomDatePicker = ({
     value,
@@ -24,7 +29,8 @@ const CustomDatePicker = ({
     maxDate,
     className = "",
     error,
-    position = "bottom" // "bottom" | "top"
+    position = "bottom", // "bottom" | "top"
+    showMonthYearDropdowns = false
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -38,7 +44,7 @@ const CustomDatePicker = ({
                 setCurrentMonth(date);
             }
         }
-    }, [isOpen, value]); // React to open to reset view? Maybe not necessary, but good for UX
+    }, [isOpen, value]);
 
     // Handle Click Outside
     useEffect(() => {
@@ -63,43 +69,36 @@ const CustomDatePicker = ({
     const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
     const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
 
-    const handleClear = (e) => {
-        e.stopPropagation();
-        onChange(null); // Or empty string
-        setIsOpen(false);
+    const handleMonthSelect = (val) => {
+        setCurrentMonth(setMonth(currentMonth, val));
     };
 
-    const handleToday = () => {
-        const today = new Date();
-        onChange(today); // Parent logic needs to handle Date object or formatted string consistently.
-        // I will assume parent will update to handle this custom component's output.
-        // I'll return the ISO string 'yyyy-MM-dd' to be safe and compatible with standard expectation.
-
-        // Wait, standard `input type=date` returns string 'YYYY-MM-DD'.
-        // So I should stick to that.
-        // But for `onChange` prop in custom component, usually `(value) => ...`.
-
-        // Let's decide: I will return Standard 'yyyy-MM-dd' string.
-        setIsOpen(false);
+    const handleYearSelect = (val) => {
+        setCurrentMonth(setYear(currentMonth, val));
     };
 
     // Calendar Grid Generation
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart); // Default starts Sunday. Image shows Monday? Image shows 'Mo Tu We...'. So starts Monday?
-    // User image shows Mo Tu We.. so I need { weekStartsOn: 1 }? 
-    // Wait, the image shows Mo first. I should check `date-fns` locale or options.
-    // I can force startOfWeek to start on Monday (1).
-    const endDate = endOfWeek(monthEnd);
 
-    // If using weekStartsOn: 1 (Monday)
-    const dateFormat = "d";
-    const days = [];
+    // Determine start and end years for the dropdown
+    const startYear = minDate ? getYear(new Date(minDate)) : 1900;
+    const endYear = maxDate ? getYear(new Date(maxDate)) : 2100;
+    const years = Array.from({ length: endYear - startYear + 1 }, (_, i) => endYear - i); // Descending order
+    const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+
+    const monthOptions = months.map((m, i) => ({ value: i, label: m }));
+    const yearOptions = years.map(y => ({ value: y, label: y.toString() }));
+
+    const calendarDays = eachDayOfInterval({
+        start: startOfWeek(monthStart, { weekStartsOn: 1 }),
+        end: endOfWeek(monthEnd, { weekStartsOn: 1 })
+    });
+
     const weekDays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-
-    // Generate days
-    // Note: eachDayOfInterval might be easier
-    const calendarDays = eachDayOfInterval({ start: startOfWeek(monthStart, { weekStartsOn: 1 }), end: endOfWeek(monthEnd, { weekStartsOn: 1 }) });
 
     // Formatting value for display
     const displayValue = value ? format(typeof value === 'string' ? parseISO(value) : value, 'dd-MM-yyyy') : '';
@@ -131,13 +130,33 @@ const CustomDatePicker = ({
 
             {/* Popup */}
             {isOpen && (
-                <div className={`absolute z-50 bg-white rounded-lg shadow-xl border border-gray-100 w-[280px] p-4 animate-in fade-in zoom-in-95 duration-100 left-0 ${position === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-4">
-                        <span className="font-bold text-gray-800 text-sm">
-                            {format(currentMonth, 'MMMM, yyyy')}
-                        </span>
-                        <div className="flex gap-1">
+                <div className={`absolute z-50 bg-white rounded-lg shadow-xl border border-gray-100 w-[300px] p-4 animate-in fade-in zoom-in-95 duration-100 left-0 ${position === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                    {/* Header with Selectors */}
+                    <div className="flex items-center justify-between mb-4 gap-2">
+                        {showMonthYearDropdowns ? (
+                            <div className="flex items-center gap-2 flex-1">
+                                <CustomSelect
+                                    value={getMonth(currentMonth)}
+                                    options={monthOptions}
+                                    onChange={handleMonthSelect}
+                                    className="w-[120px]"
+                                    placeholder="Month"
+                                />
+                                <CustomSelect
+                                    value={getYear(currentMonth)}
+                                    options={yearOptions}
+                                    onChange={handleYearSelect}
+                                    className="w-[85px]"
+                                    placeholder="Year"
+                                />
+                            </div>
+                        ) : (
+                            <span className="font-bold text-gray-800 text-sm">
+                                {format(currentMonth, 'MMMM, yyyy')}
+                            </span>
+                        )}
+
+                        <div className="flex gap-1 shrink-0">
                             <button onClick={prevMonth} type="button" className="p-1 hover:bg-gray-100 rounded-full text-gray-600">
                                 <MdKeyboardArrowLeft size={20} />
                             </button>
@@ -175,7 +194,7 @@ const CustomDatePicker = ({
                                     disabled={isDisabled}
                                     onClick={() => !isDisabled && handleDateClick(day)}
                                     className={`
-                                        h-8 w-8 rounded-full flex items-center justify-center text-xs transition-all relative
+                                        h-8 w-8 rounded-full flex items-center justify-center text-xs transition-all
                                         ${!isCurrentMonth ? 'text-gray-300' : 'text-gray-700'}
                                         ${isSelected ? 'bg-black text-white font-bold shadow-md' : 'hover:bg-gray-100'}
                                         ${isDateToday && !isSelected ? 'border border-black font-semibold' : ''}

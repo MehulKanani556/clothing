@@ -313,7 +313,7 @@ export default function HomePreview() {
 
             <div className="flex flex-col xl:flex-row gap-8">
                 {/* 1. Draggable Configuration Panel */}
-                <div className="w-full xl:w-80 shrink-0 order-2 xl:order-1">
+                <div className="w-full xl:w-80 shrink-0">
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm sticky top-6 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
                         <h3 className="font-bold text-gray-700 mb-4 uppercase text-xs tracking-wider border-b pb-2">Page Sections</h3>
 
@@ -485,11 +485,11 @@ export default function HomePreview() {
                 </div>
 
                 {/* 2. Live Preview */}
-                <div className="flex-1 min-w-0 order-1 xl:order-2">
+                <div className="flex-1 min-w-0">
                     <div className="flex justify-center">
                         <div className="w-full bg-white shadow-2xl rounded-xl overflow-hidden border border-gray-200 origin-top">
                             {/* Fixed Header Placeholder */}
-                            <header className="sticky top-0 bg-white z-50 border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+                            <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
                                 <div className="w-8 h-8 bg-black rounded flex items-center justify-center text-white font-bold">L</div>
                                 <div className="flex gap-4 text-xs font-semibold uppercase text-gray-500">
                                     <span className="hidden sm:block">Men</span>

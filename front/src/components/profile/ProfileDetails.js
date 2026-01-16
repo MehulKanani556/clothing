@@ -5,6 +5,7 @@ import { FiCamera, FiEdit2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { Formik, Form, Field } from 'formik';
 import * as Yup from 'yup';
+import CustomDatePicker from '../../admin/components/common/CustomDatePicker';
 
 const ProfileSchema = Yup.object().shape({
     firstName: Yup.string()
@@ -159,7 +160,7 @@ export default function ProfileDetails() {
                     onSubmit={handleSubmit}
                     enableReinitialize
                 >
-                    {({ errors, touched, isSubmitting }) => (
+                    {({ errors, touched, isSubmitting, setFieldValue, values }) => (
                         <Form>
                             {/* Profile Image Upload */}
                             <div className="mb-8 relative w-fit">
@@ -239,10 +240,23 @@ export default function ProfileDetails() {
                                 {/* Date of Birth */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
-                                    <Field
-                                        name="dateOfBirth"
-                                        type="date"
-                                        className={`w-full bg-gray-50 border ${errors.dateOfBirth && touched.dateOfBirth ? 'border-red-500' : 'border-gray-200'} rounded-md px-4 py-3 text-sm focus:ring-2 focus:ring-black/5 focus:border-black outline-none transition-all`}
+                                    <CustomDatePicker
+                                        value={values.dateOfBirth}
+                                        onChange={(date) => {
+                                            if (date instanceof Date) {
+                                                const year = date.getFullYear();
+                                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                                const d = String(date.getDate()).padStart(2, '0');
+                                                setFieldValue('dateOfBirth', `${year}-${month}-${d}`);
+                                            } else {
+                                                setFieldValue('dateOfBirth', date);
+                                            }
+                                        }}
+                                        minDate={new Date('1900-01-01')}
+                                        maxDate={new Date()}
+                                        placeholder="DD-MM-YYYY"
+                                        error={errors.dateOfBirth && touched.dateOfBirth ? errors.dateOfBirth : null}
+                                        showMonthYearDropdowns={true}
                                     />
                                     {errors.dateOfBirth && touched.dateOfBirth && (
                                         <div className="text-red-500 text-xs mt-1">{errors.dateOfBirth}</div>
@@ -253,18 +267,23 @@ export default function ProfileDetails() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
                                     <div className="flex gap-6 mt-3">
-                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                            <Field type="radio" name="gender" value="Male" className="w-4 h-4 text-black focus:ring-black border-gray-300" />
-                                            <span className="text-sm text-gray-600 group-hover:text-black">Male</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                            <Field type="radio" name="gender" value="Female" className="w-4 h-4 text-black focus:ring-black border-gray-300" />
-                                            <span className="text-sm text-gray-600 group-hover:text-black">Female</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                            <Field type="radio" name="gender" value="Other" className="w-4 h-4 text-black focus:ring-black border-gray-300" />
-                                            <span className="text-sm text-gray-600 group-hover:text-black">Other</span>
-                                        </label>
+                                        {['Male', 'Female', 'Other'].map((option) => (
+                                            <label key={option} className="flex items-center gap-3 cursor-pointer group select-none">
+                                                <Field type="radio" name="gender" value={option} className="hidden" />
+                                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${values.gender === option
+                                                        ? 'border-black bg-white'
+                                                        : 'border-gray-300 bg-white group-hover:border-gray-400'
+                                                    }`}>
+                                                    {values.gender === option && (
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-black"></div>
+                                                    )}
+                                                </div>
+                                                <span className={`text-sm transition-colors ${values.gender === option ? 'text-gray-900 font-medium' : 'text-gray-600 group-hover:text-gray-900'
+                                                    }`}>
+                                                    {option}
+                                                </span>
+                                            </label>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
