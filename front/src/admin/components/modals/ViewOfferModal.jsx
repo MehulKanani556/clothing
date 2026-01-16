@@ -75,11 +75,11 @@ const ViewOfferModal = ({ isOpen, onClose, offer, categories = [], products = []
                     </div>
 
                     {/* Coupon & Discount */}
-                    <div className="bg-black rounded-xl p-5 text-white">
-                        <h4 className="text-sm font-bold mb-6 flex items-center gap-2 uppercase tracking-widest border-b border-white/20 pb-2">
+                    <div className="rounded-xl text-black">
+                        <h4 className="text-sm font-bold mb-2 flex items-center gap-2 uppercase tracking-widest border-b border-gray-100 pb-2">
                             Discount Configuration
                         </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 border-b border-gray-100 pb-2">
                             <div className="space-y-1">
                                 <span className="text-xs font-medium text-gray-400">Code</span>
                                 <p className="text-lg font-bold font-mono tracking-widest">{offer.code}</p>
