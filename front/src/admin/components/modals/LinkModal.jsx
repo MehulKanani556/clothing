@@ -35,7 +35,7 @@ const LinkModal = ({
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
                     <div className="flex items-center gap-3">
-                        <MdLink size={24} className="text-blue-600" />
+                        <MdLink size={24} className="text-black" />
                         <h2 id="link-modal-title" className="text-lg font-semibold text-gray-900">
                             {linkUrl ? 'Edit Link' : 'Add Link'}
                         </h2>
@@ -75,7 +75,7 @@ const LinkModal = ({
                             value={linkUrl}
                             onChange={(e) => setLinkUrl(e.target.value)}
                             placeholder="https://example.com"
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all text-sm"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && linkUrl.trim()) {
                                     onApplyLink();
@@ -110,7 +110,7 @@ const LinkModal = ({
                         <button
                             onClick={onApplyLink}
                             disabled={!linkUrl.trim()}
-                            className="px-6 py-2 text-sm font-bold text-black bg-[#FFE590] rounded-lg shadow-sm hover:bg-[#ffd966] hover:shadow-md transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                            className="px-6 py-2 text-sm font-bold text-white bg-black rounded-lg shadow-sm hover:bg-gray-800 hover:shadow-md transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                         >
                             Apply Link
                         </button>

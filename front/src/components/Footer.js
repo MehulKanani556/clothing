@@ -21,9 +21,9 @@ export default function Footer() {
                         <ul className="space-y-4 text-sm">
                             <li><Link to="/about" className="hover:text-white transition">About Us</Link></li>
                             <li><Link to="/contact" className="hover:text-white transition">Contact Us</Link></li>
-                            <li><Link to="/terms" className="hover:text-white transition">Terms & Conditions</Link></li>
-                            <li><Link to="/returns" className="hover:text-white transition">Returns & Exchange</Link></li>
-                            <li><Link to="/shipping" className="hover:text-white transition">Shipping Policy</Link></li>
+                            <li><Link to="/terms-conditions" className="hover:text-white transition">Terms & Conditions</Link></li>
+                            <li><Link to="/refund-return-policy" className="hover:text-white transition">Returns & Exchange</Link></li>
+                            <li><Link to="/shipping-policy" className="hover:text-white transition">Shipping Policy</Link></li>
                         </ul>
                     </div>
 
@@ -50,10 +50,10 @@ export default function Footer() {
                 </div>
 
                 <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs">
-                    <p>&copy; 2025 Velora Co. All rights reserved.</p>
+                    <p>&copy; {new Date().getFullYear()} Velora Co. All rights reserved.</p>
                     <div className="mt-4 md:mt-0">
-                        <span className="mr-4">Privacy Policy</span>
-                        <span>Terms of Use</span>
+                        <Link to="/privacy-policy" className="mr-4">Privacy Policy</Link>
+                        <Link to="/terms-conditions">Terms of Use</Link>
                     </div>
                 </div>
             </div>

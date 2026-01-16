@@ -95,15 +95,12 @@ export default function PrivacyPolicy() {
         const path = location.pathname;
         if (path.includes('privacy-policy')) return { slug: 'privacy-policy', title: 'PRIVACY POLICY', apiTitle: 'Privacy Policy' };
         if (path.includes('terms-conditions')) return { slug: 'terms-conditions', title: 'TERMS & CONDITIONS', apiTitle: 'Terms & Conditions' };
-        if (path.includes('security')) return { slug: 'security', title: 'SECURITY', apiTitle: 'Security' };
-        if (path.includes('cookie-statement')) return { slug: 'cookie-statement', title: 'COOKIE STATEMENT', apiTitle: 'Cookie Statement' };
-        if (path.includes('legal-page')) return { slug: 'legal-page', title: 'LEGAL PAGE', apiTitle: 'Legal Page' };
+        if (path.includes('refund-return-policy')) return { slug: 'refund-return-policy', title: 'REFUND & RETURN POLICY', apiTitle: 'Refund & Return Policy' };
+        if (path.includes('shipping-policy')) return { slug: 'shipping-policy', title: 'SHIPPING POLICY', apiTitle: 'Shipping Policy' };
         return { slug: 'privacy-policy', title: 'PRIVACY POLICY', apiTitle: 'Privacy Policy' }; // Default
     };
 
     const { slug, title, apiTitle } = getPageContext();
-
-    console.log(currentLegalPage);
 
     // Disable default toolbar modules
     const modules = React.useMemo(() => ({

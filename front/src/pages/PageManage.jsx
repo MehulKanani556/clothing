@@ -15,11 +15,10 @@ export default function PageManage() {
 
     const getSlugFromPath = (path) => {
         const lowerPath = path.toLowerCase();
-        if (lowerPath.includes('privacypolicy')) return 'privacy-policy';
-        if (lowerPath.includes('terms')) return 'terms-conditions';
-        if (lowerPath.includes('security')) return 'security';
-        if (lowerPath.includes('cookie')) return 'cookie-statement';
-        if (lowerPath.includes('legal')) return 'legal-page';
+        if (lowerPath.includes('privacy-policy')) return 'privacy-policy';
+        if (lowerPath.includes('terms-conditions')) return 'terms-conditions';
+        if (lowerPath.includes('refund-return-policy')) return 'refund-return-policy';
+        if (lowerPath.includes('shipping-policy')) return 'shipping-policy';
         return 'privacy-policy';
     };
 

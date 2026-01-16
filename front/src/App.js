@@ -78,7 +78,10 @@ function App() {
                     <Route path="/about" element={<AboutUsPage />} />
                     {/* <Route path="/terms" element={<TermsPage />} /> */}
                     <Route path="/checkout/payment" element={<PaymentPage />} />
-                    <Route path="/terms" element={<PageManage />} />
+                    <Route path="/terms-conditions" element={<PageManage />} />
+                    <Route path="/privacy-policy" element={<PageManage />} />
+                    <Route path="/refund-return-policy" element={<PageManage />} />
+                    <Route path="/shipping-policy" element={<PageManage />} />
                     {/* Catch-all for Categories/Listings - Must be last */}
                     <Route path="/:slug" element={<CategoryPage />} />
                   </Routes>
@@ -119,8 +122,8 @@ function App() {
                 <Route path="maintenance" element={<Maintenance />} />
                 <Route path="privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="terms-conditions" element={<PrivacyPolicy />} />
-                <Route path="cookie-statement" element={<PrivacyPolicy />} />
-                <Route path="security" element={<PrivacyPolicy />} />
+                <Route path="refund-return-policy" element={<PrivacyPolicy />} />
+                <Route path="shipping-policy" element={<PrivacyPolicy />} />
                 {/* Fallback */}
                 <Route index element={<Dashboard />} />
               </Route>
