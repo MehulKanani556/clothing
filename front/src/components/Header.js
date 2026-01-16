@@ -220,8 +220,8 @@ export default function Header() {
             </DisclosureButton>
           </div>
           <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-            <Link to="/" className="flex shrink-0 items-center text-2xl font-bold text-black w-[75px] h-[75px]">
-              <img src={require('../assets/image/logo_in_one_line.png')}  alt='LOGO' />
+            <Link to="/" className="flex shrink-0 items-center text-2xl font-bold text-black  w-[125px] ">
+              <img className='' src={require('../assets/image/logo_in_one_line.png')}  alt='LOGO' />
             </Link>
             <div className="hidden sm:ml-6 sm:block">
               <div className="flex gap-3 space-x-4 h-full items-center">
