@@ -44,6 +44,32 @@ export const removeFromCart = createAsyncThunk(
     }
 );
 
+// Cancel Order
+export const cancelOrder = createAsyncThunk(
+    'order/cancelOrder',
+    async (orderData, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post(`${BASE_URL}/orders/cancel`, orderData);
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, rejectWithValue);
+        }
+    }
+);
+
+// Request Return
+export const requestReturn = createAsyncThunk(
+    'order/requestReturn',
+    async (returnData, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post(`${BASE_URL}/orders/return`, returnData);
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, rejectWithValue);
+        }
+    }
+);
+
 // Update Cart Item
 export const updateCartItem = createAsyncThunk(
     'cart/updateCartItem',
@@ -61,7 +87,7 @@ export const orderSlice = createSlice({
     name: 'order',
     initialState,
     reducers: {
-       
+
     },
     extraReducers: (builder) => {
         builder
@@ -77,10 +103,40 @@ export const orderSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload?.message;
             })
+            // Cancel Order
+            .addCase(cancelOrder.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(cancelOrder.fulfilled, (state, action) => {
+                state.loading = false;
+                const index = state.orders.findIndex(o => o._id === action.payload.data._id);
+                if (index !== -1) {
+                    state.orders[index] = action.payload.data;
+                }
+            })
+            .addCase(cancelOrder.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
+            // Request Return
+            .addCase(requestReturn.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(requestReturn.fulfilled, (state, action) => {
+                state.loading = false;
+                const index = state.orders.findIndex(o => o._id === action.payload.data._id);
+                if (index !== -1) {
+                    state.orders[index] = action.payload.data;
+                }
+            })
+            .addCase(requestReturn.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message;
+            })
 
-           
+
     }
 });
 
-export const {  } = orderSlice.actions;
+export const { } = orderSlice.actions;
 export default orderSlice.reducer;

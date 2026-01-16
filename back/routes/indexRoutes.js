@@ -16,8 +16,8 @@ const { addToCart, getCart, removeFromCart, updateCartItem } = require('../contr
 const { addToWishlist, getWishlist, removeFromWishlist } = require('../controllers/wishlist.controller');
 
 // New Controllers
-const { createOrder, getUserOrders, getAdminOrders, updateOrderStatus, getOrderById } = require('../controllers/order.controller');
-const { requestReturn, processReturn, getAllReturns } = require('../controllers/return.controller');
+const { createOrder, getUserOrders, getAdminOrders, updateOrderStatus, getOrderById, cancelOrder, requestReturn, approveReturn, rejectReturn, adminProcessRefund } = require('../controllers/order.controller');
+const { processReturn, getAllReturns } = require('../controllers/return.controller');
 const { getGstReport, getNetPayout } = require('../controllers/report.controller');
 const { createOffer, validateCoupon, getOffers, getAllOffersAdmin, uploadBanner, updateOffer, deleteOffer } = require('../controllers/offer.controller');
 const { createBlogPost, getAllBlogs, getBlogBySlug, deleteBlog } = require('../controllers/blog.controller');
@@ -124,11 +124,16 @@ router.get('/orders/my-orders', auth, getUserOrders);
 router.get('/orders/admin', auth, getAdminOrders);
 router.get('/orders/:id', auth, getOrderById);
 router.put('/orders/:id/status', auth, updateOrderStatus);
+router.post('/orders/cancel', auth, cancelOrder);
+router.post('/orders/return', auth, upload.array('images'), requestReturn);
+router.post('/orders/return/approve', auth, approveReturn);
+router.post('/orders/return/reject', auth, rejectReturn);
+router.post('/orders/refund/process', auth, adminProcessRefund);
 
 // --- RETURN SERVICE ---
-router.post('/returns', auth, returnValidation, requestReturn);
-router.get('/returns/admin', auth, getAllReturns);
-router.put('/returns/:id', auth, processReturn);
+// router.post('/returns', auth, returnValidation, requestReturn);
+// router.get('/returns/admin', auth, getAllReturns);
+// router.put('/returns/:id', auth, processReturn);
 
 // --- OFFER SERVICE ---
 router.post('/offers', auth, offerValidation, createOffer);

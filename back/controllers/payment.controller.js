@@ -199,7 +199,7 @@ exports.verifyPayment = async (req, res) => {
                         giftwrap_charges: 0,
                         transaction_charges: 0,
                         total_discount: updatedOrder.discountTotal || 0,
-                        sub_total: Number(updatedOrder.subTotal)+ Number(updatedOrder.taxTotal),
+                        sub_total: Number(updatedOrder.subTotal) + Number(updatedOrder.taxTotal),
                         length: 10,
                         breadth: 10,
                         height: 10,
@@ -480,5 +480,41 @@ exports.handleWebhook = async (req, res) => {
     } catch (error) {
         console.error("Webhook Error:", error);
         res.status(500).json({ success: false });
+    }
+};
+
+// Initiate Refund
+exports.initiateRefund = async (orderId, amount, refundId, note = "Order Cancellation") => {
+    try {
+        console.log(`Initiating refund for Order: ${orderId}, Amount: ${amount}`);
+        const request = {
+            refund_amount: parseFloat(amount),
+            refund_id: refundId,
+            refund_note: note
+        };
+
+        const response = await Cashfree.PGOrderCreateRefund("2023-08-01", orderId, request);
+        console.log("Cashfree Refund Response:", response.data);
+        return { success: true, data: response.data };
+
+    } catch (error) {
+        console.error("Refund Initiation Error:", error.response?.data || error.message);
+        throw error;
+    }
+};
+
+// Get Refund Status
+exports.getRefundStatus = async (req, res) => {
+    try {
+        const { orderId, refundId } = req.params;
+        const response = await Cashfree.PGOrderFetchRefund("2023-08-01", orderId, refundId);
+
+        res.status(200).json({
+            success: true,
+            data: response.data
+        });
+    } catch (error) {
+        console.error("Fetch Refund Status Error:", error.response?.data || error.message);
+        res.status(500).json({ success: false, message: error.message });
     }
 };

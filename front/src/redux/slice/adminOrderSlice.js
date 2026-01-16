@@ -35,6 +35,43 @@ export const updateOrderStatus = createAsyncThunk(
             return rejectWithValue(error.response?.data || error.message);
         }
     }
+
+);
+
+export const approveReturn = createAsyncThunk(
+    'adminOrders/approveReturn',
+    async (orderId, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post(`/orders/return/approve`, { orderId });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || error.message);
+        }
+    }
+);
+
+export const rejectReturn = createAsyncThunk(
+    'adminOrders/rejectReturn',
+    async ({ orderId, reason }, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post(`/orders/return/reject`, { orderId, reason });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || error.message);
+        }
+    }
+);
+
+export const adminProcessRefund = createAsyncThunk(
+    'adminOrders/processRefund',
+    async ({ orderId, amount, note }, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post(`/orders/refund/process`, { orderId, amount, note });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data || error.message);
+        }
+    }
 );
 
 const adminOrderSlice = createSlice({
@@ -82,6 +119,21 @@ const adminOrderSlice = createSlice({
             .addCase(fetchOrderById.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
+            })
+            .addCase(approveReturn.fulfilled, (state, action) => {
+                const index = state.orders.findIndex(o => o.orderId === action.payload.data.orderId);
+                if (index !== -1) state.orders[index] = action.payload.data;
+                if (state.currentOrder?.orderId === action.payload.data.orderId) state.currentOrder = action.payload.data;
+            })
+            .addCase(rejectReturn.fulfilled, (state, action) => {
+                const index = state.orders.findIndex(o => o.orderId === action.payload.data.orderId);
+                if (index !== -1) state.orders[index] = action.payload.data;
+                if (state.currentOrder?.orderId === action.payload.data.orderId) state.currentOrder = action.payload.data;
+            })
+            .addCase(adminProcessRefund.fulfilled, (state, action) => {
+                const index = state.orders.findIndex(o => o.orderId === action.payload.data.orderId);
+                if (index !== -1) state.orders[index] = action.payload.data;
+                if (state.currentOrder?.orderId === action.payload.data.orderId) state.currentOrder = action.payload.data;
             });
     },
 });

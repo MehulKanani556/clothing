@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchOrderById, updateOrderStatus } from '../../../redux/slice/adminOrderSlice';
+import { fetchOrderById, updateOrderStatus, approveReturn, rejectReturn, adminProcessRefund } from '../../../redux/slice/adminOrderSlice';
 import { createShiprocketOrder, requestPickup, syncTrackingData } from '../../../redux/slice/tracking.slice';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
 import TrackingWidget from '../../../components/TrackingWidget';
@@ -21,6 +21,8 @@ const OrderDetails = () => {
     const dispatch = useDispatch();
     const { currentOrder: order, loading, error } = useSelector(state => state.adminOrders);
     const { loading: trackingLoading } = useSelector(state => state.tracking);
+    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+    const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
     const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
     const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
 
@@ -36,6 +38,42 @@ const OrderDetails = () => {
             toast.success(`Order status updated to ${newStatus}`);
         } catch (err) {
             toast.error('Failed to update status');
+        }
+    };
+
+    const handleApproveReturn = async () => {
+        try {
+            await dispatch(approveReturn(order.orderId)).unwrap();
+            toast.success('Return Approved & Pickup Scheduled');
+            setIsReturnModalOpen(false);
+            dispatch(fetchOrderById(id));
+        } catch (err) {
+            toast.error(err.message || 'Failed to approve return');
+        }
+    };
+
+    const handleRejectReturn = async () => {
+        const reason = prompt("Enter rejection reason:");
+        if (!reason) return;
+        try {
+            await dispatch(rejectReturn({ orderId: order.orderId, reason })).unwrap();
+            toast.success('Return Rejected');
+            setIsReturnModalOpen(false);
+            dispatch(fetchOrderById(id));
+        } catch (err) {
+            toast.error(err.message || 'Failed to reject return');
+        }
+    };
+
+    const handleProcessRefund = async () => {
+        // if (!window.confirm(`Process refund of ₹${order.grandTotal}?`)) return; // Removed confirmation here, now handled by modal
+        try {
+            await dispatch(adminProcessRefund({ orderId: order.orderId, amount: order.grandTotal, note: 'Admin processed from Order Details' })).unwrap();
+            toast.success('Refund Processed Successfully');
+            setIsRefundModalOpen(false);
+            dispatch(fetchOrderById(id));
+        } catch (err) {
+            toast.error(err.message || 'Failed to process refund');
         }
     };
 
@@ -105,6 +143,11 @@ const OrderDetails = () => {
             Shipped: 'bg-blue-100 text-blue-700',
             Delivered: 'bg-green-100 text-green-700',
             Cancelled: 'bg-red-100 text-red-700',
+            'Return Requested': 'bg-orange-100 text-orange-700',
+            'Return Approved': 'bg-blue-100 text-blue-700',
+            'Return Picked': 'bg-purple-100 text-purple-700',
+            'Refund Initiated': 'bg-teal-100 text-teal-700',
+            'Refund Completed': 'bg-green-100 text-green-700',
             Refunded: 'bg-gray-100 text-gray-700',
         };
         return styles[status] || 'bg-gray-100 text-gray-800';
@@ -132,6 +175,28 @@ const OrderDetails = () => {
                 </div>
 
                 <div className="flex gap-3">
+                    {/* Refund Action for Cancelled Orders */}
+                    {order.status === 'Cancelled' && order.paymentStatus === 'Paid' && order.refundStatus !== 'Completed' && (
+                        <button
+                            onClick={() => setIsRefundModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-all animate-pulse"
+                        >
+                            <MdPayment size={20} />
+                            <span>Process Refund</span>
+                        </button>
+                    )}
+
+                    {/* Return Request Action */}
+                    {order.status === 'Return Requested' && (
+                        <button
+                            onClick={() => setIsReturnModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium shadow-sm transition-all animate-bounce"
+                        >
+                            <MdLocalShipping size={20} />
+                            <span>Review Return</span>
+                        </button>
+                    )}
+
                     <button
                         onClick={() => setIsInvoiceOpen(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium shadow-sm transition-all"
@@ -139,9 +204,9 @@ const OrderDetails = () => {
                         <MdPrint size={20} />
                         <span>Invoice</span>
                     </button>
-                    
+
                     {/* Shiprocket Controls */}
-                    {order.paymentStatus === 'Paid' && !order.shiprocketOrderId && (
+                    {order.paymentStatus === 'Paid' && !order.shiprocketOrderId && order.status !== 'Cancelled' && order.status !== 'Return Requested' && ( // Don't show create shipment if cancelled/return
                         <button
                             onClick={handleCreateShiprocketOrder}
                             disabled={trackingLoading}
@@ -151,7 +216,7 @@ const OrderDetails = () => {
                             <span>Create Shipment</span>
                         </button>
                     )}
-                    
+
                     {order.shiprocketOrderId && !order.awbNumber && (
                         <button
                             onClick={handleRequestPickup}
@@ -162,7 +227,7 @@ const OrderDetails = () => {
                             <span>Request Pickup</span>
                         </button>
                     )}
-                    
+
                     {order.shipmentId && (
                         <button
                             onClick={() => setIsLabelModalOpen(true)}
@@ -172,7 +237,7 @@ const OrderDetails = () => {
                             <span>Shipping Label</span>
                         </button>
                     )}
-                    
+
                     <button
                         onClick={handleSyncTracking}
                         disabled={trackingLoading}
@@ -181,13 +246,13 @@ const OrderDetails = () => {
                         <MdSync size={20} />
                         <span>Sync Tracking</span>
                     </button>
-                    
+
                     <select
                         value={order.status}
                         onChange={(e) => handleStatusUpdate(e.target.value)}
                         className="px-4 py-2 bg-indigo-600 text-white border-none rounded-lg font-medium shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
                     >
-                        {['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(s => (
+                        {['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Return Requested', 'Return Approved', 'Return Picked', 'Refund Initiated', 'Refund Completed'].map(s => (
                             <option key={s} value={s} className="bg-white text-gray-800">{s}</option>
                         ))}
                     </select>
@@ -262,7 +327,7 @@ const OrderDetails = () => {
                                     </tr>
                                     <tr>
                                         <td colSpan="3" className="px-6 py-3 text-sm text-gray-600 text-right">Shipping Fee</td>
-                                        <td className="px-6 py-3 text-sm text-gray-900 text-right font-medium">₹0.00</td>
+                                        <td className="px-6 py-3 text-sm text-gray-900 text-right font-medium">₹{order.shippingFee?.toFixed(2) || '0.00'}</td>
                                     </tr>
                                     <tr className="border-t border-gray-200">
                                         <td colSpan="3" className="px-6 py-4 text-base font-bold text-gray-800 text-right">Grand Total</td>
@@ -274,7 +339,7 @@ const OrderDetails = () => {
                     </div>
 
                     {/* Tracking Widget */}
-                    {(order.status === 'Processing' || order.status === 'Shipped' || order.status === 'Delivered') && (
+                    {(order.status === 'Processing' || order.status === 'Shipped' || order.status === 'Delivered' || order.status === 'Return Requested') && (
                         <TrackingWidget order={order} showFullDetails={true} />
                     )}
 
@@ -282,22 +347,82 @@ const OrderDetails = () => {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                         <h2 className="text-lg font-bold text-gray-800 mb-6">Order Activity</h2>
                         <div className="relative pl-4 border-l-2 border-gray-100 space-y-8">
-                            <div className="relative">
-                                <span className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-indigo-600 ring-4 ring-indigo-50"></span>
-                                <div className="mb-1 text-sm font-semibold text-gray-900">Order Placed</div>
-                                <div className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleString()}</div>
-                                <p className="text-sm text-gray-600 mt-2">Order has been created successfully.</p>
-                            </div>
-                            {['Confirmed', 'Shipped', 'Delivered'].map((stepStatus) => {
-                                const isCompleted = ['Confirmed', 'Shipped', 'Delivered'].indexOf(order.status) >= ['Confirmed', 'Shipped', 'Delivered'].indexOf(stepStatus);
-                                return (
-                                    <div key={stepStatus} className={`relative ${isCompleted ? '' : 'opacity-50'}`}>
-                                        <span className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full ${isCompleted ? 'bg-indigo-600 ring-4 ring-indigo-50' : 'bg-gray-300'}`}></span>
-                                        <div className="mb-1 text-sm font-semibold text-gray-900">{stepStatus}</div>
-                                        {isCompleted && <div className="text-xs text-gray-500">Updated recently</div>}
-                                    </div>
-                                );
-                            })}
+                            {(() => {
+                                const steps = [];
+
+                                // 1. Order Placed (Always First)
+                                steps.push({
+                                    title: 'Order Placed',
+                                    date: order.createdAt,
+                                    completed: true,
+                                    description: 'Order has been created successfully.',
+                                    type: 'standard'
+                                });
+
+                                // 2. Cancellation Flow
+                                if (order.status === 'Cancelled') {
+                                    steps.push({
+                                        title: 'Cancelled',
+                                        date: order.updatedAt,
+                                        completed: true,
+                                        description: `Reason: ${order.cancellationReason || 'Order Cancelled'}`,
+                                        type: 'error'
+                                    });
+                                } else {
+                                    // 3. Standard Flow (Confirmed, Shipped, Delivered)
+                                    // Helper checks
+                                    const isConfirmed = order.confirmedAt || ['Confirmed', 'Processing', 'Shipped', 'Delivered', 'Return Requested', 'Return Approved', 'Return Picked', 'Refund Initiated', 'Refund Completed', 'Refunded'].includes(order.status);
+                                    const isShipped = order.shippedAt || ['Shipped', 'Delivered', 'Return Requested', 'Return Approved', 'Return Picked', 'Refund Initiated', 'Refund Completed', 'Refunded'].includes(order.status);
+                                    const isDelivered = order.deliveredAt || ['Delivered', 'Return Requested', 'Return Approved', 'Return Picked', 'Refund Initiated', 'Refund Completed', 'Refunded'].includes(order.status);
+
+                                    steps.push({ title: 'Confirmed', date: order.confirmedAt, completed: isConfirmed, type: 'standard' });
+                                    steps.push({ title: 'Shipped', date: order.shippedAt, completed: isShipped, type: 'standard' });
+                                    steps.push({ title: 'Delivered', date: order.deliveredAt, completed: isDelivered, type: 'standard' });
+
+                                    // 4. Return Flow (Appended only if relevant)
+                                    const returnStatuses = ['Return Requested', 'Return Approved', 'Return Picked', 'Refund Initiated', 'Refund Completed', 'Refunded'];
+
+                                    if (returnStatuses.includes(order.status) || order.returnStatus === 'Requested') {
+                                        steps.push({
+                                            title: 'Return Requested',
+                                            date: order.status === 'Return Requested' ? order.updatedAt : null,
+                                            completed: true,
+                                            description: `Reason: ${order.returnReason}`,
+                                            type: 'warning'
+                                        });
+
+                                        const isReturnApproved = ['Return Approved', 'Return Picked', 'Refund Initiated', 'Refund Completed', 'Refunded'].includes(order.status);
+                                        steps.push({ title: 'Return Approved', completed: isReturnApproved, type: 'warning' });
+
+                                        const isReturnPicked = ['Return Picked', 'Refund Initiated', 'Refund Completed', 'Refunded'].includes(order.status);
+                                        steps.push({ title: 'Return Picked', completed: isReturnPicked, type: 'warning' });
+
+                                        const isRefunded = ['Refund Completed', 'Refunded'].includes(order.status);
+                                        steps.push({ title: 'Refund Completed', date: order.refundDate, completed: isRefunded, type: 'success' });
+                                    }
+                                }
+
+                                return steps.map((step, idx) => {
+                                    let dotClass = 'bg-gray-300';
+                                    let ringClass = '';
+
+                                    if (step.completed) {
+                                        if (step.type === 'error') { dotClass = 'bg-red-600'; ringClass = 'ring-red-50'; }
+                                        else if (step.type === 'warning') { dotClass = 'bg-orange-500'; ringClass = 'ring-orange-50'; }
+                                        else if (step.type === 'success') { dotClass = 'bg-green-600'; ringClass = 'ring-green-50'; }
+                                        else { dotClass = 'bg-indigo-600'; ringClass = 'ring-indigo-50'; }
+                                    }
+
+                                    return (
+                                        <div key={idx} className={`relative ${step.completed ? '' : 'opacity-40'}`}>
+                                            <span className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full ring-4 ${step.completed ? ringClass : ''} ${dotClass}`}></span>
+                                            <div className={`mb-1 text-sm font-semibold ${step.type === 'error' ? 'text-red-700' : 'text-gray-900'}`}>{step.title}</div>
+                                            {step.date && <div className="text-xs text-gray-500">{new Date(step.date).toLocaleString()}</div>}
+                                            {step.description && <p className="text-sm text-gray-600 mt-1">{step.description}</p>}
+                                        </div>
+                                    );
+                                });
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -379,32 +504,170 @@ const OrderDetails = () => {
                             <p>Same as shipping address</p>
                         </div>
                         <div className="mt-6 pt-6 border-t border-gray-100">
-                            <div className="text-xs text-gray-500 uppercase font-semibold mb-2">Payment Method</div>
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded bg-gray-50 border border-gray-200">
-                                    {order.paymentMethod === 'Card' ? <RiVisaLine size={24} className="text-blue-600" /> : <MdPayment size={24} className="text-green-600" />}
+                            <div className="mt-6 pt-6 border-t border-gray-100">
+                                <div className="text-xs text-gray-500 uppercase font-semibold mb-3">Payment & Refund</div>
+
+                                {/* Payment Status */}
+                                <div className="flex items-start gap-3 mb-4">
+                                    <div className="p-2 rounded bg-gray-50 border border-gray-200 mt-1">
+                                        {order.paymentMethod === 'Card' ? <RiVisaLine size={24} className="text-blue-600" /> : <MdPayment size={24} className="text-green-600" />}
+                                    </div>
+                                    <div>
+                                        <div className="font-medium text-gray-900">{order.paymentMethod} Payment</div>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded ${order.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                {order.paymentStatus}
+                                            </span>
+                                            {order.paymentStatus === 'Paid' && (
+                                                <span className="text-xs text-gray-500">
+                                                    {new Date(order.paymentMethod === 'COD' && order.deliveredAt ? order.deliveredAt : order.createdAt).toLocaleDateString()} {new Date(order.paymentMethod === 'COD' && order.deliveredAt ? order.deliveredAt : order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="font-medium text-gray-900">{order.paymentMethod}</div>
-                                    <div className="text-xs text-gray-500">Status: <span className={order.paymentStatus === 'Paid' ? 'text-green-600' : 'text-amber-600'}>{order.paymentStatus}</span></div>
                                 </div>
+
+                                {/* Refund Status */}
+                                {order.refundStatus && order.refundStatus !== 'None' && (
+                                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 animate-in fade-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className={`w-2 h-2 rounded-full ${order.refundStatus === 'Completed' ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+                                            <span className="text-sm font-bold text-gray-800">Refund {order.refundStatus}</span>
+                                        </div>
+                                        <div className="space-y-1 pl-4 border-l-2 border-gray-200">
+                                            {order.refundAmount && (
+                                                <div className="text-xs text-gray-600 flex justify-between">
+                                                    <span>Amount:</span>
+                                                    <span className="font-semibold text-gray-900">₹{order.refundAmount}</span>
+                                                </div>
+                                            )}
+                                            {order.refundDate && (
+                                                <div className="text-xs text-gray-600 flex justify-between">
+                                                    <span>Date:</span>
+                                                    <span className="text-gray-900">{new Date(order.refundDate).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                            )}
+                                            {order.refundId && (
+                                                <div className="text-[10px] text-gray-400 mt-1 font-mono uppercase tracking-wider">
+                                                    ID: {order.refundId}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Refund Confirmation Modal */}
+                {isRefundModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                                <h3 className="text-xl font-bold text-gray-800">Process Refund</h3>
+                                <button onClick={() => setIsRefundModalOpen(false)} className="text-gray-400 hover:text-gray-600"><MdCancel size={24} /></button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="flex items-start gap-4 p-4 bg-amber-50 rounded-lg border border-amber-100 text-amber-800">
+                                    <MdCheckCircle size={24} className="mt-1 shrink-0" />
+                                    <div>
+                                        <h4 className="font-bold text-sm uppercase mb-1">Confirmation Required</h4>
+                                        <p className="text-sm">You are about to initate a refund of <span className="font-bold">₹{order.grandTotal}</span> for order #{order.orderId}. This action cannot be undone.</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Refund</label>
+                                    <input
+                                        type="text"
+                                        disabled
+                                        value={order.cancellationReason || 'Order Cancelled'}
+                                        className="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-600"
+                                    />
+                                </div>
+                            </div>
+                            <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                                <button onClick={() => setIsRefundModalOpen(false)} className="px-5 py-2.5 bg-white text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                                    Cancel
+                                </button>
+                                <button onClick={handleProcessRefund} className="px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">
+                                    Confirm & Refund
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Return Request Modal */}
+                {isReturnModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                                <h3 className="text-xl font-bold text-gray-800">Review Return Request</h3>
+                                <button onClick={() => setIsReturnModalOpen(false)} className="text-gray-400 hover:text-gray-600"><MdCancel size={24} /></button>
+                            </div>
+                            <div className="p-6 space-y-6">
+                                <div>
+                                    <span className="text-xs text-gray-500 uppercase font-bold tracking-wider">Return Reason</span>
+                                    <p className="mt-2 p-3 bg-gray-50 rounded-lg text-gray-800 border border-gray-100">{order.returnReason || 'No reason provided'}</p>
+                                </div>
+
+                                {order.returnImages && order.returnImages.length > 0 && (
+                                    <div>
+                                        <span className="text-xs text-gray-500 uppercase font-bold tracking-wider">Returned Images</span>
+                                        <div className="grid grid-cols-4 gap-4 mt-3">
+                                            {order.returnImages.map((img, i) => (
+                                                <a key={i} href={img} target="_blank" rel="noreferrer" className="aspect-square rounded-lg overflow-hidden border border-gray-200 block hover:ring-2 ring-indigo-500 transition-all">
+                                                    <img src={img} alt="" className="w-full h-full object-cover" />
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {order.paymentMethod === 'COD' && order.refundBankDetails && (
+                                    <div>
+                                        <span className="text-xs text-gray-500 uppercase font-bold tracking-wider">Bank Details (COD Refund)</span>
+                                        <div className="mt-2 p-4 bg-blue-50 rounded-lg border border-blue-100 space-y-2">
+                                            <div className="flex justify-between"><span className="text-gray-500 text-sm">Account Name:</span> <span className="font-semibold text-gray-900">{order.refundBankDetails.accountHolderName}</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-500 text-sm">Account Number:</span> <span className="font-semibold text-gray-900">{order.refundBankDetails.accountNumber}</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-500 text-sm">IFSC Code:</span> <span className="font-semibold text-gray-900">{order.refundBankDetails.ifscCode}</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-500 text-sm">Bank Name:</span> <span className="font-semibold text-gray-900">{order.refundBankDetails.bankName}</span></div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                                <button
+                                    onClick={handleRejectReturn}
+                                    className="px-5 py-2.5 bg-white text-red-600 border border-red-200 rounded-lg hover:bg-red-50 font-medium transition-colors"
+                                >
+                                    Reject Return
+                                </button>
+                                <button
+                                    onClick={handleApproveReturn}
+                                    className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm transition-colors"
+                                >
+                                    Approve & Schedule Pickup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <InvoiceModal
+                    isOpen={isInvoiceOpen}
+                    onClose={() => setIsInvoiceOpen(false)}
+                    order={order}
+                />
+                <ShippingLabelModal
+                    isOpen={isLabelModalOpen}
+                    onClose={() => setIsLabelModalOpen(false)}
+                    order={order}
+                />
             </div>
-            <InvoiceModal
-                isOpen={isInvoiceOpen}
-                onClose={() => setIsInvoiceOpen(false)}
-                order={order}
-            />
-            <ShippingLabelModal
-                isOpen={isLabelModalOpen}
-                onClose={() => setIsLabelModalOpen(false)}
-                order={order}
-            />
-        </div>
-    );
+            );
 };
 
-export default OrderDetails;
+            export default OrderDetails;

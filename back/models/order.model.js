@@ -42,7 +42,7 @@ const orderSchema = new mongoose.Schema({
     // Fulfillment
     status: {
         type: String,
-        enum: ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+        enum: ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Return Requested', 'Return Approved', 'Return Picked', 'Refund Initiated', 'Refund Completed'],
         default: 'Pending'
     },
     shippingAddress: {
@@ -57,7 +57,7 @@ const orderSchema = new mongoose.Schema({
         buildingName: String,
         landmark: String,
         locality: String,
-        
+
 
     },
 
@@ -78,7 +78,7 @@ const orderSchema = new mongoose.Schema({
     courierCompanyId: { type: String },
     packages: { type: Number },
     weight: { type: String },
-    
+
     // Enhanced Tracking Information
     trackingHistory: [{
         status: { type: String },
@@ -91,13 +91,35 @@ const orderSchema = new mongoose.Schema({
     expectedDeliveryDate: { type: Date },
     deliveryAttempts: { type: Number, default: 0 },
     lastTrackingSync: { type: Date },
-    
+
     // Dates
     placedAt: { type: Date, default: Date.now },
     confirmedAt: { type: Date },
     shippedAt: { type: Date },
     deliveredAt: { type: Date },
-    returnWindowExpiresAt: { type: Date } // Set upon delivery
+    returnWindowExpiresAt: { type: Date }, // Set upon delivery
+
+    // Refund & Return
+    refundStatus: { type: String, enum: ['None', 'Initiated', 'Processing', 'Completed', 'Failed'], default: 'None' },
+    refundId: { type: String },
+    refundAmount: { type: Number },
+    refundDate: { type: Date },
+    refundBankDetails: {
+        accountNumber: { type: String },
+        ifscCode: { type: String },
+        accountHolderName: { type: String },
+        bankName: { type: String },
+        upiId: { type: String }
+    },
+    cancellationReason: { type: String },
+    returnReason: { type: String },
+    returnImages: [{ type: String }],
+    returnPickupDetails: {
+        shiprocketOrderId: { type: String },
+        shipmentId: { type: String },
+        status: { type: String },
+        pickupDate: { type: Date }
+    },
 
 }, { timestamps: true });
 

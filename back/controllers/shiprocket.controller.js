@@ -283,7 +283,7 @@ exports.getDetailedTrackingInfo = async (req, res) => {
                 const trackingInfo = trackingData.tracking_data;
                 const activities = trackingInfo.shipment_track_activities || [];
                 const shipmentTrack = trackingInfo.shipment_track || [];
-                
+
                 // Process activities into our tracking history format
                 trackingHistory = activities.map(activity => ({
                     status: activity['sr-status-label'] || activity.status,
@@ -298,7 +298,7 @@ exports.getDetailedTrackingInfo = async (req, res) => {
                 // Get shipment details
                 const shipmentDetails = shipmentTrack[0] || {};
                 const latestActivity = trackingHistory[0];
-                
+
                 const updateData = {
                     trackingHistory: trackingHistory,
                     currentLocation: latestActivity?.location || shipmentDetails.destination,
@@ -316,15 +316,15 @@ exports.getDetailedTrackingInfo = async (req, res) => {
                 };
 
                 // Update delivery status based on latest activity
-                if (latestActivity?.srStatusLabel?.toLowerCase().includes('delivered') || 
+                if (latestActivity?.srStatusLabel?.toLowerCase().includes('delivered') ||
                     shipmentDetails.current_status?.toLowerCase().includes('delivered')) {
                     updateData.status = 'Delivered';
-                    updateData.deliveredAt = shipmentDetails.delivered_date ? 
+                    updateData.deliveredAt = shipmentDetails.delivered_date ?
                         new Date(shipmentDetails.delivered_date) : latestActivity.timestamp;
                     updateData.returnWindowExpiresAt = new Date(updateData.deliveredAt.getTime() + 7 * 24 * 60 * 60 * 1000);
-                } else if (latestActivity?.srStatusLabel?.toLowerCase().includes('shipped') || 
-                          latestActivity?.srStatusLabel?.toLowerCase().includes('transit') ||
-                          latestActivity?.srStatusLabel?.toLowerCase().includes('pickup')) {
+                } else if (latestActivity?.srStatusLabel?.toLowerCase().includes('shipped') ||
+                    latestActivity?.srStatusLabel?.toLowerCase().includes('transit') ||
+                    latestActivity?.srStatusLabel?.toLowerCase().includes('pickup')) {
                     updateData.status = 'Shipped';
                     if (!order.shippedAt && shipmentDetails.pickup_date) {
                         updateData.shippedAt = new Date(shipmentDetails.pickup_date);
@@ -498,21 +498,68 @@ exports.handleWebhook = async (req, res) => {
         let orderStatus = order.status;
         let deliveredAt = order.deliveredAt;
 
+        // Check if this is a Return Order Webhook
+        const isReturnOrder = order.returnPickupDetails?.shiprocketOrderId == order_id;
+
         switch (current_status?.toLowerCase()) {
             case 'shipped':
             case 'in transit':
-                orderStatus = 'Shipped';
-                if (!order.shippedAt) {
-                    await Order.findByIdAndUpdate(order._id, { shippedAt: new Date() });
+                if (isReturnOrder) {
+                    orderStatus = 'Return Picked';
+                    if (order.paymentStatus === 'Paid' && order.refundStatus === 'None') {
+                        // Auto-refund for prepaid return pickup
+                        try {
+                            const paymentController = require('./payment.controller');
+                            const refundId = `REF-${order.orderId}-${Date.now()}`;
+                            await paymentController.initiateRefund(order.orderId, order.grandTotal, refundId, 'Auto-refund on Return Pickup');
+                            order.refundStatus = 'Initiated';
+                            order.refundId = refundId;
+                            order.refundAmount = order.grandTotal;
+                            order.refundDate = new Date();
+                            order.paymentStatus = 'Refunded';
+                        } catch (refErr) {
+                            console.error("Auto-refund failed:", refErr.message);
+                            order.refundStatus = 'Failed';
+                        }
+                    }
+                } else {
+                    orderStatus = 'Shipped';
+                    if (!order.shippedAt) {
+                        await Order.findByIdAndUpdate(order._id, { shippedAt: new Date() });
+                    }
+                }
+                break;
+            case 'picked up':
+                if (isReturnOrder) {
+                    orderStatus = 'Return Picked';
+                    if (order.paymentStatus === 'Paid' && order.refundStatus === 'None') {
+                        try {
+                            const paymentController = require('./payment.controller');
+                            const refundId = `REF-${order.orderId}-${Date.now()}`;
+                            await paymentController.initiateRefund(order.orderId, order.grandTotal, refundId, 'Auto-refund on Return Pickup');
+                            order.refundStatus = 'Initiated';
+                            order.refundId = refundId;
+                            order.refundAmount = order.grandTotal;
+                            order.refundDate = new Date();
+                            order.paymentStatus = 'Refunded';
+                        } catch (refErr) {
+                            console.error("Auto-refund failed:", refErr.message);
+                            order.refundStatus = 'Failed';
+                        }
+                    }
                 }
                 break;
             case 'delivered':
-                orderStatus = 'Delivered';
-                deliveredAt = new Date();
+                if (isReturnOrder) {
+                    orderStatus = 'Return Completed'; // Returned to seller
+                } else {
+                    orderStatus = 'Delivered';
+                    deliveredAt = new Date();
+                }
                 break;
             case 'rto':
             case 'cancelled':
-                orderStatus = 'Cancelled';
+                if (!isReturnOrder) orderStatus = 'Cancelled';
                 break;
         }
 
@@ -523,12 +570,20 @@ exports.handleWebhook = async (req, res) => {
             status: orderStatus
         };
 
-        if (awb && !order.awbNumber) {
+        if (order.refundStatus && order.refundStatus !== 'None') {
+            updateData.refundStatus = order.refundStatus;
+            updateData.refundId = order.refundId;
+            updateData.refundAmount = order.refundAmount;
+            updateData.refundDate = order.refundDate;
+            updateData.paymentStatus = order.paymentStatus;
+        }
+
+        if (awb && !order.awbNumber && !isReturnOrder) {
             updateData.awbNumber = awb;
             updateData.trackingNumber = awb;
         }
 
-        if (deliveredAt) {
+        if (deliveredAt && !isReturnOrder) {
             updateData.deliveredAt = deliveredAt;
             updateData.returnWindowExpiresAt = new Date(deliveredAt.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
         }
@@ -578,7 +633,7 @@ exports.syncAllTrackingData = async (req, res) => {
                     const trackingInfo = trackingData.tracking_data;
                     const activities = trackingInfo.shipment_track_activities || [];
                     const shipmentTrack = trackingInfo.shipment_track || [];
-                    
+
                     const trackingHistory = activities.map(activity => ({
                         status: activity['sr-status-label'] || activity.status,
                         location: activity.location || 'Unknown',
@@ -595,14 +650,14 @@ exports.syncAllTrackingData = async (req, res) => {
                     let deliveredAt = order.deliveredAt;
 
                     // Update status based on latest activity
-                    if (latestActivity?.srStatusLabel?.toLowerCase().includes('delivered') || 
+                    if (latestActivity?.srStatusLabel?.toLowerCase().includes('delivered') ||
                         shipmentDetails.current_status?.toLowerCase().includes('delivered')) {
                         orderStatus = 'Delivered';
-                        deliveredAt = shipmentDetails.delivered_date ? 
+                        deliveredAt = shipmentDetails.delivered_date ?
                             new Date(shipmentDetails.delivered_date) : latestActivity.timestamp;
                     } else if (latestActivity?.srStatusLabel?.toLowerCase().includes('shipped') ||
-                              latestActivity?.srStatusLabel?.toLowerCase().includes('transit') ||
-                              latestActivity?.srStatusLabel?.toLowerCase().includes('pickup')) {
+                        latestActivity?.srStatusLabel?.toLowerCase().includes('transit') ||
+                        latestActivity?.srStatusLabel?.toLowerCase().includes('pickup')) {
                         orderStatus = 'Shipped';
                     }
 
@@ -804,22 +859,22 @@ exports.getPickupLocations = async (req, res) => {
     try {
         // For now, let's handle the case where Shiprocket API might not be accessible
         let locations = [];
-        
+
         try {
             const pickupLocations = await shiprocketAPI.getPickupLocations();
             console.log('Shiprocket pickup locations response:', JSON.stringify(pickupLocations, null, 2));
-            
-            
+
+
             // Handle different response structures
             if (pickupLocations && pickupLocations.data) {
                 locations = Array.isArray(pickupLocations.data.shipping_address) ? pickupLocations.data.shipping_address : [];
-                console.log("aaaaaaa",locations,pickupLocations)
+                console.log("aaaaaaa", locations, pickupLocations)
             } else if (Array.isArray(pickupLocations)) {
                 locations = pickupLocations;
             }
         } catch (shiprocketError) {
             console.error('Shiprocket API error:', shiprocketError.message);
-            
+
             // Return mock data for development/testing
             locations = [
                 {
@@ -857,7 +912,7 @@ exports.getPickupLocations = async (req, res) => {
                     is_first_mile_pickup: false
                 }
             ];
-            
+
             console.log('Using mock pickup locations for development');
         }
         res.status(200).json({
@@ -879,11 +934,11 @@ exports.getPickupLocations = async (req, res) => {
 exports.addPickupLocation = async (req, res) => {
     try {
         const pickupData = req.body;
-        
+
         // Validate required fields
         const requiredFields = ['pickup_location', 'name', 'email', 'phone', 'address', 'city', 'state', 'country', 'pin_code'];
         const missingFields = requiredFields.filter(field => !pickupData[field]);
-        
+
         if (missingFields.length > 0) {
             return res.status(400).json({
                 success: false,
@@ -892,7 +947,7 @@ exports.addPickupLocation = async (req, res) => {
         }
 
         const result = await shiprocketAPI.addPickupLocation(pickupData);
-        
+
         if (result.success) {
             res.status(200).json({
                 success: true,
@@ -919,7 +974,7 @@ exports.updatePickupLocation = async (req, res) => {
     try {
         const { pickupId } = req.params;
         const pickupData = req.body;
-        
+
         if (!pickupId) {
             return res.status(400).json({
                 success: false,
@@ -928,7 +983,7 @@ exports.updatePickupLocation = async (req, res) => {
         }
 
         const result = await shiprocketAPI.updatePickupLocation(pickupId, pickupData);
-        
+
         if (result.success) {
             res.status(200).json({
                 success: true,
@@ -954,7 +1009,7 @@ exports.updatePickupLocation = async (req, res) => {
 exports.deletePickupLocation = async (req, res) => {
     try {
         const { pickupId } = req.params;
-        
+
         if (!pickupId) {
             return res.status(400).json({
                 success: false,
@@ -963,7 +1018,7 @@ exports.deletePickupLocation = async (req, res) => {
         }
 
         const result = await shiprocketAPI.deletePickupLocation(pickupId);
-        
+
         if (result.success) {
             res.status(200).json({
                 success: true,
