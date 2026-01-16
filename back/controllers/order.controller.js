@@ -3,10 +3,6 @@ const Product = require('../models/product.model');
 const { validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 
-// Helper: Calculate tax
-const calculateTax = (price, percent) => {
-    return (price * percent) / 100;
-};
 
 exports.createOrder = async (req, res) => {
     const session = await mongoose.startSession();
@@ -28,11 +24,6 @@ exports.createOrder = async (req, res) => {
             const product = await Product.findOne({ _id: item.productId }).session(session);
             if (!product) throw new Error(`Product ${item.productId} not found`);
 
-            // Find variant/size stock
-            // This is a simplified lookup. In real life, need to traverse variants array.
-            // Assuming simplified structure for this prompt where we just check "stock" on the variant if possible, 
-            // or we assume the frontend sends the correct SKU details and we blindly trust/verify.
-            // Let's implement robust check.
             let variantOption = null;
             product.variants.forEach(v => {
                 const opt = v.options.find(o => o.sku === item.sku);
@@ -42,9 +33,6 @@ exports.createOrder = async (req, res) => {
             if (!variantOption) throw new Error(`SKU ${item.sku} not found`);
             if (variantOption.stock < item.quantity) throw new Error(`Insufficient stock for ${product.name} (${item.sku})`);
 
-            // Deduct Stock
-            // MongoDB array update is tricky, easier to pull, modify, save or use arrayFilters
-            // Using logic: we need to update the specific sub-document in array
             await Product.findOneAndUpdate(
                 { _id: product._id, "variants.options.sku": item.sku },
                 { $inc: { "variants.$[].options.$[opt].stock": -item.quantity } },
@@ -54,22 +42,15 @@ exports.createOrder = async (req, res) => {
                 }
             );
 
-            // Price Calculation
-            const price = variantOption.price; // Sell Price
+            const price = variantOption.price;
             const gst = product.gstPercentage || 0;
-            const lineGst = (price * item.quantity * gst) / 100; // Simplified Exclusive Tax logic
-            // If price is inclusive: tax = (price * gst) / (100 + gst)
-            // User requested "GST Breakup", usually implies derived from base price. 
-            // Let's assume Price is Taxable Value for simplicity in B2B or clearer B2C. 
-            // OR Price is MRP (Inclusive). Let's assume Inclusive for B2C Clothing.
 
-            // Re-calc for Inclusive:
-            const taxableValue = (price * item.quantity) / (1 + (gst / 100));
-            const gstAmount = (price * item.quantity) - taxableValue;
+            const totalAmount = price * item.quantity;
+            const gstAmount = Number(((totalAmount * gst) / (100 + gst)).toFixed(2));
+            const taxableValue = Number((totalAmount - gstAmount).toFixed(2));
 
-            // Split CGST/SGST (50-50)
-            const cgst = gstAmount / 2;
-            const sgst = gstAmount / 2;
+            const cgst = Number((gstAmount / 2).toFixed(2));
+            const sgst = Number((gstAmount / 2).toFixed(2));
 
             subTotal += taxableValue;
             taxTotal += gstAmount;
@@ -82,7 +63,7 @@ exports.createOrder = async (req, res) => {
                 name: product.name,
                 size: variantOption.size,
                 quantity: item.quantity,
-                price: price, // Unit Price (MRP/Sell Price)
+                price: price,
                 gstPercentage: gst,
                 gstAmount: gstAmount,
                 totalPrice: price * item.quantity,
@@ -90,7 +71,6 @@ exports.createOrder = async (req, res) => {
             });
         }
 
-        // Apply coupon discount if provided
         if (appliedCoupon && appliedCoupon.discount) {
             couponDiscount = appliedCoupon.discount;
         }
@@ -116,7 +96,6 @@ exports.createOrder = async (req, res) => {
             status: 'Pending'
         };
 
-        // Add coupon information if provided
         if (appliedCoupon) {
             orderData.appliedCoupon = {
                 code: appliedCoupon.code,

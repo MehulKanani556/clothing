@@ -30,7 +30,7 @@ exports.addReview = async (req, res) => {
         });
 
 
-        // Update Product aggregate rating (optional here, usually done effectively via aggregation on fetch)
+        // Update Product aggregate rating
         const allReviews = await Review.find({ product: product, status: { $in: ['Pending', 'Published'] } });
 
         let totalRating = 0;
@@ -38,8 +38,10 @@ exports.addReview = async (req, res) => {
 
         allReviews.forEach(rev => {
             totalRating += rev.rating;
-            if (breakdown[rev.rating] !== undefined) {
-                breakdown[rev.rating] += 1;
+            // Categorize half-ratings into the integer buckets (e.g., 4.5 goes into the 4-star bucket)
+            const ratingBucket = Math.floor(rev.rating);
+            if (breakdown[ratingBucket] !== undefined) {
+                breakdown[ratingBucket] += 1;
             }
         });
 

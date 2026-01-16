@@ -12,7 +12,7 @@ const initialState = {
     loggedIn: false,
     isLoggedOut: false,
     message: null,
-    isLocked: false // New state for lock screen
+    isLocked: false
 };
 const handleErrors = (error, dispatch, rejectWithValue) => {
 

@@ -130,11 +130,17 @@ const Header = ({ toggleSidebar }) => {
                         className="flex items-center gap-3 cursor-pointer pl-4 hover:text-black transition-colors border-l border-gray-100"
                         onClick={() => setIsProfileOpen(!isProfileOpen)}
                     >
-                        <img
-                            src={user?.photo || "https://i.pravatar.cc/150?img=32"}
-                            alt={name}
-                            className="w-8 h-8 rounded-full border border-gray-200"
-                        />
+                        {user?.photo ? (
+                            <img
+                                src={user?.photo}
+                                alt={name}
+                                className="w-8 h-8 rounded-full border border-gray-200"
+                            />
+                        ) : (
+                            <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center text-white text-sm font-bold border border-gray-200 uppercase">
+                                {user?.firstName?.charAt(0) || 'A'}
+                            </div>
+                        )}
                         <div className="hidden md:flex items-center gap-1">
                             <span className="text-sm font-medium text-gray-700">{name}</span>
                             <MdKeyboardArrowDown size={16} className={`transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />

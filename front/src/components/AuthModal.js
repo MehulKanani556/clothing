@@ -1,4 +1,5 @@
 import React, { Fragment, useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom';
 import { Dialog, Transition, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react'
 import { XMarkIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { FaGoogle, FaFacebook } from "react-icons/fa";
@@ -8,7 +9,8 @@ import { login, register, forgotPassword, verifyOtp, resetPassword, clearMessage
 export default function AuthModal({ isOpen, closeModal, initialView = 'login' }) {
     const [view, setView] = useState(initialView);
     const dispatch = useDispatch();
-    const { loading, error, message, isAuthenticated } = useSelector((state) => state.auth);
+    const navigate = useNavigate();
+    const { loading, error, message, isAuthenticated, user } = useSelector((state) => state.auth);
 
     const [formData, setFormData] = useState({
         email: '',
@@ -42,8 +44,13 @@ export default function AuthModal({ isOpen, closeModal, initialView = 'login' })
         if (isAuthenticated && isOpen) {
             dispatch(clearMessage());
             closeModal();
+            if (user?.role === 'admin') {
+                navigate('/admin/dashboard');
+            } else {
+                navigate('/');
+            }
         }
-    }, [isAuthenticated, isOpen, closeModal]);
+    }, [isAuthenticated, isOpen, closeModal, user, navigate]);
 
     useEffect(() => {
         if (error || message) {
@@ -108,7 +115,7 @@ export default function AuthModal({ isOpen, closeModal, initialView = 'login' })
                 password: formData.password,
                 mobileNumber: formData.mobileNo,
                 role: 'user',
-                photo:''// Placeholder
+                photo: ''// Placeholder
             };
             dispatch(register(userData)).then((res) => {
                 if (res.meta.requestStatus === 'fulfilled') {

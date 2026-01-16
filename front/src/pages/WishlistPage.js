@@ -40,9 +40,9 @@ export default function WishlistPage() {
         }
 
         // Check if this specific variant is already in cart
-        const existingItem = cartItems && cartItems.find(item => 
-            (item.product._id === product._id || item.product === product._id) && 
-            item.size === selectedSize && 
+        const existingItem = cartItems && cartItems.find(item =>
+            (item.product._id === product._id || item.product === product._id) &&
+            item.size === selectedSize &&
             item.color === selectedColor
         );
 
@@ -115,7 +115,7 @@ export default function WishlistPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {items.map((product) => {
-                        let displayImage = product.variants?.[0]?.images?.[0] || 'https://via.placeholder.com/150';
+                        let displayImage = product.variants?.[0]?.images?.[0] || '';
                         // Basic Price Logic
                         let price = product.price || 0;
                         let mrp = null;
@@ -134,9 +134,9 @@ export default function WishlistPage() {
                                 selectedSize = defaultVariant.options[0].size;
                             }
                         }
-                        const isInCart = cartItems && cartItems.some(item => 
-                            (item.product._id === product._id || item.product === product._id) && 
-                            item.size === selectedSize && 
+                        const isInCart = cartItems && cartItems.some(item =>
+                            (item.product._id === product._id || item.product === product._id) &&
+                            item.size === selectedSize &&
                             item.color === selectedColor
                         );
 
@@ -164,13 +164,12 @@ export default function WishlistPage() {
                                     <button
                                         onClick={() => handleMoveToCart(product)}
                                         disabled={isInCart}
-                                        className={`absolute bottom-0 left-0 right-0 py-3 font-semibold uppercase text-sm translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex items-center justify-center gap-2 ${
-                                            isInCart 
-                                                ? 'bg-gray-400 text-white cursor-not-allowed' 
+                                        className={`absolute bottom-0 left-0 right-0 py-3 font-semibold uppercase text-sm translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex items-center justify-center gap-2 ${isInCart
+                                                ? 'bg-gray-400 text-white cursor-not-allowed'
                                                 : 'bg-white/95 text-black hover:bg-black hover:text-white'
-                                        }`}
+                                            }`}
                                     >
-                                        <FiShoppingCart size={16} /> 
+                                        <FiShoppingCart size={16} />
                                         {isInCart ? 'Already in Cart' : 'Add to Bag'}
                                     </button>
                                 </div>

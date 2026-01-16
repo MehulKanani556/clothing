@@ -22,7 +22,7 @@ exports.createCashfreeOrder = async (req, res) => {
         const request = {
             "order_amount": parseFloat(orderAmount),
             "order_currency": "INR",
-            "order_id": req.body.orderId, // Use the DB Order ID
+            "order_id": req.body.orderId,
             "customer_details": {
                 "customer_id": customerId,
                 "customer_phone": customerPhone,
@@ -199,7 +199,7 @@ exports.verifyPayment = async (req, res) => {
                         giftwrap_charges: 0,
                         transaction_charges: 0,
                         total_discount: updatedOrder.discountTotal || 0,
-                        sub_total: updatedOrder.subTotal,
+                        sub_total: Number(updatedOrder.subTotal)+ Number(updatedOrder.taxTotal),
                         length: 10,
                         breadth: 10,
                         height: 10,

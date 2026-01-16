@@ -55,7 +55,7 @@ export default function ProfileDetails() {
                 dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
                 gender: user.gender || 'Male',
             });
-            setPreviewImage(user.photo || 'https://via.placeholder.com/150');
+            setPreviewImage(user.photo || '');
         }
     }, [user]);
 
@@ -271,8 +271,8 @@ export default function ProfileDetails() {
                                             <label key={option} className="flex items-center gap-3 cursor-pointer group select-none">
                                                 <Field type="radio" name="gender" value={option} className="hidden" />
                                                 <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${values.gender === option
-                                                        ? 'border-black bg-white'
-                                                        : 'border-gray-300 bg-white group-hover:border-gray-400'
+                                                    ? 'border-black bg-white'
+                                                    : 'border-gray-300 bg-white group-hover:border-gray-400'
                                                     }`}>
                                                     {values.gender === option && (
                                                         <div className="w-2.5 h-2.5 rounded-full bg-black"></div>
@@ -301,7 +301,7 @@ export default function ProfileDetails() {
                                     onClick={() => {
                                         setIsEditing(false);
                                         setImageFile(null);
-                                        setPreviewImage(user.photo || 'https://via.placeholder.com/150');
+                                        setPreviewImage(user.photo || '');
                                     }}
                                     className="px-8 py-3 bg-white text-gray-700 border border-gray-300 font-bold uppercase tracking-wide rounded-[4px] hover:bg-gray-50 transition-colors"
                                 >

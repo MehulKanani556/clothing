@@ -143,7 +143,7 @@ export default function ProductCard({ product }) {
                 <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
                     {!isInCart ? (
                         <CustomFlyingButton
-                            src={image || 'https://via.placeholder.com/150'}
+                            src={image || ''}
                             targetSelector="#cart-icon"
                             flyingItemStyling={{
                                 startWidth: '100px',
@@ -156,7 +156,7 @@ export default function ProductCard({ product }) {
                         >
                             <button
                                 onClick={(e) => {
-                                    console.log('Flying button clicked!', { image, src: image || 'https://via.placeholder.com/150' });
+                                    console.log('Flying button clicked!', { image, src: image || '' });
                                     handleAddToCart(e);
                                 }}
                                 className="p-2.5 rounded-full shadow-lg transition-colors bg-white hover:bg-black hover:text-white"

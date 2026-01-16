@@ -1,3 +1,4 @@
+
 import './App.css';
 import { Route, Routes } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -5,51 +6,9 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { Toaster } from 'react-hot-toast';
 import { configureStore } from './redux/Store';
 import MaintenanceWrapper from './components/MaintenanceWrapper';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import Home from './pages/Home';
-import CategoryPage from './pages/CategoryPage';
-import ProductDetails from './pages/ProductDetails';
-import CartPage from './pages/CartPage';
-import WishlistPage from './pages/WishlistPage';
-import ProfilePage from './pages/ProfilePage';
-import ContactPage from './pages/ContactPage';
-import FAQPage from './pages/FAQPage';
-import AboutUsPage from './pages/AboutUsPage';
 import MaintenancePage from './pages/MaintenancePage';
-
-import AdminLayout from './admin/components/layout/AdminLayout';
-import Dashboard from './admin/pages/dashboard/Dashboard';
-import Products from './admin/pages/products/Products';
-import Categories from './admin/pages/categories/Categories';
-import Orders from './admin/pages/orders/Orders';
-import OrderDetails from './admin/pages/orders/OrderDetails';
-import OfferZone from './admin/pages/offerZone/OfferZone';
-import Returns from './admin/pages/returns/Returns';
-import GstReports from './admin/pages/gstReports/GstReports';
-import SizeCharts from './admin/pages/sizeCharts/SizeCharts';
-import Blogs from './admin/pages/blogs/Blogs';
-import Payments from './admin/pages/payments/Payments';
-import Support from './admin/pages/support/Support';
-import Users from './admin/pages/users/Users';
-import PricingRules from './admin/pages/pricingRules/PricingRules';
-import TermsPage from './pages/TermsPage';
-import PaymentPage from './pages/PaymentPage';
-import CategoriesProduct from './admin/pages/categories/CategoriesProduct';
-import ProductsDetails from './admin/pages/products/ProductsDetails';
-import Reviews from './admin/pages/reviews/Reviews';
-import ProductForm from './admin/pages/products/ProductForm';
-import AdminProfile from './admin/pages/profile/AdminProfile';
-import SubCategory from './admin/pages/categories/Subcategory';
-import OfferForm from './admin/pages/offerZone/OfferForm';
-import HomePreview from './admin/pages/preview/HomePreview';
-import MainCategory from './admin/pages/categories/MainCategory';
-import OfferBanner from './admin/pages/banners/OfferBanner';
-import HeroBanner from './admin/pages/banners/HeroBanner';
-import Settings from './admin/pages/settings/Settings';
-import Maintenance from './admin/pages/settings/Maintenance';
-import PrivacyPolicy from './admin/pages/page-management/PrivacyPolicy';
-import PageManage from './pages/PageManage';
+import PublicRoutes from './routes/PublicRoutes';
+import AdminRoutes from './routes/AdminRoutes';
 
 const { store, persistor } = configureStore();
 window.persistor = persistor;
@@ -63,71 +22,12 @@ function App() {
           <MaintenanceWrapper>
             <Routes>
               <Route path="/maintenance" element={<MaintenancePage />} />
-              <Route path="/*" element={
-                <>
-                  <Header />
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-
-                    <Route path="/product/:slug" element={<ProductDetails />} />
-                    <Route path="/cart" element={<CartPage />} />
-                    <Route path="/wishlist" element={<WishlistPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/contact" element={<ContactPage />} />
-                    <Route path="/faq" element={<FAQPage />} />
-                    <Route path="/about" element={<AboutUsPage />} />
-                    {/* <Route path="/terms" element={<TermsPage />} /> */}
-                    <Route path="/checkout/payment" element={<PaymentPage />} />
-                    <Route path="/terms-conditions" element={<PageManage />} />
-                    <Route path="/privacy-policy" element={<PageManage />} />
-                    <Route path="/refund-return-policy" element={<PageManage />} />
-                    <Route path="/shipping-policy" element={<PageManage />} />
-                    {/* Catch-all for Categories/Listings - Must be last */}
-                    <Route path="/:slug" element={<CategoryPage />} />
-                  </Routes>
-                  <Footer />
-                </>
-              } />
 
               {/* Admin Routes */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="offer-banner" element={<OfferBanner />} />
-                <Route path="hero-banner" element={<HeroBanner />} />
-                <Route path="home-preview" element={<HomePreview />} />
-                <Route path="products" element={<Products />} />
-                <Route path="add-product" element={<ProductForm />} />
-                <Route path="product/edit/:id" element={<ProductForm />} />
-                <Route path="reviews" element={<Reviews />} />
-                <Route path="products/:id" element={<ProductsDetails />} />
-                <Route path="main-categories" element={<MainCategory />} />
-                <Route path="categories" element={<Categories />} />
-                <Route path="subcategories" element={<SubCategory />} />
-                <Route path="categories/:id" element={<CategoriesProduct />} />
-                <Route path="orders" element={<Orders />} />
-                <Route path="orders/:id" element={<OrderDetails />} />
-                <Route path="offers" element={<OfferZone />} />
-                <Route path="add-offer" element={<OfferForm />} />
-                <Route path="offer/edit/:id" element={<OfferForm />} />
-                <Route path="returns" element={<Returns />} />
-                <Route path="users" element={<Users />} />
-                <Route path="reports" element={<GstReports />} />
-                <Route path="payments" element={<Payments />} />
-                <Route path="size-charts" element={<SizeCharts />} />
-                <Route path="blogs" element={<Blogs />} />
-                <Route path="pricing-rules" element={<PricingRules />} />
-                <Route path="support" element={<Support />} />
-                <Route path="profile" element={<AdminProfile />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="maintenance" element={<Maintenance />} />
-                <Route path="privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="terms-conditions" element={<PrivacyPolicy />} />
-                <Route path="refund-return-policy" element={<PrivacyPolicy />} />
-                <Route path="shipping-policy" element={<PrivacyPolicy />} />
-                {/* Fallback */}
-                <Route index element={<Dashboard />} />
-              </Route>
+              <Route path="/admin/*" element={<AdminRoutes />} />
 
+              {/* Public Routes */}
+              <Route path="/*" element={<PublicRoutes />} />
             </Routes>
           </MaintenanceWrapper>
         </PersistGate>

@@ -53,10 +53,10 @@ export default function CartPage() {
 
             console.log('Checking delivery fee for pincode:', activeAddress.pincode);
             console.log('Cart items for shipping calculation:', items);
-            
-            dispatch(checkPincodeServiceability({ 
-                pincode: activeAddress.pincode, 
-                cartItems: items 
+
+            dispatch(checkPincodeServiceability({
+                pincode: activeAddress.pincode,
+                cartItems: items
             }))
                 .unwrap()
                 .then((result) => {
@@ -106,10 +106,10 @@ export default function CartPage() {
         }
         console.log('Refreshing delivery fee for pincode:', pincode);
         console.log('Cart items for shipping calculation:', items);
-        
-        dispatch(checkPincodeServiceability({ 
-            pincode, 
-            cartItems: items 
+
+        dispatch(checkPincodeServiceability({
+            pincode,
+            cartItems: items
         }))
             .unwrap()
             .then((result) => {
@@ -225,7 +225,7 @@ export default function CartPage() {
                             if (!product) return null; // Safety check
 
                             // Determine Image
-                            let displayImage = product.variants?.[0]?.images?.[0] || 'https://via.placeholder.com/150'; // Default
+                            let displayImage = product.variants?.[0]?.images?.[0] || ''; // Default
                             if (product.variants) {
                                 const variant = product.variants.find(v => v.color === item.color);
                                 if (variant && variant.images && variant.images.length > 0) {
@@ -248,7 +248,7 @@ export default function CartPage() {
                             const discountPercent = mrp > item.price ? Math.round(((mrp - item.price) / mrp) * 100) : 0;
 
                             return (
-                                <div key={item._id}  className="flex gap-4 p-4 border border-gray-100 rounded-lg shadow-sm bg-white relative hover:shadow-md transition-shadow">
+                                <div key={item._id} className="flex gap-4 p-4 border border-gray-100 rounded-lg shadow-sm bg-white relative hover:shadow-md transition-shadow">
                                     {/* Delete Button */}
                                     <button
                                         onClick={(e) => { e.stopPropagation(); confirmRemove(item._id) }}

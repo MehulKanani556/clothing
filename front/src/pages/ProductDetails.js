@@ -9,10 +9,12 @@ import { fetchUserOrders } from '../redux/slice/order.slice';
 import { addToWishlist, removeFromWishlist, fetchWishlist } from '../redux/slice/wishlist.slice';
 import toast from 'react-hot-toast';
 import { FiStar, FiShare2, FiHeart, FiShoppingBag, FiTruck, FiRefreshCw, FiChevronDown, FiChevronUp, FiCheck, FiInfo } from 'react-icons/fi';
-import { FaStar } from 'react-icons/fa';
+import { FaStar, FaStarHalfAlt } from 'react-icons/fa';
 import ReviewOffcanvas from '../components/ReviewOffcanvas';
 import ProductCard from '../components/ProductCard';
 import { BASE_URL } from '../utils/BASE_URL';
+import { Rating } from '@mui/material';
+import StarIcon from '@mui/icons-material/Star';
 
 export default function ProductDetails() {
     const { slug } = useParams();
@@ -22,7 +24,7 @@ export default function ProductDetails() {
 
     // Redux State
     const { product: apiProduct, relatedProducts: apiRelated, loading } = useSelector((state) => state.product);
-    const { isAuthenticated } = useSelector((state) => state.auth);
+    const { isAuthenticated, user } = useSelector((state) => state.auth);
     const { items: cartItems } = useSelector((state) => state.cart);
     const { items: wishlistItems } = useSelector((state) => state.wishlist);
     const { orders } = useSelector((state) => state.order);
@@ -149,6 +151,9 @@ export default function ProductDetails() {
 
     const hasOrdered = isAuthenticated && orders?.some(order =>
         order.items?.some(item => (item.product?._id || item.product) === product._id)
+    );
+    const hasReviewed = isAuthenticated && productData?.reviews?.some(review =>
+        review?.user?._id === user?._id
     );
 
     const toggleSection = (section) => {
@@ -678,7 +683,7 @@ export default function ProductDetails() {
                                 {/* Reviews Heading & Write Review */}
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="font-bold text-lg text-gray-900">Reviews</h3>
-                                    {hasOrdered && (
+                                    {(hasOrdered && !hasReviewed) && (
                                         <button
                                             onClick={() => setIsReviewOpen(true)}
                                             className="text-sm font-medium text-gray-900 underline hover:text-gray-600 underline-offset-4 decoration-1"
@@ -707,13 +712,19 @@ export default function ProductDetails() {
                                                             <span className="text-xs text-gray-400">{review.createdAt ? new Date(review.createdAt).toLocaleDateString() : 'Recently'}</span>
                                                         </div>
                                                         <div className="flex text-yellow-400 text-xs mb-2">
-                                                            {[...Array(5)].map((_, i) => (
-                                                                <FaStar key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-200'} />
-                                                            ))}
+                                                            <Rating
+                                                                name="text-feedback"
+                                                                value={review.rating}
+                                                                precision={0.5}
+                                                                readOnly
+                                                                sx={{ color: '#FACC15' }}
+                                                                size="small"
+                                                                emptyIcon={<StarIcon style={{ opacity: 1 }} fontSize="inherit" />}
+                                                            />
                                                         </div>
 
                                                         {review.title && <h5 className="font-bold text-gray-900 text-sm mb-1">{review.title}</h5>}
-                                                        <p className="text-sm text-gray-600 leading-relaxed mb-3">{review.comment}</p>
+                                                        <p className="text-sm text-gray-600 leading-relaxed mb-3">{review.review}</p>
 
                                                         {review.images && review.images.length > 0 && (
                                                             <div className="flex gap-2 mt-3">

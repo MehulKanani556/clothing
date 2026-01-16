@@ -71,7 +71,7 @@ exports.createUser = async (req, res) => {
     try {
         const { firstName, lastName, email, password, role } = req.body;
         // const photo = req.file.location; // Commented out as file upload might be optional or handled elsewhere in some tests
-        const photo = req.file ? req.file.location : "https://via.placeholder.com/150";
+        const photo = req.file ? req.file.location : "";
 
         const checkUser = await User.findOne({ email });
         if (checkUser) {

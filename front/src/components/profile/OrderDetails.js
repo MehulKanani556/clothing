@@ -210,6 +210,14 @@ export default function OrderDetails({ order, onBack }) {
                             <span>₹{order.subTotal?.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
+                            <span>SGST</span>
+                            <span>₹{order.sgstTotal?.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-600">
+                            <span>CGST</span>
+                            <span>₹{order.cgstTotal?.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-600">
                             <span>Shipping</span>
                             <span>{order.shippingFee === 0 ? 'Free' : `₹${order.shippingFee}`}</span>
                         </div>

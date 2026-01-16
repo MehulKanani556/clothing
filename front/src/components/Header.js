@@ -187,7 +187,7 @@ export default function Header() {
 
     const price = product.price || option?.price || 0;
     const originalPrice = product.originalPrice || option?.mrp || 0;
-    const image = product.image || variant?.images?.[0] || 'https://via.placeholder.com/150';
+    const image = product.image || variant?.images?.[0] || '';
 
     const discount = product.discount || (price && originalPrice ? `${Math.round(((originalPrice - price) / originalPrice) * 100)}% OFF` : null);
     const rating = product.averageRating || (typeof product.rating === 'number' ? product.rating : 0) || 0;
@@ -355,11 +355,17 @@ export default function Header() {
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                 >
                   <div className='w-8 h-8'>
-                    <img
-                      src={user?.photo || "https://i.pravatar.cc/150?img=32"}
-                      alt={name}
-                      className="w-full h-full object-cover rounded-full border border-gray-200"
-                    />
+                    {user?.photo ? (
+                      <img
+                        src={user?.photo}
+                        alt={name}
+                        className="w-full h-full object-cover rounded-full border border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-white text-sm font-bold border border-gray-200 uppercase">
+                        {user?.firstName?.charAt(0) || 'U'}
+                      </div>
+                    )}
                   </div>
                   <div className="hidden md:flex items-center gap-1">
                     <MdKeyboardArrowDown size={16} className={`transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
