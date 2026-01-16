@@ -9,7 +9,9 @@ export default function Footer() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
                     {/* Column 1: Logo & Vision */}
                     <div className="col-span-1 md:col-span-1">
-                        <h3 className="text-white text-2xl font-bold mb-6">Velora</h3>
+                        <h3 className="text-white text-2xl font-bold mb-6 w-[150px]">
+                            <img src={require('../assets/image/white_logo.png')}  />
+                        </h3>
                         <p className="text-sm leading-relaxed mb-6">
                             Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
                         </p>
