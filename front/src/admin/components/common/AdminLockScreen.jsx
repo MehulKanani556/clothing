@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { unlockSession, logout } from '../../../redux/slice/auth.slice';
+import { unlockSession, logout, verifyPassword } from '../../../redux/slice/auth.slice';
 import { MdLockOpen, MdArrowForward } from 'react-icons/md';
 import toast from 'react-hot-toast';
 
@@ -9,22 +9,27 @@ const AdminLockScreen = () => {
     const { user } = useSelector((state) => state.auth);
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleUnlock = (e) => {
+    const handleUnlock = async (e) => {
         e.preventDefault();
-        // In a real app, verify password with backend here.
-        // For this demo/client-side lock, we'll just check if it's not empty, 
-        // or effectively just "unlock" since we can't easily verify the hash client-side 
-        // without a dedicated verify-password endpoint (which implies full login).
+        if (!password) {
+            setError('Please enter your password');
+            return;
+        }
 
-        // If the user wants a secure lock, we should hit an endpoint.
-        // Assuming client-side "session lock" for privacy (e.g. stepping away from desk).
-
-        if (password.length > 0) {
+        try {
+            setLoading(true);
+            setError('');
+            // Verify password by attempting to login again
+            await dispatch(verifyPassword({ email: user?.email, password })).unwrap();
             dispatch(unlockSession());
             toast.success('Welcome back!');
-        } else {
-            setError('Please enter your password');
+            setPassword('');
+        } catch (err) {
+            setError(err?.message || 'Incorrect password! Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -50,9 +55,10 @@ const AdminLockScreen = () => {
                                 type="password"
                                 value={password}
                                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all text-center tracking-widest"
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black transition-all text-center tracking-widest disabled:bg-gray-100 disabled:text-gray-400"
                                 placeholder="••••••••"
                                 autoFocus
+                                disabled={loading}
                             />
                         </div>
 
@@ -60,10 +66,23 @@ const AdminLockScreen = () => {
 
                         <button
                             type="submit"
-                            className="w-full bg-black text-white py-3 rounded-xl font-semibold shadow-lg shadow-gray-200/50 hover:bg-gray-800 transition-all active:scale-95 flex items-center justify-center gap-2"
+                            disabled={loading}
+                            className="w-full bg-black text-white py-3 rounded-xl font-semibold shadow-lg shadow-gray-200/50 hover:bg-gray-800 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
-                            <MdLockOpen size={20} />
-                            Unlock Session
+                            {loading ? (
+                                <span className="flex items-center gap-2">
+                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Unlocking...
+                                </span>
+                            ) : (
+                                <>
+                                    <MdLockOpen size={20} />
+                                    Unlock Session
+                                </>
+                            )}
                         </button>
                     </form>
                 </div>

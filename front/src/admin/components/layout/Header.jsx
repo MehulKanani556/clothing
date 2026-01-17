@@ -88,7 +88,7 @@ const Header = ({ toggleSidebar }) => {
 
             {/* Right Section */}
             <div className="flex items-center gap-4 text-gray-500">
-                <div className="relative" ref={notificationRef}>
+                {/* <div className="relative" ref={notificationRef}>
                     <button className="hover:text-black transition-colors" onClick={() => setIsNotificationOpen(!isNotificationOpen)}>
                         <MdNotifications size={22} />
                         <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full font-bold">
@@ -96,7 +96,6 @@ const Header = ({ toggleSidebar }) => {
                         </span>
                     </button>
 
-                    {/* Dropdown Menu */}
                     <Transition
                         show={isNotificationOpen}
                         enter="transition ease-out duration-200"
@@ -118,7 +117,7 @@ const Header = ({ toggleSidebar }) => {
                             </div>
                         </div>
                     </Transition>
-                </div>
+                </div> */}
 
                 <button type="button" onClick={handleFullscreenToggle} className="hover:text-black transition-colors hidden sm:block">
                     {isFullscreen ? <MdFullscreenExit size={24} /> : <MdFullscreen size={24} />}
@@ -168,10 +167,10 @@ const Header = ({ toggleSidebar }) => {
                                     <MdPerson size={18} className="text-gray-400 group-hover:text-black transition-colors" />
                                     <span>Profile</span>
                                 </button>
-                                <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-black transition-colors group">
+                                {/* <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-black transition-colors group">
                                     <MdSettings size={18} className="text-gray-400 group-hover:text-black transition-colors" />
                                     <span>Account Settings</span>
-                                </button>
+                                </button> */}
                             </div>
 
                             <div className="border-t border-gray-100 py-2">

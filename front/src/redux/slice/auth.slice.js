@@ -213,6 +213,22 @@ export const setDefaultAddress = createAsyncThunk(
     }
 );
 
+// Verify Password (Login without side effects on error)
+export const verifyPassword = createAsyncThunk(
+    'auth/verifyPassword',
+    async (data, { rejectWithValue }) => {
+        try {
+            const response = await axiosInstance.post(`${BASE_URL}/login`, data);
+            // If successful, we refresh the session
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('userId', response.data.user._id);
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
+
 export const logoutUser = logout;
 
 export const authSlice = createSlice({
@@ -446,6 +462,23 @@ export const authSlice = createSlice({
             .addCase(setDefaultAddress.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload?.message || "Failed to update default address";
+            })
+
+            // Verify Password Cases
+            .addCase(verifyPassword.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(verifyPassword.fulfilled, (state, action) => {
+                state.user = action.payload?.user || null;
+                state.isAuthenticated = true;
+                state.loading = false;
+                state.error = null;
+            })
+            .addCase(verifyPassword.rejected, (state, action) => {
+                state.loading = false;
+                // Do NOT log out user on verification failure
+                state.error = action.payload?.message || "Verification Failed";
             });
     }
 
