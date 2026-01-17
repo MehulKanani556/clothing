@@ -18,6 +18,7 @@ import { TbRectangle, TbColumns, TbColumns3 } from 'react-icons/tb';
 import CustomSelect from '../../components/common/CustomSelect';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
 import HeroSection from '../../../components/HeroSection';
+import DeleteModal from '../../components/modals/DeleteModal';
 
 const SECTION_LABELS = {
     hero_section: 'Hero Slider Section',
@@ -42,6 +43,9 @@ export default function HomePreview() {
         saving
     } = useSelector((state) => state.adminHome);
     const { heroBanners } = useSelector((state) => state.heroBanner);
+
+    const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+    const [sectionToDelete, setSectionToDelete] = React.useState(null);
 
     // Initial Data Fetch
     useEffect(() => {
@@ -104,8 +108,15 @@ export default function HomePreview() {
     };
 
     const handleRemoveSection = (keyToRemove) => {
-        if (window.confirm('Are you sure you want to remove this banner section?')) {
-            dispatch(removeBannerSlot(keyToRemove));
+        setSectionToDelete(keyToRemove);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDeleteSection = () => {
+        if (sectionToDelete) {
+            dispatch(removeBannerSlot(sectionToDelete));
+            setDeleteModalOpen(false);
+            setSectionToDelete(null);
         }
     };
 
@@ -519,6 +530,14 @@ export default function HomePreview() {
                     </div>
                 </div>
             </div>
+
+            <DeleteModal
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={confirmDeleteSection}
+                title="Remove Section"
+                message="Are you sure you want to remove this banner section?"
+            />
         </div>
     );
 }
